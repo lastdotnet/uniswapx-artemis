@@ -65,7 +65,6 @@ impl ExecutionMetadata {
         let mps_of_improvement = profit_quote
             .saturating_mul(U256::from(MPS))
             .checked_div(self.amount_out_required)?;
-        info!("mps_of_improvement: {}", mps_of_improvement);
         let priority_fee = mps_of_improvement
             .checked_mul(U256::from(bid_percentage))?
             .checked_div(U256::from(100))?;
@@ -358,7 +357,10 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                 self.mark_as_done(&order_hash);
             }
             OrderStatus::NotFillableYet => {
-                info!("Order not fillable yet, skipping: {}", order_hash);
+                info!(
+                    "{} - Order not fillable yet - last block: {}, target: {}",
+                    order_hash, self.last_block_number, order.cosignerData.auctionTargetBlock
+                );
             }
             OrderStatus::Open(resolved_order) => {
                 if self.done_orders.contains_key(order_hash) {
