@@ -247,7 +247,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
         self.last_block_number = event.number.as_u64();
         self.last_block_timestamp = event.timestamp.as_u64();
 
-        info!("Processing block {} at {}", event.number, event.timestamp,);
+        info!("Processing block {} at {}", event.number, event.timestamp);
         self.handle_fills()
             .await
             .map_err(|e| error!("Error handling fills {}", e))
@@ -342,12 +342,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
         })
     }
 
-    fn update_order_state(
-        &mut self,
-        order: PriorityOrder,
-        signature: String,
-        order_hash: String,
-    ) {
+    fn update_order_state(&mut self, order: PriorityOrder, signature: String, order_hash: String) {
         let resolved = order.resolve(
             self.last_block_number,
             self.last_block_timestamp + BLOCK_TIME,
