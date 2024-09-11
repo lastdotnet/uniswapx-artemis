@@ -445,7 +445,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
         self.remove_open_order(order_hash);
         if !self.done_orders.contains_key(order_hash) {
             self.done_orders
-                .insert(order_hash.to_string(), self.last_block_number + DONE_EXPIRY);
+                .insert(order_hash.to_string(), self.last_block_timestamp + DONE_EXPIRY);
         }
     }
 }
