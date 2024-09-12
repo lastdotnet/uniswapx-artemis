@@ -357,7 +357,6 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
 
         match order_status {
             OrderStatus::Done => {
-                self.remove_open_order(&order_hash);
                 self.mark_as_done(&order_hash);
             }
             OrderStatus::NotFillableYet => {
