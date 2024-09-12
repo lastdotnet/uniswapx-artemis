@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use alloy_primitives::Uint;
 use anyhow::{anyhow, Result};
 use reqwest::header::ORIGIN;
@@ -9,7 +11,8 @@ use uniswapx_rs::order::{Order, ResolvedOrder};
 use artemis_core::types::{Collector, CollectorStream};
 use async_trait::async_trait;
 use futures::lock::Mutex;
-use futures::stream::{FuturesUnordered, StreamExt};
+use futures::stream::FuturesUnordered;
+use futures::StreamExt;
 use reqwest::{Client, StatusCode};
 
 const ROUTING_API: &str = "https://api.uniswap.org/v1/quote";
@@ -166,39 +169,71 @@ impl UniswapXRouteCollector {
 
 /// Implementation of the [Collector](Collector) trait for the
 /// [UniswapXRouteCollector](UniswapXRouteCollector).
-// TODO: implement order deduplication
 #[async_trait]
 impl Collector<RoutedOrder> for UniswapXRouteCollector {
     async fn get_event_stream(&self) -> Result<CollectorStream<'_, RoutedOrder>> {
         let stream = async_stream::stream! {
-            let mut receiver = self.route_request_receiver.lock().await;
-            while let Some(route_requests) = receiver.recv().await {
-                let tasks: FuturesUnordered<_> = route_requests.into_iter()
-                    .map(|batch| {
-                        let OrderBatchData { orders, token_in, token_out, amount_in, .. } = batch.clone();
-                        info!(
-                            "Checking batch: {} orders, token in: {}, token out: {}",
-                            orders.len(), token_in, token_out
-                        );
+            loop {
+                let mut all_requests = Vec::new();
+                let mut seen = HashSet::new();
+                let mut receiver = self.route_request_receiver.lock().await;
 
-                        async move {
-                            (batch, route_order(RouteOrderParams {
-                                chain_id: self.chain_id,
-                                token_in: token_in.clone(),
-                                token_out: token_out.clone(),
-                                amount: amount_in.to_string(),
-                                recipient: self.executor_address.clone(),
-                            }).await)
+                // Collect all available messages without blocking
+                while let Ok(requests) = receiver.try_recv() {
+                    for request in requests {
+                        if !seen.contains(&request.orders[0].hash) {
+                            seen.insert(request.orders[0].hash.clone());
+                            all_requests.push(request);
                         }
-                    }).collect();
+                    }
+                }
 
-                let routes: Vec<_> = tasks.collect().await;
-                for (batch, route_result) in routes {
+                // If no messages were received, wait for one
+                if all_requests.is_empty() {
+                    if let Some(requests) = receiver.recv().await {
+                        for request in requests {
+                            if !seen.contains(&request.orders[0].hash) {
+                                seen.insert(request.orders[0].hash.clone());
+                                all_requests.push(request);
+                            }
+                        }
+                    } else {
+                        break; // Channel closed
+                    }
+                }
+
+                drop(receiver); // Release the lock
+
+                let mut tasks = FuturesUnordered::new();
+
+                for batch in all_requests {
+                    let OrderBatchData { orders, token_in, token_out, amount_in, .. } = batch.clone();
+                    info!(
+                        "{} - Routing order, token in: {}, token out: {}",
+                        orders[0].hash,
+                        token_in, token_out
+                    );
+
+                    let future = async move {
+                        let route_result = route_order(RouteOrderParams {
+                            chain_id: self.chain_id,
+                            token_in: token_in.clone(),
+                            token_out: token_out.clone(),
+                            amount: amount_in.to_string(),
+                            recipient: self.executor_address.clone(),
+                        }).await;
+                        (batch, route_result)
+                    };
+
+                    tasks.push(future);
+                }
+
+                while let Some((batch, route_result)) = tasks.next().await {
                     match route_result {
                         Ok(route) => {
                             yield RoutedOrder {
-                                request: batch.clone(),
-                                route: route,
+                                request: batch,
+                                route,
                             };
                         }
                         Err(e) => {

@@ -196,7 +196,10 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
             .iter()
             .any(|o: &OrderData| self.done_orders.contains_key(&o.hash))
         {
-            info!("Skipping route with done orders");
+            info!(
+                "{} - Skipping route with done order",
+                event.request.orders[0].hash
+            );
             return None;
         }
 
@@ -207,9 +210,10 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
             ..
         } = &event.request;
 
-        if let Some(profit) = self.get_execution_metadata(&event) {
+        if let Some(metadata) = self.get_execution_metadata(&event) {
             info!(
-                "Sending trade: num trades: {} routed quote: {}, batch needs: {}",
+                "{} - Sending trade: num trades: {} routed quote: {}, batch needs: {}",
+                metadata.order_hash,
                 orders.len(),
                 event.route.quote,
                 amount_out_required,
@@ -234,7 +238,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                             total_profit: U256::from(0),
                         }),
                     },
-                    metadata: profit,
+                    metadata,
                 },
             ));
         }
@@ -443,8 +447,10 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
     fn mark_as_done(&mut self, order_hash: &str) {
         self.remove_open_order(order_hash);
         if !self.done_orders.contains_key(order_hash) {
-            self.done_orders
-                .insert(order_hash.to_string(), self.last_block_timestamp + DONE_EXPIRY);
+            self.done_orders.insert(
+                order_hash.to_string(),
+                self.last_block_timestamp + DONE_EXPIRY,
+            );
         }
     }
 }

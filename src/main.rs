@@ -102,7 +102,7 @@ async fn main() -> Result<()> {
     let mevblocker_provider =
         Provider::<Http>::try_from(MEV_BLOCKER).expect("could not instantiate HTTP Provider");
 
-    let key_store = Arc::new(KeyStore::new());
+    let mut key_store = Arc::new(KeyStore::new());
 
     if let Some(aws_secret_arn) = args.aws_secret_arn {
         let config = aws_config::load_from_env().await;
@@ -119,7 +119,7 @@ async fn main() -> Result<()> {
             .expect("could not parse private key mapping");
         // load into keystore
         for (address, pk) in pk_mapping {
-            key_store.add_key(address, pk).await;
+            Arc::make_mut(&mut key_store).add_key(address, pk).await;
         }
     } else if let Some(pk_file) = args.private_key_file {
         let pk_mapping_json = std::fs::read_to_string(pk_file).expect("could not read pk file");
@@ -127,15 +127,17 @@ async fn main() -> Result<()> {
             .expect("could not parse private key mapping");
         // load into keystore
         for (address, pk) in pk_mapping {
-            key_store.add_key(address, pk).await;
+            Arc::make_mut(&mut key_store).add_key(address, pk).await;
         }
     } else {
         let pk = args.private_key.clone().unwrap();
         let wallet: LocalWallet = pk.parse::<LocalWallet>().unwrap().with_chain_id(chain_id);
         let address = wallet.address();
-        key_store.add_key(address.to_string(), pk).await;
+        Arc::make_mut(&mut key_store)
+            .add_key(address.to_string(), pk)
+            .await;
     }
-    info!("Key store initialized with {} keys", key_store.len().await);
+    info!("Key store initialized with {} keys", key_store.len());
 
     let provider = Arc::new(provider);
     let mevblocker_provider = Arc::new(mevblocker_provider);
@@ -204,26 +206,32 @@ async fn main() -> Result<()> {
         key_store.clone(),
     ));
 
-    let public_tx_executor = Box::new(Public1559Executor::new(
-        provider.clone(),
-        provider.clone(),
-        key_store.clone(), // TODO: this should be the same as the protect executor
-    ));
-
     let protect_executor = ExecutorMap::new(protect_executor, |action| match action {
         Action::SubmitTx(tx) => Some(tx),
         // No op for public transactions
         _ => None,
     });
 
-    let public_tx_executor = ExecutorMap::new(public_tx_executor, |action| match action {
-        Action::SubmitPublicTx(execution) => Some(execution),
-        // No op for protected transactions
-        _ => None,
-    });
+    let key_count = key_store.len();
+
+    for _ in 0..key_count {
+        let public_tx_executor = Box::new(Public1559Executor::new(
+            provider.clone(),
+            provider.clone(),
+            key_store.clone(),
+        ));
+
+        let public_tx_executor = ExecutorMap::new(public_tx_executor, |action| match action {
+            Action::SubmitPublicTx(execution) => Some(execution),
+            // No op for protected transactions
+            _ => None,
+        });
+
+        engine.add_executor(Box::new(public_tx_executor));
+    }
 
     engine.add_executor(Box::new(protect_executor));
-    engine.add_executor(Box::new(public_tx_executor));
+
     // Start engine.
     match engine.run().await {
         Ok(mut set) => {
