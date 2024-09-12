@@ -2,7 +2,7 @@ use serde_json::Value;
 use std::sync::Arc;
 use tracing::{info, warn};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use artemis_core::types::Executor;
 use async_trait::async_trait;
 use ethers::{
@@ -88,6 +88,10 @@ where
                         ReactorErrorCode::OrderAlreadyFilled => {
                             info!("{} - Order already filled, skipping execution", order_hash);
                             Err(anyhow::anyhow!("Order Already Filled"))
+                        }
+                        ReactorErrorCode::InvalidDeadline => {
+                            info!("{} - Order past deadline, skipping execution", order_hash);
+                            Err(anyhow::anyhow!("Order Past Deadline"))
                         }
                         _ => Ok(U256::from(1_000_000)),
                     }
