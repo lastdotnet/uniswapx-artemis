@@ -26,6 +26,7 @@ use tokio::sync::mpsc::channel;
 use tracing::{error, info, Level};
 use tracing_subscriber::{filter, prelude::*};
 
+pub mod aws_utils;
 pub mod collectors;
 pub mod executors;
 pub mod strategies;
@@ -37,6 +38,10 @@ const MEV_BLOCKER: &str = "https://rpc.mevblocker.io/noreverts";
 #[command(group(
     ArgGroup::new("key_source")
         .args(&["private_key", "private_key_file", "aws_secret_arn"])
+))]
+#[command(group(
+    ArgGroup::new("aws_features")
+        .args(&["cloudwatch_metrics"])
 ))]
 pub struct Args {
     /// Ethereum node WS endpoint.
@@ -67,6 +72,10 @@ pub struct Args {
     /// Order type to use.
     #[arg(long)]
     pub order_type: OrderType,
+    
+    /// Enable CloudWatch logging
+    #[arg(long, group = "aws_features")]
+    pub cloudwatch_metrics: bool,
 
     /// chain id
     #[arg(long)]
@@ -212,10 +221,18 @@ async fn main() -> Result<()> {
         _ => None,
     });
 
+    let cloudwatch_client = if args.cloudwatch_metrics {
+        let config = aws_config::load_from_env().await;
+        Some(Arc::new(aws_sdk_cloudwatch::Client::new(&config)))
+    } else {
+        None
+    };
+    
     let queued_executor = Box::new(QueuedExecutor::new(
         provider.clone(),
         provider.clone(),
         key_store.clone(),
+        cloudwatch_client
     ));
 
     let queued_executor = ExecutorMap::new(queued_executor, |action| match action {

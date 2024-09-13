@@ -5,6 +5,7 @@ use tracing::{info, warn};
 use anyhow::{Context, Result};
 use artemis_core::types::Executor;
 use async_trait::async_trait;
+use aws_sdk_cloudwatch::{types::{MetricDatum, StandardUnit}, Client as CloudWatchClient};
 use ethers::{
     middleware::MiddlewareBuilder,
     providers::{Middleware, MiddlewareError},
@@ -13,23 +14,35 @@ use ethers::{
 };
 
 use crate::{
-    executors::reactor_error_code::ReactorErrorCode,
-    strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata},
+    aws_utils::cloudwatch_utils::cloudwatch_utils::{executor_dimension, receipt_status_to_metric, CwMetrics}, executors::reactor_error_code::ReactorErrorCode, strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
 };
+
+macro_rules! send_metric_with_order_hash {
+    ($order_hash: expr, $future: expr) => {
+        let hash = Arc::clone($order_hash);
+        tokio::spawn(async move {
+            if let Err(e) = $future.await {
+                warn!("{} - error sending metric: {:?}", hash, e);
+            }
+        })
+    };
+}
 
 /// An executor that sends transactions to the public mempool.
 pub struct Public1559Executor<M, N> {
     client: Arc<M>,
     sender_client: Arc<N>,
     key_store: Arc<KeyStore>,
+    cloudwatch_client: Option<Arc<CloudWatchClient>>,
 }
 
 impl<M: Middleware, N: Middleware> Public1559Executor<M, N> {
-    pub fn new(client: Arc<M>, sender_client: Arc<N>, key_store: Arc<KeyStore>) -> Self {
+    pub fn new(client: Arc<M>, sender_client: Arc<N>, key_store: Arc<KeyStore>, cloudwatch_client: Option<Arc<CloudWatchClient>>) -> Self {
         Self {
             client,
             sender_client,
             key_store,
+            cloudwatch_client
         }
     }
 }
@@ -44,7 +57,7 @@ where
 {
     /// Send a transaction to the mempool.
     async fn execute(&self, mut action: SubmitTxToMempoolWithExecutionMetadata) -> Result<()> {
-        let order_hash = action.metadata.order_hash.clone();
+        let order_hash = Arc::new(action.metadata.order_hash.clone());
         // Acquire a key from the key store
         let (public_address, private_key) = self
             .key_store
@@ -151,6 +164,21 @@ where
         let signer = nonce_manager.with_signer(wallet);
 
         info!("{} - Executing tx from {:?}", order_hash, address);
+        if let Some(cw) = &self.cloudwatch_client {
+            let metric_future = cw.put_metric_data()
+                .metric_data(
+                    MetricDatum::builder()
+                        .metric_name(CwMetrics::TxSubmitted)
+                        .unit(StandardUnit::Count)
+                        .value(1.into())
+                        .dimensions(executor_dimension("public"))
+                        .build()
+                )
+                .send();
+           
+           // do not block current thread by awaiting in the background
+           send_metric_with_order_hash!(&order_hash, metric_future);
+        }
         let result = signer.send_transaction(action.execution.tx, None).await;
 
         // Block on pending transaction getting confirmations
@@ -163,12 +191,27 @@ where
                         anyhow::anyhow!("{} - Error waiting for confirmations: {}", order_hash, e)
                     })?
                     .unwrap();
+                let status = receipt.status.unwrap_or_default();
                 info!(
                     "{} - receipt: tx_hash: {:?}, status: {}",
                     order_hash,
                     receipt.transaction_hash,
-                    receipt.status.unwrap_or_default()
+                    status,
                 );
+                if let Some(cw) = &self.cloudwatch_client {
+                    let metric_future = cw.put_metric_data()
+                        .metric_data(
+                            MetricDatum::builder()
+                                .metric_name(receipt_status_to_metric(status.as_u64()))
+                                .unit(StandardUnit::Count)
+                                .value(1.into())
+                                .dimensions(executor_dimension("public"))
+                                .build()
+                        )
+                        .send();
+                    
+                    send_metric_with_order_hash!(&order_hash, metric_future);
+                }
             }
             Err(e) => {
                 warn!("{} - Error sending transaction: {}", order_hash, e);
