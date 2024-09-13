@@ -17,6 +17,17 @@ use crate::{
     aws_utils::cloudwatch_utils::cloudwatch_utils::{executor_dimension, receipt_status_to_metric, CwMetrics}, executors::reactor_error_code::ReactorErrorCode, strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
 };
 
+macro_rules! send_metric_with_order_hash {
+    ($order_hash: expr, $future: expr) => {
+        let hash = Arc::clone($order_hash);
+        tokio::spawn(async move {
+            if let Err(e) = $future.await {
+                warn!("{} - error sending metric: {:?}", hash, e);
+            }
+        })
+    };
+}
+
 /// An executor that sends transactions to the public mempool.
 pub struct Public1559Executor<M, N> {
     client: Arc<M>,
@@ -46,7 +57,7 @@ where
 {
     /// Send a transaction to the mempool.
     async fn execute(&self, mut action: SubmitTxToMempoolWithExecutionMetadata) -> Result<()> {
-        let order_hash = action.metadata.order_hash.clone().as_str();
+        let order_hash = Arc::new(action.metadata.order_hash.clone());
         // Acquire a key from the key store
         let (public_address, private_key) = self
             .key_store
@@ -166,11 +177,7 @@ where
                 .send();
            
            // do not block current thread by awaiting in the background
-            tokio::spawn(async move {
-                if let Err(e) = metric_future.await {
-                    warn!("{} - error sending tx submission metric: {}", order_hash, e);
-                }
-            });
+           send_metric_with_order_hash!(&order_hash, metric_future);
         }
         let result = signer.send_transaction(action.execution.tx, None).await;
 
@@ -203,11 +210,7 @@ where
                         )
                         .send();
                     
-                    tokio::spawn(async move {
-                        if let Err(e) = metric_future.await {
-                            warn!("{} - error sending tx status metric: {}", order_hash, e);
-                        }
-                    });
+                    send_metric_with_order_hash!(&order_hash, metric_future);
                 }
             }
             Err(e) => {
