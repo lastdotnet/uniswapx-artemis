@@ -5,6 +5,7 @@ use tracing::{info, warn};
 use anyhow::{Context, Result};
 use artemis_core::types::Executor;
 use async_trait::async_trait;
+use aws_sdk_cloudwatch::{types::{MetricDatum, StandardUnit}, Client as CloudWatchClient};
 use ethers::{
     middleware::MiddlewareBuilder,
     providers::{Middleware, MiddlewareError},
@@ -13,8 +14,7 @@ use ethers::{
 };
 
 use crate::{
-    executors::reactor_error_code::ReactorErrorCode,
-    strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata},
+    aws_utils::cloudwatch_utils::cloudwatch_utils::{executor_dimension, receipt_status_to_metric, CwMetrics}, executors::reactor_error_code::ReactorErrorCode, strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
 };
 
 /// An executor that sends transactions to the public mempool.
@@ -22,14 +22,16 @@ pub struct Public1559Executor<M, N> {
     client: Arc<M>,
     sender_client: Arc<N>,
     key_store: Arc<KeyStore>,
+    cloudwatch_client: Option<Arc<CloudWatchClient>>,
 }
 
 impl<M: Middleware, N: Middleware> Public1559Executor<M, N> {
-    pub fn new(client: Arc<M>, sender_client: Arc<N>, key_store: Arc<KeyStore>) -> Self {
+    pub fn new(client: Arc<M>, sender_client: Arc<N>, key_store: Arc<KeyStore>, cloudwatch_client: Option<Arc<CloudWatchClient>>) -> Self {
         Self {
             client,
             sender_client,
             key_store,
+            cloudwatch_client
         }
     }
 }
@@ -151,6 +153,23 @@ where
         let signer = nonce_manager.with_signer(wallet);
 
         info!("{} - Executing tx from {:?}", order_hash, address);
+        if let Some(cw) = &self.cloudwatch_client {
+            cw.put_metric_data()
+                .metric_data(
+                    MetricDatum::builder()
+                        .metric_name(CwMetrics::TxSubmitted)
+                        .unit(StandardUnit::Count)
+                        .value(1.into())
+                        .dimensions(executor_dimension("public"))
+                        .build()
+                )
+                .send()
+                .await
+                .map_err(|err| {
+                    warn!("{} - error sending tx status metric: {}", order_hash ,err);
+                })
+                .ok();
+        }
         let result = signer.send_transaction(action.execution.tx, None).await;
 
         // Block on pending transaction getting confirmations
@@ -163,12 +182,30 @@ where
                         anyhow::anyhow!("{} - Error waiting for confirmations: {}", order_hash, e)
                     })?
                     .unwrap();
+                let status = receipt.status.unwrap_or_default();
                 info!(
                     "{} - receipt: tx_hash: {:?}, status: {}",
                     order_hash,
                     receipt.transaction_hash,
-                    receipt.status.unwrap_or_default()
+                    status,
                 );
+                if let Some(cw) = &self.cloudwatch_client {
+                    cw.put_metric_data()
+                        .metric_data(
+                            MetricDatum::builder()
+                                .metric_name(receipt_status_to_metric(status.as_u64()))
+                                .unit(StandardUnit::Count)
+                                .value(1.into())
+                                .dimensions(executor_dimension("public"))
+                                .build()
+                        )
+                        .send()
+                        .await
+                        .map_err(|err| {
+                            warn!("{} - error sending tx status metric: {}", order_hash ,err);
+                        })
+                        .ok();
+                }
             }
             Err(e) => {
                 warn!("{} - Error sending transaction: {}", order_hash, e);
