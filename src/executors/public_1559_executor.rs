@@ -46,7 +46,7 @@ where
 {
     /// Send a transaction to the mempool.
     async fn execute(&self, mut action: SubmitTxToMempoolWithExecutionMetadata) -> Result<()> {
-        let order_hash = action.metadata.order_hash.clone();
+        let order_hash = action.metadata.order_hash.clone().as_str();
         // Acquire a key from the key store
         let (public_address, private_key) = self
             .key_store
@@ -154,7 +154,7 @@ where
 
         info!("{} - Executing tx from {:?}", order_hash, address);
         if let Some(cw) = &self.cloudwatch_client {
-            cw.put_metric_data()
+            let metric_future = cw.put_metric_data()
                 .metric_data(
                     MetricDatum::builder()
                         .metric_name(CwMetrics::TxSubmitted)
@@ -163,12 +163,14 @@ where
                         .dimensions(executor_dimension("public"))
                         .build()
                 )
-                .send()
-                .await
-                .map_err(|err| {
-                    warn!("{} - error sending tx status metric: {}", order_hash ,err);
-                })
-                .ok();
+                .send();
+           
+           // do not block current thread by awaiting in the background
+            tokio::spawn(async move {
+                if let Err(e) = metric_future.await {
+                    warn!("{} - error sending tx submission metric: {}", order_hash, e);
+                }
+            });
         }
         let result = signer.send_transaction(action.execution.tx, None).await;
 
@@ -190,7 +192,7 @@ where
                     status,
                 );
                 if let Some(cw) = &self.cloudwatch_client {
-                    cw.put_metric_data()
+                    let metric_future = cw.put_metric_data()
                         .metric_data(
                             MetricDatum::builder()
                                 .metric_name(receipt_status_to_metric(status.as_u64()))
@@ -199,12 +201,13 @@ where
                                 .dimensions(executor_dimension("public"))
                                 .build()
                         )
-                        .send()
-                        .await
-                        .map_err(|err| {
-                            warn!("{} - error sending tx status metric: {}", order_hash ,err);
-                        })
-                        .ok();
+                        .send();
+                    
+                    tokio::spawn(async move {
+                        if let Err(e) = metric_future.await {
+                            warn!("{} - error sending tx status metric: {}", order_hash, e);
+                        }
+                    });
                 }
             }
             Err(e) => {
