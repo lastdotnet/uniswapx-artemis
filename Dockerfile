@@ -38,6 +38,8 @@ COPY --from=build /bin/server /bin/
 EXPOSE 1559
 
 # Add Tini
+# Tini helps with the problem of accidentally created zombie processes, and also make sure that the signal handlers work
+# see https://github.com/krallin/tini for detail
 ENV TINI_VERSION=v0.19.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
 RUN chmod +x /tini
