@@ -31,21 +31,16 @@ cp ./target/release/$APP_NAME /bin/server
 FROM debian:bookworm-slim AS final
 RUN apt-get -y update && apt-get -y upgrade && apt-get install -y libssl3 ca-certificates && update-ca-certificates && rm -rf /var/lib/apt/lists/*
 
-# Create a non-privileged user that the app will run under.
-# See https://docs.docker.com/go/dockerfile-user-best-practices/
-ARG UID=10001
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid "${UID}" \
-    appuser
-USER appuser
-
 # Copy the executable from the "build" stage.
 COPY --from=build /bin/server /bin/
 
 # Expose the port that the application listens on.
 EXPOSE 1559
+
+# Add Tini
+# Tini helps with the problem of accidentally created zombie processes, and also makes sure that the signal handlers work
+# see https://github.com/krallin/tini for detail
+ENV TINI_VERSION=v0.19.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+RUN chmod +x /tini
+ENTRYPOINT ["/tini", "--"]

@@ -5,7 +5,7 @@ use tracing::{info, warn};
 use anyhow::{Context, Result};
 use artemis_core::types::Executor;
 use async_trait::async_trait;
-use aws_sdk_cloudwatch::{types::{MetricDatum, StandardUnit}, Client as CloudWatchClient};
+use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use ethers::{
     middleware::MiddlewareBuilder,
     providers::{Middleware, MiddlewareError},
@@ -14,7 +14,12 @@ use ethers::{
 };
 
 use crate::{
-    aws_utils::cloudwatch_utils::cloudwatch_utils::{executor_dimension, receipt_status_to_metric, CwMetrics}, executors::reactor_error_code::ReactorErrorCode, strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
+    aws_utils::cloudwatch_utils::cloudwatch_utils::{
+        receipt_status_to_metric, CwMetrics, DimensionName, DimensionValue, MetricBuilder,
+        ARTEMIS_NAMESPACE,
+    },
+    executors::reactor_error_code::ReactorErrorCode,
+    strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata},
 };
 
 macro_rules! send_metric_with_order_hash {
@@ -37,12 +42,17 @@ pub struct Public1559Executor<M, N> {
 }
 
 impl<M: Middleware, N: Middleware> Public1559Executor<M, N> {
-    pub fn new(client: Arc<M>, sender_client: Arc<N>, key_store: Arc<KeyStore>, cloudwatch_client: Option<Arc<CloudWatchClient>>) -> Self {
+    pub fn new(
+        client: Arc<M>,
+        sender_client: Arc<N>,
+        key_store: Arc<KeyStore>,
+        cloudwatch_client: Option<Arc<CloudWatchClient>>,
+    ) -> Self {
         Self {
             client,
             sender_client,
             key_store,
-            cloudwatch_client
+            cloudwatch_client,
         }
     }
 }
@@ -165,19 +175,22 @@ where
 
         info!("{} - Executing tx from {:?}", order_hash, address);
         if let Some(cw) = &self.cloudwatch_client {
-            let metric_future = cw.put_metric_data()
+            let metric_future = cw
+                .put_metric_data()
+                .namespace(ARTEMIS_NAMESPACE)
                 .metric_data(
-                    MetricDatum::builder()
-                        .metric_name(CwMetrics::TxSubmitted)
-                        .unit(StandardUnit::Count)
-                        .value(1.into())
-                        .dimensions(executor_dimension("public"))
-                        .build()
+                    MetricBuilder::new(CwMetrics::TxSubmitted)
+                        .add_dimension(
+                            DimensionName::Executor.as_ref(),
+                            DimensionValue::PriorityExecutor.as_ref(),
+                        )
+                        .with_value(1.0)
+                        .build(),
                 )
                 .send();
-           
-           // do not block current thread by awaiting in the background
-           send_metric_with_order_hash!(&order_hash, metric_future);
+
+            // do not block current thread by awaiting in the background
+            send_metric_with_order_hash!(&order_hash, metric_future);
         }
         let result = signer.send_transaction(action.execution.tx, None).await;
 
@@ -194,22 +207,23 @@ where
                 let status = receipt.status.unwrap_or_default();
                 info!(
                     "{} - receipt: tx_hash: {:?}, status: {}",
-                    order_hash,
-                    receipt.transaction_hash,
-                    status,
+                    order_hash, receipt.transaction_hash, status,
                 );
                 if let Some(cw) = &self.cloudwatch_client {
-                    let metric_future = cw.put_metric_data()
+                    let metric_future = cw
+                        .put_metric_data()
+                        .namespace(ARTEMIS_NAMESPACE)
                         .metric_data(
-                            MetricDatum::builder()
-                                .metric_name(receipt_status_to_metric(status.as_u64()))
-                                .unit(StandardUnit::Count)
-                                .value(1.into())
-                                .dimensions(executor_dimension("public"))
-                                .build()
+                            MetricBuilder::new(receipt_status_to_metric(status.as_u64()))
+                                .add_dimension(
+                                    DimensionName::Executor.as_ref(),
+                                    DimensionValue::PriorityExecutor.as_ref(),
+                                )
+                                .with_value(1.0)
+                                .build(),
                         )
                         .send();
-                    
+
                     send_metric_with_order_hash!(&order_hash, metric_future);
                 }
             }

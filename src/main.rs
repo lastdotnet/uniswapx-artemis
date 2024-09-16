@@ -72,7 +72,7 @@ pub struct Args {
     /// Order type to use.
     #[arg(long)]
     pub order_type: OrderType,
-    
+
     /// Enable CloudWatch logging
     #[arg(long, group = "aws_features")]
     pub cloudwatch_metrics: bool,
@@ -227,12 +227,12 @@ async fn main() -> Result<()> {
     } else {
         None
     };
-    
+
     let queued_executor = Box::new(QueuedExecutor::new(
         provider.clone(),
         provider.clone(),
         key_store.clone(),
-        cloudwatch_client
+        cloudwatch_client,
     ));
 
     let queued_executor = ExecutorMap::new(queued_executor, |action| match action {
