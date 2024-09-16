@@ -98,10 +98,6 @@ pub mod cloudwatch_utils {
         }
     }
 
-    pub fn executor_dimension(value: &str) -> Dimension {
-        Dimension::builder().name("Executor").value(value).build()
-    }
-
     pub fn receipt_status_to_metric(status: u64) -> CwMetrics {
         match status {
             1 => CwMetrics::TxSucceeded,
