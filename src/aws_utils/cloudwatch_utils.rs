@@ -1,11 +1,23 @@
 pub mod cloudwatch_utils {
+
+    /// Constants for dimension names and values
+    pub const EXECUTOR_DIMENSION: &str = "Executor";
+    pub const PRIORITY_EXECUTOR: &str = "PriorityExecutor";
+    pub const V2_EXECUTOR: &str = "V2Executor";
+
+    /// Constants for metric names
+    pub const TX_SUCCEEDED_METRIC: &str = "TransactionSucceeded";
+    pub const TX_REVERTED_METRIC: &str = "TransactionReverted";
+    pub const TX_SUBMITTED_METRIC: &str = "TransactionSubmitted";
+    pub const TX_STATUS_UNKNOWN_METRIC: &str = "TransactionStatusUnknown";
+
     pub enum DimensionName {
         Executor,
     }
     impl AsRef<str> for DimensionName {
         fn as_ref(&self) -> &str {
             match self {
-                DimensionName::Executor => "Executor",
+                DimensionName::Executor => PRIORITY_EXECUTOR,
             }
         }
     }
@@ -13,7 +25,7 @@ pub mod cloudwatch_utils {
     impl Into<String> for DimensionName {
         fn into(self) -> String {
             match self {
-                DimensionName::Executor => "Executor".to_string(),
+                DimensionName::Executor => EXECUTOR_DIMENSION.to_string(),
             }
         }
     }
@@ -26,8 +38,8 @@ pub mod cloudwatch_utils {
     impl Into<String> for DimensionValue {
         fn into(self) -> String {
             match self {
-                DimensionValue::PriorityExecutor => "PriorityExecutor".to_string(),
-                DimensionValue::V2Executor => "V2Executor".to_string(),
+                DimensionValue::PriorityExecutor => PRIORITY_EXECUTOR.to_string(),
+                DimensionValue::V2Executor => V2_EXECUTOR.to_string(),
             }
         }
     }
@@ -35,8 +47,8 @@ pub mod cloudwatch_utils {
     impl AsRef<str> for DimensionValue {
         fn as_ref(&self) -> &str {
             match self {
-                DimensionValue::PriorityExecutor => "PriorityExecutor",
-                DimensionValue::V2Executor => "V2Executor",
+                DimensionValue::PriorityExecutor => PRIORITY_EXECUTOR,
+                DimensionValue::V2Executor => V2_EXECUTOR,
             }
         }
     }
@@ -51,10 +63,10 @@ pub mod cloudwatch_utils {
     impl Into<String> for CwMetrics {
         fn into(self) -> String {
             match self {
-                CwMetrics::TxSucceeded => "TransactionSucceeded".to_string(),
-                CwMetrics::TxReverted => "TransactionReverted".to_string(),
-                CwMetrics::TxSubmitted => "TransactionSubmitted".to_string(),
-                CwMetrics::TxStatusUnknown => "TransactionStatusUnknown".to_string(),
+                CwMetrics::TxSucceeded => TX_SUCCEEDED_METRIC.to_string(),
+                CwMetrics::TxReverted => TX_REVERTED_METRIC.to_string(),
+                CwMetrics::TxSubmitted => TX_SUBMITTED_METRIC.to_string(),
+                CwMetrics::TxStatusUnknown => TX_STATUS_UNKNOWN_METRIC.to_string(),
             }
         }
     }
