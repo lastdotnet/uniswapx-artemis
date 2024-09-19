@@ -48,11 +48,11 @@ pub struct ExecutionMetadata {
 }
 
 impl ExecutionMetadata {
-    pub fn new(quote: U256, amount_out_required: U256, order_hash: &String) -> Self {
+    pub fn new(quote: U256, amount_out_required: U256, order_hash: &str) -> Self {
         Self {
             quote,
             amount_out_required,
-            order_hash: order_hash.clone(),
+            order_hash: order_hash.to_owned(),
         }
     }
 
@@ -160,14 +160,14 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
     }
 
     fn decode_order(&self, encoded_order: &str) -> Result<PriorityOrder, Box<dyn Error>> {
-        let encoded_order = if encoded_order.starts_with("0x") {
-            &encoded_order[2..]
+        let encoded_order = if let Some(stripped) = encoded_order.strip_prefix("0x") {
+            stripped
         } else {
             encoded_order
         };
         let order_hex = hex::decode(encoded_order)?;
 
-        Ok(PriorityOrder::decode_inner(&order_hex, false)?)
+        PriorityOrder::decode_inner(&order_hex, false)
     }
 
     async fn process_order_event(&mut self, event: &UniswapXOrder) -> Option<Action> {
