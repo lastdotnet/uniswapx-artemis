@@ -171,7 +171,8 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
     }
 
     async fn process_order_event(&mut self, event: &UniswapXOrder) -> Option<Action> {
-        if self.last_block_timestamp == 0 {
+        if self.last_block_timestamp == 0 || self.open_orders.get(&event.order_hash).is_some() {
+            info!("{} - skipping processing order event", event.order_hash);
             return None;
         }
 
