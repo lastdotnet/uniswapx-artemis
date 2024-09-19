@@ -346,7 +346,7 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
                     OrderData {
                         order: Order::V2DutchOrder(order),
                         hash: order_hash.clone(),
-                        signature: signature.clone(),
+                        signature: signature.to_string(),
                         resolved: resolved_order,
                     },
                 );
