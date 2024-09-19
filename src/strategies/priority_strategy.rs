@@ -435,7 +435,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
         }
     }
 
-    async fn send_order_if_open(&self, order_hash: &String) -> Result<()> {
+    async fn send_order_if_open(&self, order_hash: &str) -> Result<()> {
         if let Some(order_data) = self.get_open_order(order_hash) {
             let order_batch = self.get_order_batch(&order_data);
             self.batch_sender.send(vec![order_batch]).await?;

@@ -40,7 +40,7 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
             .get_tokens_to_approve(
                 client.clone(),
                 token_in,
-                &executor_address,
+                executor_address,
                 SWAPROUTER_02_ADDRESS,
             )
             .await?;
@@ -49,7 +49,7 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
             .get_tokens_to_approve(
                 client.clone(),
                 token_out,
-                &executor_address,
+                executor_address,
                 REACTOR_ADDRESS,
             )
             .await?;
@@ -64,7 +64,6 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
                 ParamType::Array(Box::new(ParamType::Bytes)),
             ],
             &Bytes::from_str(multicall_bytes)
-                .ok()
                 .expect("Failed to decode multicall bytes"),
         );
 
@@ -105,10 +104,8 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
         let allowance = token_contract
             .allowance(
                 H160::from_str(from)
-                    .ok()
                     .expect("Error encoding from address"),
                 H160::from_str(to)
-                    .ok()
                     .expect("Error encoding from address"),
             )
             .await

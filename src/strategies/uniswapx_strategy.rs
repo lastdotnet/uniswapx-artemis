@@ -97,14 +97,14 @@ impl<M: Middleware + 'static> UniswapXStrategy<M> for UniswapXUniswapFill<M> {}
 
 impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
     fn decode_order(&self, encoded_order: &str) -> Result<V2DutchOrder, Box<dyn Error>> {
-        let encoded_order = if encoded_order.starts_with("0x") {
-            &encoded_order[2..]
+        let encoded_order = if let Some(stripped) = encoded_order.strip_prefix("0x"){
+            stripped
         } else {
             encoded_order
         };
         let order_hex: Vec<u8> = hex::decode(encoded_order)?;
 
-        Ok(V2DutchOrder::decode_inner(&order_hex, false)?)
+        V2DutchOrder::decode_inner(&order_hex, false)
     }
 
     // Process new orders as they come in.
@@ -139,7 +139,7 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
             ..
         } = &event.request;
 
-        if let Some(profit) = self.get_profit_eth(&event) {
+        if let Some(profit) = self.get_profit_eth(event) {
             info!(
                 "Sending trade: num trades: {} routed quote: {}, batch needs: {}, profit: {} wei",
                 orders.len(),
@@ -320,7 +320,7 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
         }
     }
 
-    fn update_order_state(&mut self, order: V2DutchOrder, signature: &String, order_hash: &String) {
+    fn update_order_state(&mut self, order: V2DutchOrder, signature: &str, order_hash: &String) {
         let resolved = order.resolve(self.last_block_timestamp + BLOCK_TIME);
         let order_status: OrderStatus = match resolved {
             OrderResolution::Expired => OrderStatus::Done,
@@ -331,7 +331,7 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
 
         match order_status {
             OrderStatus::Done => {
-                self.mark_as_done(&order_hash);
+                self.mark_as_done(order_hash);
             }
             OrderStatus::Open(resolved_order) => {
                 if self.done_orders.contains_key(order_hash) {
