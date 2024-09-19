@@ -211,7 +211,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
             ..
         } = &event.request;
 
-        if let Some(metadata) = self.get_execution_metadata(&event) {
+        if let Some(metadata) = self.get_execution_metadata(event) {
             info!(
                 "{} - Sending trade: num trades: {} routed quote: {}, batch needs: {}",
                 metadata.order_hash,
@@ -374,7 +374,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                     info!("{} - Order already done, skipping", order_hash);
                     return;
                 }
-                if let Some(_) = self.get_open_order(&order_hash) {
+                if self.get_open_order(&order_hash).is_some() {
                     info!("{} - updating order", order_hash);
                     self.update_open_order(&order_hash, |existing_order| {
                         existing_order.resolved = resolved_order;
