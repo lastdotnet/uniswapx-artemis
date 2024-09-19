@@ -46,12 +46,7 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
             .await?;
 
         let reactor_approval = self
-            .get_tokens_to_approve(
-                client.clone(),
-                token_out,
-                executor_address,
-                REACTOR_ADDRESS,
-            )
+            .get_tokens_to_approve(client.clone(), token_out, executor_address, REACTOR_ADDRESS)
             .await?;
 
         // Strip off function selector
@@ -63,8 +58,7 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
                 ParamType::Uint(256),
                 ParamType::Array(Box::new(ParamType::Bytes)),
             ],
-            &Bytes::from_str(multicall_bytes)
-                .expect("Failed to decode multicall bytes"),
+            &Bytes::from_str(multicall_bytes).expect("Failed to decode multicall bytes"),
         );
 
         let decoded_multicall_bytes = match decoded_multicall_bytes {
@@ -103,13 +97,10 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
         let token_contract = ERC20::new(token, client.clone());
         let allowance = token_contract
             .allowance(
-                H160::from_str(from)
-                    .expect("Error encoding from address"),
-                H160::from_str(to)
-                    .expect("Error encoding from address"),
+                H160::from_str(from).expect("Error encoding from address"),
+                H160::from_str(to).expect("Error encoding from address"),
             )
             .await
-            .ok()
             .expect("Failed to get allowance");
         if allowance < U256::MAX / 2 {
             Ok(vec![Token::Address(token)])

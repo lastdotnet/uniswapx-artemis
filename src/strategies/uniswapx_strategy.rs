@@ -97,7 +97,7 @@ impl<M: Middleware + 'static> UniswapXStrategy<M> for UniswapXUniswapFill<M> {}
 
 impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
     fn decode_order(&self, encoded_order: &str) -> Result<V2DutchOrder, Box<dyn Error>> {
-        let encoded_order = if let Some(stripped) = encoded_order.strip_prefix("0x"){
+        let encoded_order = if let Some(stripped) = encoded_order.strip_prefix("0x") {
             stripped
         } else {
             encoded_order

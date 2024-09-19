@@ -104,9 +104,7 @@ impl Collector<UniswapXOrder> for UniswapXOrderCollector {
     async fn get_event_stream(&self) -> Result<CollectorStream<'_, UniswapXOrder>> {
         let url = format!(
             "{}/orders?orderStatus=open&chainId={}&orderType={}",
-            self.base_url,
-            self.chain_id,
-            self.order_type.to_string()
+            self.base_url, self.chain_id, self.order_type,
         );
 
         // stream that polls the UniswapX API every 5 seconds
