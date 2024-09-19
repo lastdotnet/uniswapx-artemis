@@ -26,9 +26,10 @@ impl fmt::Display for OrderTypeError {
 
 impl std::error::Error for OrderTypeError {}
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub enum OrderType {
     DutchV2,
+    #[default]
     Priority,
 }
 
@@ -44,18 +45,12 @@ impl FromStr for OrderType {
     }
 }
 
-impl ToString for OrderType {
-    fn to_string(&self) -> String {
+impl fmt::Display for OrderType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            OrderType::DutchV2 => "Dutch_V2".to_string(),
-            OrderType::Priority => "Priority".to_string(),
+            OrderType::DutchV2 => write!(f, "Dutch_V2"),
+            OrderType::Priority => write!(f, "Priority"),
         }
-    }
-}
-
-impl Default for OrderType {
-    fn default() -> Self {
-        OrderType::DutchV2
     }
 }
 
