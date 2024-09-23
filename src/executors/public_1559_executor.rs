@@ -266,7 +266,7 @@ where
                 if let Some(balance_eth) = balance_eth {
                     info!("{}- balance: {} at block {}", order_hash, balance_eth.clone(), block_number.as_u64());
                     if let Some(cw) = &self.cloudwatch_client {
-                        cw.put_metric_data()
+                        let metric_future = cw.put_metric_data()
                             .namespace(ARTEMIS_NAMESPACE)
                             .metric_data(
                                 MetricBuilder::new(CwMetrics::Balance(address.to_string()))
@@ -277,8 +277,12 @@ where
                                     .with_value(balance_eth.parse::<f64>().unwrap_or(0.0))
                                     .build(),
                             )
-                            .send()
-                            .await?;
+                            .send();
+                        tokio::spawn(async move {
+                            if let Err(e) = metric_future.await {
+                                warn!("{} - error sending metric: {:?}", order_hash, e);
+                            }
+                        });
                     }
                 }
             }
