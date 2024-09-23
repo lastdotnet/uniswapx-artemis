@@ -298,5 +298,5 @@ fn resolve_address(token: String) -> String {
     if token == "0x0000000000000000000000000000000000000000" {
         return "ETH".to_string();
     }
-    return token;
+    token
 }

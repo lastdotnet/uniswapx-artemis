@@ -14,7 +14,7 @@ use ethers::{
 };
 
 use crate::{
-    aws_utils::cloudwatch_utils::cloudwatch_utils::{
+    aws_utils::cloudwatch_utils::{
         receipt_status_to_metric, CwMetrics, DimensionName, DimensionValue, MetricBuilder,
         ARTEMIS_NAMESPACE,
     },

@@ -48,11 +48,11 @@ pub struct ExecutionMetadata {
 }
 
 impl ExecutionMetadata {
-    pub fn new(quote: U256, amount_out_required: U256, order_hash: &String) -> Self {
+    pub fn new(quote: U256, amount_out_required: U256, order_hash: &str) -> Self {
         Self {
             quote,
             amount_out_required,
-            order_hash: order_hash.clone(),
+            order_hash: order_hash.to_owned(),
         }
     }
 
@@ -160,18 +160,19 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
     }
 
     fn decode_order(&self, encoded_order: &str) -> Result<PriorityOrder, Box<dyn Error>> {
-        let encoded_order = if encoded_order.starts_with("0x") {
-            &encoded_order[2..]
+        let encoded_order = if let Some(stripped) = encoded_order.strip_prefix("0x") {
+            stripped
         } else {
             encoded_order
         };
         let order_hex = hex::decode(encoded_order)?;
 
-        Ok(PriorityOrder::decode_inner(&order_hex, false)?)
+        PriorityOrder::decode_inner(&order_hex, false)
     }
 
     async fn process_order_event(&mut self, event: &UniswapXOrder) -> Option<Action> {
-        if self.last_block_timestamp == 0 {
+        if self.last_block_timestamp == 0 || self.open_orders.get(&event.order_hash).is_some() {
+            info!("{} - skipping processing order event", event.order_hash);
             return None;
         }
 
@@ -210,7 +211,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
             ..
         } = &event.request;
 
-        if let Some(metadata) = self.get_execution_metadata(&event) {
+        if let Some(metadata) = self.get_execution_metadata(event) {
             info!(
                 "{} - Sending trade: num trades: {} routed quote: {}, batch needs: {}",
                 metadata.order_hash,
@@ -373,7 +374,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                     info!("{} - Order already done, skipping", order_hash);
                     return;
                 }
-                if let Some(_) = self.get_open_order(&order_hash) {
+                if self.get_open_order(&order_hash).is_some() {
                     info!("{} - updating order", order_hash);
                     self.update_open_order(&order_hash, |existing_order| {
                         existing_order.resolved = resolved_order;
@@ -434,7 +435,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
         }
     }
 
-    async fn send_order_if_open(&self, order_hash: &String) -> Result<()> {
+    async fn send_order_if_open(&self, order_hash: &str) -> Result<()> {
         if let Some(order_data) = self.get_open_order(order_hash) {
             let order_batch = self.get_order_batch(&order_data);
             self.batch_sender.send(vec![order_batch]).await?;
