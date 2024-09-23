@@ -261,11 +261,10 @@ where
                     .await
                     .map_or_else(|_| None, |v| Some(format_units(v, "ether").unwrap()));
                 
-                info!("{}- balance: {} at block {}", order_hash, balance_eth.clone().unwrap(), block_number.as_u64());
-
                 // TODO: use if-let chains when it becomes stable https://github.com/rust-lang/rust/issues/53667
                 // if let Some(balance_eth) = balance_eth && let Some(cw) = &self.cloudwatch_client {
                 if let Some(balance_eth) = balance_eth {
+                    info!("{}- balance: {} at block {}", order_hash, balance_eth.clone(), block_number.as_u64());
                     if let Some(cw) = &self.cloudwatch_client {
                         cw.put_metric_data()
                             .namespace(ARTEMIS_NAMESPACE)
