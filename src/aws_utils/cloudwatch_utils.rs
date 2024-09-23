@@ -55,6 +55,9 @@ pub enum CwMetrics {
     TxReverted,
     TxSubmitted,
     TxStatusUnknown,
+
+    /// Balance for individual address
+    Balance(String),
 }
 impl From<CwMetrics> for String {
     fn from(metric: CwMetrics) -> Self {
@@ -63,6 +66,7 @@ impl From<CwMetrics> for String {
             CwMetrics::TxReverted => TX_REVERTED_METRIC.to_string(),
             CwMetrics::TxSubmitted => TX_SUBMITTED_METRIC.to_string(),
             CwMetrics::TxStatusUnknown => TX_STATUS_UNKNOWN_METRIC.to_string(),
+            CwMetrics::Balance(val) => format!("Bal-{}", val),
         }
     }
 }
@@ -77,12 +81,20 @@ pub struct MetricBuilder {
     value: f64,
 }
 
+// TODO: TxStatus type metrics => TxStatus(u32)
 impl MetricBuilder {
     pub fn new(metric: CwMetrics) -> Self {
-        Self {
-            metric_name: metric.into(),
-            dimensions: Vec::new(),
-            value: 1.0,
+        match metric {
+            CwMetrics::Balance(val) => Self {
+                metric_name: format!("Bal-{}", val),
+                dimensions: Vec::new(),
+                value: 0.0,
+            },
+            _ => Self {
+                metric_name: metric.into(),
+                dimensions: Vec::new(),
+                value: 1.0,
+            },
         }
     }
 

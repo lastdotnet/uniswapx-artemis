@@ -10,7 +10,8 @@ use ethers::{
     middleware::MiddlewareBuilder,
     providers::{Middleware, MiddlewareError},
     signers::{LocalWallet, Signer},
-    types::U256,
+    types::{TransactionReceipt, U256},
+    utils::format_units,
 };
 
 use crate::{
@@ -195,7 +196,7 @@ where
         let result = signer.send_transaction(action.execution.tx, None).await;
 
         // Block on pending transaction getting confirmations
-        match result {
+        let (receipt, status) = match result {
             Ok(tx) => {
                 let receipt = tx
                     .confirmations(1)
@@ -209,28 +210,13 @@ where
                     "{} - receipt: tx_hash: {:?}, status: {}",
                     order_hash, receipt.transaction_hash, status,
                 );
-                if let Some(cw) = &self.cloudwatch_client {
-                    let metric_future = cw
-                        .put_metric_data()
-                        .namespace(ARTEMIS_NAMESPACE)
-                        .metric_data(
-                            MetricBuilder::new(receipt_status_to_metric(status.as_u64()))
-                                .add_dimension(
-                                    DimensionName::Executor.as_ref(),
-                                    DimensionValue::PriorityExecutor.as_ref(),
-                                )
-                                .with_value(1.0)
-                                .build(),
-                        )
-                        .send();
-
-                    send_metric_with_order_hash!(&order_hash, metric_future);
-                }
+                (Some(receipt), status)
             }
             Err(e) => {
                 warn!("{} - Error sending transaction: {}", order_hash, e);
+                (None, ethers::types::U64::zero())
             }
-        }
+        };
 
         // regardless of outcome, ensure we release the key
         match self.key_store.release_key(public_address.clone()).await {
@@ -241,6 +227,73 @@ where
                 info!("{} - Failed to release key: {}", order_hash, e);
             }
         }
+
+        // post key-release processing
+        // TODO: parse revert reason
+        if let Some(cw) = &self.cloudwatch_client {
+            let metric_future = cw
+                .put_metric_data()
+                .namespace(ARTEMIS_NAMESPACE)
+                .metric_data(
+                    MetricBuilder::new(receipt_status_to_metric(status.as_u64()))
+                        .add_dimension(
+                            DimensionName::Executor.as_ref(),
+                            DimensionValue::PriorityExecutor.as_ref(),
+                        )
+                        .with_value(1.0)
+                        .build(),
+                )
+                .send();
+
+            send_metric_with_order_hash!(&order_hash, metric_future);
+        }
+
+        if let Some(TransactionReceipt {
+            block_number: Some(block_number),
+            ..
+        }) = receipt
+        {
+            // log wallet balance every 100 blocks
+            if block_number.as_u64() % 100 == 0 {
+                let balance_eth = self
+                    .client
+                    .get_balance(address, Some(block_number.into()))
+                    .await
+                    .map_or_else(|_| None, |v| Some(format_units(v, "ether").unwrap()));
+
+                // TODO: use if-let chains when it becomes stable https://github.com/rust-lang/rust/issues/53667
+                // if let Some(balance_eth) = balance_eth && let Some(cw) = &self.cloudwatch_client {
+                if let Some(balance_eth) = balance_eth {
+                    info!(
+                        "{}- balance: {} at block {}",
+                        order_hash,
+                        balance_eth.clone(),
+                        block_number.as_u64()
+                    );
+                    if let Some(cw) = &self.cloudwatch_client {
+                        let metric_future = cw
+                            .put_metric_data()
+                            .namespace(ARTEMIS_NAMESPACE)
+                            .metric_data(
+                                MetricBuilder::new(CwMetrics::Balance(address.to_string()))
+                                    .add_dimension(
+                                        DimensionName::Executor.as_ref(),
+                                        DimensionValue::PriorityExecutor.as_ref(),
+                                    )
+                                    .with_value(balance_eth.parse::<f64>().unwrap_or(0.0))
+                                    .build(),
+                            )
+                            .send();
+                        tokio::spawn(async move {
+                            if let Err(e) = metric_future.await {
+                                warn!("{} - error sending metric: {:?}", order_hash, e);
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
         Ok(())
     }
 }
