@@ -253,8 +253,6 @@ where
             ..
         }) = receipt
         {
-            // log wallet balance every 100 blocks
-            if block_number.as_u64() % 100 == 0 {
                 let balance_eth = self
                     .client
                     .get_balance(address, Some(block_number.into()))
@@ -289,7 +287,6 @@ where
                                 warn!("{} - error sending metric: {:?}", order_hash, e);
                             }
                         });
-                    }
                 }
             }
         }
