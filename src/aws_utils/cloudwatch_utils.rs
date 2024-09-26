@@ -86,7 +86,7 @@ impl MetricBuilder {
     pub fn new(metric: CwMetrics) -> Self {
         match metric {
             CwMetrics::Balance(val) => Self {
-                metric_name: format!("Bal-{:?}", val),
+                metric_name: format!("Bal-{}", val),
                 dimensions: Vec::new(),
                 value: 0.0,
             },

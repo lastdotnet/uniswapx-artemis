@@ -7,11 +7,7 @@ use artemis_core::types::Executor;
 use async_trait::async_trait;
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use ethers::{
-    middleware::MiddlewareBuilder,
-    providers::{Middleware, MiddlewareError},
-    signers::{LocalWallet, Signer},
-    types::{TransactionReceipt, U256},
-    utils::format_units,
+    abi::AbiEncode, middleware::MiddlewareBuilder, providers::{Middleware, MiddlewareError}, signers::{LocalWallet, Signer}, types::{TransactionReceipt, U256}, utils::format_units
 };
 
 use crate::{
@@ -253,40 +249,40 @@ where
             ..
         }) = receipt
         {
-                let balance_eth = self
-                    .client
-                    .get_balance(address, Some(block_number.into()))
-                    .await
-                    .map_or_else(|_| None, |v| Some(format_units(v, "ether").unwrap()));
+            let balance_eth = self
+                .client
+                .get_balance(address, Some(block_number.into()))
+                .await
+                .map_or_else(|_| None, |v| Some(format_units(v, "ether").unwrap()));
 
-                // TODO: use if-let chains when it becomes stable https://github.com/rust-lang/rust/issues/53667
-                // if let Some(balance_eth) = balance_eth && let Some(cw) = &self.cloudwatch_client {
-                if let Some(balance_eth) = balance_eth {
-                    info!(
-                        "{}- balance: {} at block {}",
-                        order_hash,
-                        balance_eth.clone(),
-                        block_number.as_u64()
-                    );
-                    if let Some(cw) = &self.cloudwatch_client {
-                        let metric_future = cw
-                            .put_metric_data()
-                            .namespace(ARTEMIS_NAMESPACE)
-                            .metric_data(
-                                MetricBuilder::new(CwMetrics::Balance(address.to_string()))
-                                    .add_dimension(
-                                        DimensionName::Executor.as_ref(),
-                                        DimensionValue::PriorityExecutor.as_ref(),
-                                    )
-                                    .with_value(balance_eth.parse::<f64>().unwrap_or(0.0))
-                                    .build(),
-                            )
-                            .send();
-                        tokio::spawn(async move {
-                            if let Err(e) = metric_future.await {
-                                warn!("{} - error sending metric: {:?}", order_hash, e);
-                            }
-                        });
+            // TODO: use if-let chains when it becomes stable https://github.com/rust-lang/rust/issues/53667
+            // if let Some(balance_eth) = balance_eth && let Some(cw) = &self.cloudwatch_client {
+            if let Some(balance_eth) = balance_eth {
+                info!(
+                    "{}- balance: {} at block {}",
+                    order_hash,
+                    balance_eth.clone(),
+                    block_number.as_u64()
+                );
+                if let Some(cw) = &self.cloudwatch_client {
+                    let metric_future = cw
+                        .put_metric_data()
+                        .namespace(ARTEMIS_NAMESPACE)
+                        .metric_data(
+                            MetricBuilder::new(CwMetrics::Balance(address.encode_hex()))
+                                .add_dimension(
+                                    DimensionName::Executor.as_ref(),
+                                    DimensionValue::PriorityExecutor.as_ref(),
+                                )
+                                .with_value(balance_eth.parse::<f64>().unwrap_or(0.0))
+                                .build(),
+                        )
+                        .send();
+                    tokio::spawn(async move {
+                        if let Err(e) = metric_future.await {
+                            warn!("{} - error sending metric: {:?}", order_hash, e);
+                        }
+                    });
                 }
             }
         }
