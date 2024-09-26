@@ -199,19 +199,27 @@ where
         // Block on pending transaction getting confirmations
         let (receipt, status) = match result {
             Ok(tx) => {
-                let receipt = tx
-                    .confirmations(1)
-                    .await
-                    .map_err(|e| {
-                        anyhow::anyhow!("{} - Error waiting for confirmations: {}", order_hash, e)
-                    })?
-                    .unwrap();
-                let status = receipt.status.unwrap_or_default();
-                info!(
-                    "{} - receipt: tx_hash: {:?}, status: {}",
-                    order_hash, receipt.transaction_hash, status,
-                );
-                (Some(receipt), status)
+                let receipt = tx.confirmations(1).await.map_err(|e| {
+                    anyhow::anyhow!("{} - Error waiting for confirmations: {}", order_hash, e)
+                });
+                match receipt {
+                    Ok(Some(receipt)) => {
+                        let status = receipt.status.unwrap_or_default();
+                        info!(
+                            "{} - receipt: tx_hash: {:?}, status: {}",
+                            order_hash, receipt.transaction_hash, status,
+                        );
+                        (Some(receipt), status)
+                    }
+                    Ok(None) => {
+                        warn!("{} - No receipt after confirmation", order_hash);
+                        (None, ethers::types::U64::zero())
+                    }
+                    Err(e) => {
+                        warn!("{} - Error waiting for confirmations: {}", order_hash, e);
+                        (None, ethers::types::U64::zero())
+                    }
+                }
             }
             Err(e) => {
                 warn!("{} - Error sending transaction: {}", order_hash, e);
