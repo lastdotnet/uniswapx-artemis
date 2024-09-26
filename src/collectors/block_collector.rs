@@ -8,6 +8,7 @@ use ethers::{
 };
 use std::{sync::Arc, time::Duration};
 use tokio_stream::StreamExt;
+use tracing::{error, info, warn};
 
 /// A collector that listens for new blocks, and generates a stream of
 /// [events](NewBlock) which contain the block number and hash.
@@ -50,7 +51,7 @@ where
             loop {
                 match self.provider.subscribe_blocks().await {
                     Ok(mut stream) => {
-                        tracing::info!("Successfully subscribed to new blocks stream");
+                        info!("Successfully subscribed to new blocks stream");
                         while let Some(block)= stream.next().await {
                             if let (Some(hash), Some(number)) = (block.hash, block.number) {
                                 yield NewBlock {
@@ -59,13 +60,13 @@ where
                                     timestamp: block.timestamp,
                                 };
                             } else {
-                                tracing::warn!("Received block with missing hash or number: {:?}", block);
+                                warn!("Received block with missing hash or number: {:?}", block);
                             }
                         }
-                        tracing::error!("New block stream ended unexpectedly");
+                        error!("New block stream ended unexpectedly");
                     }
                     Err(e) => {
-                        tracing::error!("Failed to subscribe to new blocks: {:?}", e);
+                        error!("Failed to subscribe to new blocks: {:?}", e);
                         Self::exponential_backoff(attempt).await;
                         attempt += 1;
                     }

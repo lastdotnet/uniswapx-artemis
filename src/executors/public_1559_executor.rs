@@ -7,7 +7,12 @@ use artemis_core::types::Executor;
 use async_trait::async_trait;
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use ethers::{
-    abi::AbiEncode, middleware::MiddlewareBuilder, providers::{Middleware, MiddlewareError}, signers::{LocalWallet, Signer}, types::{TransactionReceipt, U256}, utils::format_units
+    abi::AbiEncode,
+    middleware::MiddlewareBuilder,
+    providers::{Middleware, MiddlewareError},
+    signers::{LocalWallet, Signer},
+    types::{TransactionReceipt, U256},
+    utils::format_units,
 };
 
 use crate::{
