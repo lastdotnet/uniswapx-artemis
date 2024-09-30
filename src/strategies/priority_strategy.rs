@@ -199,7 +199,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
         match order_status {
             OrderStatus::Open(resolved) => {
                 if self.done_orders.contains_key(&order_hash) {
-                    info!("{} - New Order already processed, skipping", order_hash);
+                    info!("{} - New order processing already done, skipping", order_hash);
                     return None;
                 }
                 let order_data = OrderData {
@@ -216,7 +216,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                     order_hash, *self.last_block_number.read().await
                 );
                 let order_batch = self.get_order_batch(&order_data);
-                self.batch_sender.send(vec![order_batch]).await.ok()?;
+                self.try_send_order_batch(order_batch, order_hash, order_data).await;
             }
             OrderStatus::NotFillableYet(resolved) => {
                 info!(
@@ -466,7 +466,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                     order_hash, *self.last_block_number.read().await
                 );
                 let order_batch = self.get_order_batch(&order_data);
-                self.batch_sender.send(vec![order_batch]).await?;
+                self.try_send_order_batch(order_batch, order_hash, order_data).await;
             }
         }
 
@@ -516,5 +516,16 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                 }
             }
         }
+    }
+
+    async fn try_send_order_batch(&self, order_batch: OrderBatchData, order_hash: String, order_data: OrderData) {
+        match self.batch_sender.send(vec![order_batch]).await {
+            Ok(_) => (),
+            Err(e) => {
+                error!("{} - Failed to send batch: {}; moving order back to new_orders", order_hash, e);
+                self.processing_orders.remove(&order_hash);
+                self.new_orders.insert(order_hash.clone(), order_data);
+            }
+    }
     }
 }
