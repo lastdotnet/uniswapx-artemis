@@ -3,12 +3,11 @@ use artemis_core::types::{Collector, CollectorStream};
 use async_trait::async_trait;
 use ethers::{
     prelude::Middleware,
-    providers::PubsubClient,
+    providers::JsonRpcClient,
     types::{H256, U256, U64},
 };
 use std::{sync::Arc, time::Duration};
 use tokio_stream::StreamExt;
-use tracing::{error, info, warn};
 
 /// A collector that listens for new blocks, and generates a stream of
 /// [events](NewBlock) which contain the block number and hash.
@@ -28,11 +27,6 @@ impl<M> BlockCollector<M> {
     pub fn new(provider: Arc<M>) -> Self {
         Self { provider }
     }
-
-    async fn exponential_backoff(attempt: u32) {
-        let delay = std::cmp::min(2u64.pow(attempt) * 100, 2_000); // Max delay of 2 seconds
-        tokio::time::sleep(Duration::from_millis(delay)).await;
-    }
 }
 
 /// Implementation of the [Collector](Collector) trait for the [BlockCollector](BlockCollector).
@@ -42,37 +36,34 @@ impl<M> BlockCollector<M> {
 impl<M> Collector<NewBlock> for BlockCollector<M>
 where
     M: Middleware,
-    M::Provider: PubsubClient,
+    M::Provider: JsonRpcClient,
     M::Error: 'static,
 {
     async fn get_event_stream(&self) -> Result<CollectorStream<'_, NewBlock>> {
+        let mut watcher = self
+            .provider
+            .watch_blocks()
+            .await
+            .unwrap()
+            .interval(Duration::from_millis(500))
+            .stream();
         let stream = async_stream::stream! {
-            let mut attempt = 0;
             loop {
-                match self.provider.subscribe_blocks().await {
-                    Ok(mut stream) => {
-                        info!("Successfully subscribed to new blocks stream");
-                        while let Some(block)= stream.next().await {
-                            if let (Some(hash), Some(number)) = (block.hash, block.number) {
-                                yield NewBlock {
-                                    hash,
-                                    number,
-                                    timestamp: block.timestamp,
-                                };
-                            } else {
-                                warn!("Received block with missing hash or number: {:?}", block);
-                            }
+                if let Some(block_hash) = watcher.next().await {
+                    match self.provider.get_block(block_hash).await {
+                        Ok(Some(block)) => {
+                            yield NewBlock {
+                                hash: block.hash.unwrap(),
+                                number: block.number.unwrap(),
+                                timestamp: block.timestamp,
+                            };
                         }
-                        error!("New block stream ended unexpectedly");
-                    }
-                    Err(e) => {
-                        error!("Failed to subscribe to new blocks: {:?}", e);
-                        Self::exponential_backoff(attempt).await;
-                        attempt += 1;
+                        _ => continue,
                     }
                 }
             }
         };
+
         Ok(Box::pin(stream))
     }
 }
