@@ -9,6 +9,8 @@ use ethers::{
 use std::{sync::Arc, time::Duration};
 use tokio_stream::StreamExt;
 
+const BLOCK_POLLING_INTERVAL: Duration = Duration::from_millis(200);
+
 /// A collector that listens for new blocks, and generates a stream of
 /// [events](NewBlock) which contain the block number and hash.
 pub struct BlockCollector<M> {
@@ -45,7 +47,7 @@ where
             .watch_blocks()
             .await
             .unwrap()
-            .interval(Duration::from_millis(200))
+            .interval(BLOCK_POLLING_INTERVAL)
             .stream();
         let stream = async_stream::stream! {
             loop {
