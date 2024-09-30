@@ -162,6 +162,12 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
         PriorityOrder::decode_inner(&order_hex, false)
     }
 
+    /// Process new order events that we fetch from UniswapX API
+    /// - skip if we are already tracking this order
+    /// - otherwise decode and process:
+    ///     - skip if we have already processed this order
+    ///     - immediately send for execution if order is fillable
+    ///     - otherwise add to new_orders to be processed on new block event
     async fn process_order_event(&self, event: &UniswapXOrder) -> Option<Action> {
         if self.last_block_timestamp == 0 {
             info!("{} - skipping processing new order event (no timestamp)", event.order_hash);
@@ -292,7 +298,11 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
         None
     }
 
-    /// Process new block events, updating the internal state.
+    /// Process new block events 
+    /// - update the block number and timestamp
+    /// - check for fills from block logs and remove from processing_orders
+    /// - check new_orders for orders that are now fillable and send for execution
+    /// - prune done orders
     async fn process_new_block_event(&mut self, event: &NewBlock) -> Option<Action> {
         self.last_block_number = event.number.as_u64();
         self.last_block_timestamp = event.timestamp.as_u64();
