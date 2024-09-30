@@ -9,7 +9,7 @@ use collectors::{
     uniswapx_route_collector::UniswapXRouteCollector,
 };
 use ethers::{
-    providers::{Http, Provider, Ws},
+    providers::{Http, Provider},
     signers::{LocalWallet, Signer},
 };
 use executors::protect_executor::ProtectExecutor;
@@ -38,15 +38,16 @@ const MEV_BLOCKER: &str = "https://rpc.mevblocker.io/noreverts";
 #[command(group(
     ArgGroup::new("key_source")
         .args(&["private_key", "private_key_file", "aws_secret_arn"])
+        .required(true)
 ))]
 #[command(group(
     ArgGroup::new("aws_features")
         .args(&["cloudwatch_metrics"])
 ))]
 pub struct Args {
-    /// Ethereum node WS endpoint.
-    #[arg(long)]
-    pub wss: String,
+    /// Ethereum node HTTP endpoint.
+    #[arg(long, required = true)]
+    pub http: String,
 
     /// Private key for sending txs.
     #[arg(long, group = "key_source")]
@@ -62,15 +63,15 @@ pub struct Args {
     pub aws_secret_arn: Option<String>,
 
     /// Percentage of profit to pay in gas.
-    #[arg(long)]
+    #[arg(long, required = true)]
     pub bid_percentage: u64,
 
     /// Private key for sending txs.
-    #[arg(long)]
+    #[arg(long, required = true)]
     pub executor_address: String,
 
     /// Order type to use.
-    #[arg(long)]
+    #[arg(long, required = true)]
     pub order_type: OrderType,
 
     /// Enable CloudWatch logging
@@ -78,7 +79,7 @@ pub struct Args {
     pub cloudwatch_metrics: bool,
 
     /// chain id
-    #[arg(long)]
+    #[arg(long, required = true)]
     pub chain_id: u64,
 }
 
@@ -104,12 +105,12 @@ async fn main() -> Result<()> {
     let args = Args::parse();
 
     // Set up ethers provider.
-    let ws = Ws::connect(args.wss).await?;
-    let provider = Provider::new(ws);
     let chain_id = args.chain_id;
+    let provider =
+        Provider::<Http>::try_from(args.http).expect("could not instantiate HTTP Provider");
 
     let mevblocker_provider =
-        Provider::<Http>::try_from(MEV_BLOCKER).expect("could not instantiate HTTP Provider");
+        Provider::<Http>::try_from(MEV_BLOCKER).expect("could not instantiate MevBlocker Provider");
 
     let mut key_store = Arc::new(KeyStore::new());
 
