@@ -45,7 +45,7 @@ where
             .watch_blocks()
             .await
             .unwrap()
-            .interval(Duration::from_millis(500))
+            .interval(Duration::from_millis(200))
             .stream();
         let stream = async_stream::stream! {
             loop {
