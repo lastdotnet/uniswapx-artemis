@@ -25,7 +25,10 @@ use ethers::{
 use std::error::Error;
 use std::str::FromStr;
 use std::sync::Arc;
-use tokio::sync::{mpsc::{Receiver, Sender}, RwLock};
+use tokio::sync::{
+    mpsc::{Receiver, Sender},
+    RwLock,
+};
 use tracing::{error, info};
 use uniswapx_rs::order::{Order, OrderResolution, PriorityOrder, MPS};
 
@@ -170,11 +173,19 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
     ///     - otherwise add to new_orders to be processed on new block event
     async fn process_order_event(&self, event: &UniswapXOrder) -> Option<Action> {
         if *self.last_block_timestamp.read().await == 0 {
-            info!("{} - skipping processing new order event (no timestamp)", event.order_hash);
+            info!(
+                "{} - skipping processing new order event (no timestamp)",
+                event.order_hash
+            );
             return None;
         }
-        if self.new_orders.contains_key(&event.order_hash) || self.processing_orders.contains_key(&event.order_hash) {
-            info!("{} - skipping processing new order event (already tracking)", event.order_hash);
+        if self.new_orders.contains_key(&event.order_hash)
+            || self.processing_orders.contains_key(&event.order_hash)
+        {
+            info!(
+                "{} - skipping processing new order event (already tracking)",
+                event.order_hash
+            );
             return None;
         }
 
@@ -199,7 +210,10 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
         match order_status {
             OrderStatus::Open(resolved) => {
                 if self.done_orders.contains_key(&order_hash) {
-                    info!("{} - New order processing already done, skipping", order_hash);
+                    info!(
+                        "{} - New order processing already done, skipping",
+                        order_hash
+                    );
                     return None;
                 }
                 let order_data = OrderData {
@@ -213,15 +227,19 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
 
                 info!(
                     "{} - Sending incoming order immediately for routing and execution at block {}",
-                    order_hash, *self.last_block_number.read().await
+                    order_hash,
+                    *self.last_block_number.read().await
                 );
                 let order_batch = self.get_order_batch(&order_data);
-                self.try_send_order_batch(order_batch, order_hash, order_data).await;
+                self.try_send_order_batch(order_batch, order_hash, order_data)
+                    .await;
             }
             OrderStatus::NotFillableYet(resolved) => {
                 info!(
                     "{} - Adding new order not fillable yet - last block: {}, target: {}",
-                    order_hash, *self.last_block_number.read().await, order.cosignerData.auctionTargetBlock
+                    order_hash,
+                    *self.last_block_number.read().await,
+                    order.cosignerData.auctionTargetBlock
                 );
                 self.new_orders.insert(
                     order_hash.clone(),
@@ -298,7 +316,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
         None
     }
 
-    /// Process new block events 
+    /// Process new block events
     /// - update the block number and timestamp
     /// - check for fills from block logs and remove from processing_orders
     /// - check new_orders for orders that are now fillable and send for execution
@@ -448,7 +466,9 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
             OrderStatus::NotFillableYet(_) => {
                 info!(
                     "{} - Order not fillable yet at latest block: {}; target: {}",
-                    order_hash, *self.last_block_number.read().await, order.cosignerData.auctionTargetBlock
+                    order_hash,
+                    *self.last_block_number.read().await,
+                    order.cosignerData.auctionTargetBlock
                 );
             }
             OrderStatus::Open(resolved_order) => {
@@ -463,10 +483,12 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                     .insert(order_hash.to_string(), order_data.clone());
                 info!(
                     "{} - Sending order for routing and execution at latest block {}",
-                    order_hash, *self.last_block_number.read().await
+                    order_hash,
+                    *self.last_block_number.read().await
                 );
                 let order_batch = self.get_order_batch(&order_data);
-                self.try_send_order_batch(order_batch, order_hash, order_data).await;
+                self.try_send_order_batch(order_batch, order_hash, order_data)
+                    .await;
             }
         }
 
@@ -518,14 +540,22 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
         }
     }
 
-    async fn try_send_order_batch(&self, order_batch: OrderBatchData, order_hash: String, order_data: OrderData) {
+    async fn try_send_order_batch(
+        &self,
+        order_batch: OrderBatchData,
+        order_hash: String,
+        order_data: OrderData,
+    ) {
         match self.batch_sender.send(vec![order_batch]).await {
             Ok(_) => (),
             Err(e) => {
-                error!("{} - Failed to send batch: {}; moving order back to new_orders", order_hash, e);
+                error!(
+                    "{} - Failed to send batch: {}; moving order back to new_orders",
+                    order_hash, e
+                );
                 self.processing_orders.remove(&order_hash);
                 self.new_orders.insert(order_hash.clone(), order_data);
             }
-    }
+        }
     }
 }
