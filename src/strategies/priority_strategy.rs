@@ -3,11 +3,15 @@ use super::{
     types::{Config, OrderStatus},
 };
 use crate::{
-    aws_utils::cloudwatch_utils::{CwMetrics, DimensionName, DimensionValue, MetricBuilder, ARTEMIS_NAMESPACE}, collectors::{
+    aws_utils::cloudwatch_utils::{
+        CwMetrics, DimensionName, DimensionValue, MetricBuilder, ARTEMIS_NAMESPACE,
+    },
+    collectors::{
         block_collector::NewBlock,
         uniswapx_order_collector::UniswapXOrder,
         uniswapx_route_collector::{OrderBatchData, OrderData, RoutedOrder},
-    }, strategies::types::SubmitTxToMempoolWithExecutionMetadata
+    },
+    strategies::types::SubmitTxToMempoolWithExecutionMetadata,
 };
 use alloy_primitives::Uint;
 use anyhow::Result;
@@ -355,7 +359,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                         MetricBuilder::new(CwMetrics::LatestBlock)
                             .add_dimension(
                                 DimensionName::Executor.as_ref(),
-                                DimensionValue::PriorityExecutor.as_ref()
+                                DimensionValue::PriorityExecutor.as_ref(),
                             )
                             .with_value(event.number.as_u64() as f64)
                             .build(),

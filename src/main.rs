@@ -187,14 +187,13 @@ async fn main() -> Result<()> {
         bid_percentage: args.bid_percentage,
         executor_address: args.executor_address,
     };
-    
+
     let cloudwatch_client = if args.cloudwatch_metrics {
         let config = aws_config::load_from_env().await;
         Some(Arc::new(aws_sdk_cloudwatch::Client::new(&config)))
     } else {
         None
     };
-
 
     match &args.order_type {
         OrderType::DutchV2 => {
