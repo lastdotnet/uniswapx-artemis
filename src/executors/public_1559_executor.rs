@@ -7,7 +7,6 @@ use artemis_core::types::Executor;
 use async_trait::async_trait;
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use ethers::{
-    abi::AbiEncode,
     middleware::MiddlewareBuilder,
     providers::{Middleware, MiddlewareError},
     signers::{LocalWallet, Signer},
@@ -282,7 +281,7 @@ where
                         .put_metric_data()
                         .namespace(ARTEMIS_NAMESPACE)
                         .metric_data(
-                            MetricBuilder::new(CwMetrics::Balance(address.encode_hex()))
+                            MetricBuilder::new(CwMetrics::Balance(format!("{:#}", address))) // {:#} gives the full 0x-prefixed address
                                 .add_dimension(
                                     DimensionName::Executor.as_ref(),
                                     DimensionValue::PriorityExecutor.as_ref(),

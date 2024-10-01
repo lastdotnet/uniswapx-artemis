@@ -188,6 +188,13 @@ async fn main() -> Result<()> {
         executor_address: args.executor_address,
     };
 
+    let cloudwatch_client = if args.cloudwatch_metrics {
+        let config = aws_config::load_from_env().await;
+        Some(Arc::new(aws_sdk_cloudwatch::Client::new(&config)))
+    } else {
+        None
+    };
+
     match &args.order_type {
         OrderType::DutchV2 => {
             let uniswapx_strategy = UniswapXUniswapFill::new(
@@ -201,6 +208,7 @@ async fn main() -> Result<()> {
         OrderType::Priority => {
             let priority_strategy = UniswapXPriorityFill::new(
                 Arc::new(provider.clone()),
+                cloudwatch_client.clone(),
                 config.clone(),
                 batch_sender,
                 route_receiver,
@@ -221,13 +229,6 @@ async fn main() -> Result<()> {
         // No op for public transactions
         _ => None,
     });
-
-    let cloudwatch_client = if args.cloudwatch_metrics {
-        let config = aws_config::load_from_env().await;
-        Some(Arc::new(aws_sdk_cloudwatch::Client::new(&config)))
-    } else {
-        None
-    };
 
     let queued_executor = Box::new(QueuedExecutor::new(
         provider.clone(),
