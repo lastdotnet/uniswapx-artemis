@@ -8,6 +8,7 @@ pub const TX_SUCCEEDED_METRIC: &str = "TransactionSucceeded";
 pub const TX_REVERTED_METRIC: &str = "TransactionReverted";
 pub const TX_SUBMITTED_METRIC: &str = "TransactionSubmitted";
 pub const TX_STATUS_UNKNOWN_METRIC: &str = "TransactionStatusUnknown";
+pub const LATEST_BLOCK: &str = "LatestBlock";
 
 pub enum DimensionName {
     Executor,
@@ -55,6 +56,7 @@ pub enum CwMetrics {
     TxReverted,
     TxSubmitted,
     TxStatusUnknown,
+    LatestBlock,
 
     /// Balance for individual address
     Balance(String),
@@ -67,6 +69,7 @@ impl From<CwMetrics> for String {
             CwMetrics::TxSubmitted => TX_SUBMITTED_METRIC.to_string(),
             CwMetrics::TxStatusUnknown => TX_STATUS_UNKNOWN_METRIC.to_string(),
             CwMetrics::Balance(val) => format!("Bal-{}", val),
+            CwMetrics::LatestBlock => LATEST_BLOCK.to_string(),
         }
     }
 }

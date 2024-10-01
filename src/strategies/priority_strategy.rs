@@ -3,18 +3,18 @@ use super::{
     types::{Config, OrderStatus},
 };
 use crate::{
-    collectors::{
+    aws_utils::cloudwatch_utils::{CwMetrics, DimensionName, DimensionValue, MetricBuilder, ARTEMIS_NAMESPACE}, collectors::{
         block_collector::NewBlock,
         uniswapx_order_collector::UniswapXOrder,
         uniswapx_route_collector::{OrderBatchData, OrderData, RoutedOrder},
-    },
-    strategies::types::SubmitTxToMempoolWithExecutionMetadata,
+    }, strategies::types::SubmitTxToMempoolWithExecutionMetadata
 };
 use alloy_primitives::Uint;
 use anyhow::Result;
 use artemis_core::executors::mempool_executor::{GasBidInfo, SubmitTxToMempool};
 use artemis_core::types::Strategy;
 use async_trait::async_trait;
+use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use bindings_uniswapx::shared_types::SignedOrder;
 use dashmap::DashMap;
 use ethers::{
@@ -29,7 +29,7 @@ use tokio::sync::{
     mpsc::{Receiver, Sender},
     RwLock,
 };
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use uniswapx_rs::order::{Order, OrderResolution, PriorityOrder, MPS};
 
 use super::types::{Action, Event};
@@ -80,6 +80,8 @@ impl ExecutionMetadata {
 pub struct UniswapXPriorityFill<M> {
     /// Ethers client.
     client: Arc<M>,
+    // AWS Cloudwatch CLient for metrics propagation
+    cloudwatch_client: Option<Arc<CloudWatchClient>>,
     /// executor address
     executor_address: String,
     /// Amount of profits to bid in gas
@@ -99,6 +101,7 @@ pub struct UniswapXPriorityFill<M> {
 impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
     pub fn new(
         client: Arc<M>,
+        cloudwatch_client: Option<Arc<CloudWatchClient>>,
         config: Config,
         sender: Sender<Vec<OrderBatchData>>,
         receiver: Receiver<RoutedOrder>,
@@ -107,6 +110,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
 
         Self {
             client,
+            cloudwatch_client,
             executor_address: config.executor_address,
             bid_percentage: config.bid_percentage,
             last_block_number: RwLock::new(0),
@@ -341,8 +345,28 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
 
         self.check_new_orders_for_processing().await;
 
-        if *self.last_block_number.read().await % 500 == 0 {
+        if *self.last_block_number.read().await % 100 == 0 {
             self.prune_done_orders().await;
+            if let Some(cw) = &self.cloudwatch_client {
+                let metric_future = cw
+                    .put_metric_data()
+                    .namespace(ARTEMIS_NAMESPACE)
+                    .metric_data(
+                        MetricBuilder::new(CwMetrics::LatestBlock)
+                            .add_dimension(
+                                DimensionName::Executor.as_ref(),
+                                DimensionValue::PriorityExecutor.as_ref()
+                            )
+                            .with_value(event.number.as_u64() as f64)
+                            .build(),
+                    )
+                    .send();
+                tokio::spawn(async move {
+                    if let Err(e) = metric_future.await {
+                        warn!("Error sending block metric: {:?}", e);
+                    }
+                });
+            }
         }
 
         None
