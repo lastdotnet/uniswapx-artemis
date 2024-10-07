@@ -281,7 +281,7 @@ where
                         .put_metric_data()
                         .namespace(ARTEMIS_NAMESPACE)
                         .metric_data(
-                            MetricBuilder::new(CwMetrics::Balance(format!("{:#}", address))) // {:#} gives the full 0x-prefixed address
+                            MetricBuilder::new(CwMetrics::Balance(format!("{:?}", address))) // {:?} gives the full 0x-prefixed address
                                 .add_dimension(
                                     DimensionName::Executor.as_ref(),
                                     DimensionValue::PriorityExecutor.as_ref(),
