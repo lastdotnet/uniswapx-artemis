@@ -13,6 +13,7 @@ pub const LATEST_BLOCK: &str = "LatestBlock";
 pub enum DimensionName {
     Service,
 }
+
 impl AsRef<str> for DimensionName {
     fn as_ref(&self) -> &str {
         match self {
