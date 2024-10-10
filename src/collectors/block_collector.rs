@@ -4,13 +4,10 @@ use async_trait::async_trait;
 use ethers::{
     prelude::Middleware,
     providers::JsonRpcClient,
-    types::{H256, U256, U64},
+    types::{BlockNumber, H256, U256, U64},
 };
+use std::sync::Arc;
 use tracing::{error, info, warn};
-use std::{sync::Arc, time::Duration};
-use tokio_stream::StreamExt;
-
-const BLOCK_POLLING_INTERVAL: Duration = Duration::from_millis(200);
 
 /// A collector that listens for new blocks, and generates a stream of
 /// [events](NewBlock) which contain the block number and hash.
@@ -34,7 +31,6 @@ impl<M> BlockCollector<M> {
 
 /// Implementation of the [Collector](Collector) trait for the [BlockCollector](BlockCollector).
 /// This implementation uses polling to subscribe to new blocks.
-/// It handles errors by recreating the filter when necessary.
 #[async_trait]
 impl<M> Collector<NewBlock> for BlockCollector<M>
 where
@@ -55,61 +51,34 @@ where
         info!("Starting BlockCollector from block number: {}", start_block);
 
         let provider = self.provider.clone();
-        let polling_interval = BLOCK_POLLING_INTERVAL;
 
         let stream = async_stream::stream! {
             let mut last_block = start_block;
 
             loop {
-                // Attempt to watch new blocks
-                let mut watcher = match provider.watch_blocks().await {
-                    Ok(w) => {
-                        info!("Successfully created new block watcher.");
-                        w.interval(polling_interval).stream()
+                match provider.get_block(BlockNumber::Latest).await {
+                    Ok(Some(block)) => {
+                        let block_number = block.number.unwrap().as_u64();
+                        let block_timestamp = block.timestamp;
+
+                        // Update last processed block number
+                        if block_number > last_block {
+                            last_block = block_number;
+
+                            yield NewBlock {
+                                hash: block.hash.unwrap(),
+                                number: U64::from(block_number),
+                                timestamp: block_timestamp,
+                            };
+                        };
+                    }
+                    Ok(None) => {
+                        warn!("Fetched latest block but it's empty");
                     },
                     Err(e) => {
-                        error!("Failed to create block watcher: {}. Retrying in 5 seconds...", e);
-                        tokio::time::sleep(Duration::from_millis(100)).await;
-                        continue;
-                    }
-                };
-
-                // Iterate over incoming block hashes
-                loop {
-                    match watcher.next().await {
-                        Some(block_hash) => {
-                            match provider.get_block(block_hash).await {
-                                Ok(Some(block)) => {
-                                    let block_number = block.number.unwrap().as_u64();
-                                    let block_timestamp = block.timestamp;
-                                    
-                                    // Update last processed block number
-                                    if block_number > last_block {
-                                        last_block = block_number;
-                                        
-                                        yield NewBlock {
-                                            hash: block.hash.unwrap(),
-                                            number: U64::from(block_number),
-                                            timestamp: block_timestamp,
-                                        };
-                                    }
-                                },
-                                Ok(None) => {
-                                    warn!("Received block hash {} but block not found.", block_hash);
-                                },
-                                Err(e) => {
-                                    error!("Error fetching block {}: {}.", block_hash, e);
-                                }
-                            }
-                        },
-                        None => {
-                            warn!("Block watcher stream ended unexpectedly. Recreating watcher...");
-                            break; // Break inner loop to recreate watcher
-                        }
+                        error!("Error fetching block: {}.", e);
                     }
                 }
-                // Delay before attempting to recreate the watcher to prevent tight loops
-                tokio::time::sleep(Duration::from_millis(100)).await;
             }
         };
 
