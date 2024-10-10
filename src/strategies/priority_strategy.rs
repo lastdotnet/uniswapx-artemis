@@ -358,7 +358,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                     .metric_data(
                         MetricBuilder::new(CwMetrics::LatestBlock)
                             .add_dimension(
-                                DimensionName::Executor.as_ref(),
+                                DimensionName::Service.as_ref(),
                                 DimensionValue::PriorityExecutor.as_ref(),
                             )
                             .with_value(event.number.as_u64() as f64)
