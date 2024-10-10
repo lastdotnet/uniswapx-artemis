@@ -182,7 +182,7 @@ where
                 .metric_data(
                     MetricBuilder::new(CwMetrics::TxSubmitted)
                         .add_dimension(
-                            DimensionName::Executor.as_ref(),
+                            DimensionName::Service.as_ref(),
                             DimensionValue::PriorityExecutor.as_ref(),
                         )
                         .with_value(1.0)
@@ -245,7 +245,7 @@ where
                 .metric_data(
                     MetricBuilder::new(receipt_status_to_metric(status.as_u64()))
                         .add_dimension(
-                            DimensionName::Executor.as_ref(),
+                            DimensionName::Service.as_ref(),
                             DimensionValue::PriorityExecutor.as_ref(),
                         )
                         .with_value(1.0)
@@ -283,7 +283,7 @@ where
                         .metric_data(
                             MetricBuilder::new(CwMetrics::Balance(format!("{:?}", address))) // {:?} gives the full 0x-prefixed address
                                 .add_dimension(
-                                    DimensionName::Executor.as_ref(),
+                                    DimensionName::Service.as_ref(),
                                     DimensionValue::PriorityExecutor.as_ref(),
                                 )
                                 .with_value(balance_eth.parse::<f64>().unwrap_or(0.0))
