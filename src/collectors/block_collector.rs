@@ -6,8 +6,11 @@ use ethers::{
     providers::JsonRpcClient,
     types::{BlockNumber, H256, U256, U64},
 };
-use std::sync::Arc;
+use tokio::time::sleep;
+use std::{sync::Arc, time::Duration};
 use tracing::{error, info, warn};
+
+const BLOCK_POLLING_INTERVAL: Duration = Duration::from_millis(200);
 
 /// A collector that listens for new blocks, and generates a stream of
 /// [events](NewBlock) which contain the block number and hash.
@@ -79,6 +82,7 @@ where
                         error!("Error fetching block: {}.", e);
                     }
                 }
+                sleep(BLOCK_POLLING_INTERVAL).await;
             }
         };
 
