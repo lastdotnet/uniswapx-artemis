@@ -31,7 +31,6 @@ impl<M> BlockCollector<M> {
 
 /// Implementation of the [Collector](Collector) trait for the [BlockCollector](BlockCollector).
 /// This implementation uses polling to subscribe to new blocks.
-/// It handles errors by recreating the filter when necessary.
 #[async_trait]
 impl<M> Collector<NewBlock> for BlockCollector<M>
 where
