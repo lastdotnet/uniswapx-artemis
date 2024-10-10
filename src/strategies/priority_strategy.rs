@@ -419,10 +419,9 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
             .address(reactor_address)
             .event("Fill(bytes32,address,address,uint256)");
 
-        let logs = self.client.get_logs(&filter).await
-            .unwrap_or_else(|e| {
-                error!("Failed to get logs: {}", e);
-                Vec::new()
+        let logs = self.client.get_logs(&filter).await.unwrap_or_else(|e| {
+            error!("Failed to get logs: {}", e);
+            Vec::new()
         });
 
         for log in logs {

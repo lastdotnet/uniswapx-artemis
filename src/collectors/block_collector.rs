@@ -6,11 +6,8 @@ use ethers::{
     providers::JsonRpcClient,
     types::{BlockNumber, H256, U256, U64},
 };
+use std::sync::Arc;
 use tracing::{error, info, warn};
-use std::{sync::Arc, time::Duration};
-use tokio_stream::StreamExt;
-
-const BLOCK_POLLING_INTERVAL: Duration = Duration::from_millis(200);
 
 /// A collector that listens for new blocks, and generates a stream of
 /// [events](NewBlock) which contain the block number and hash.
@@ -55,7 +52,7 @@ where
         info!("Starting BlockCollector from block number: {}", start_block);
 
         let provider = self.provider.clone();
-        
+
         let stream = async_stream::stream! {
             let mut last_block = start_block;
 
@@ -64,11 +61,11 @@ where
                     Ok(Some(block)) => {
                         let block_number = block.number.unwrap().as_u64();
                         let block_timestamp = block.timestamp;
-                        
+
                         // Update last processed block number
                         if block_number > last_block {
                             last_block = block_number;
-                            
+
                             yield NewBlock {
                                 hash: block.hash.unwrap(),
                                 number: U64::from(block_number),
@@ -85,7 +82,7 @@ where
                 }
             }
         };
-        
+
         Ok(Box::pin(stream))
     }
 }
