@@ -29,6 +29,7 @@ impl std::error::Error for OrderTypeError {}
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub enum OrderType {
     DutchV2,
+    DutchV3,
     #[default]
     Priority,
 }
@@ -39,6 +40,7 @@ impl FromStr for OrderType {
     fn from_str(s: &str) -> Result<OrderType, OrderTypeError> {
         match s {
             "Dutch_V2" => Ok(OrderType::DutchV2),
+            "Dutch_V3" => Ok(OrderType::DutchV3),
             "Priority" => Ok(OrderType::Priority),
             _ => Err(OrderTypeError::InvalidOrderType),
         }
@@ -49,6 +51,7 @@ impl fmt::Display for OrderType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             OrderType::DutchV2 => write!(f, "Dutch_V2"),
+            OrderType::DutchV3 => write!(f, "Dutch_V3"),
             OrderType::Priority => write!(f, "Priority"),
         }
     }
@@ -103,7 +106,7 @@ impl UniswapXOrderCollector {
 impl Collector<UniswapXOrder> for UniswapXOrderCollector {
     async fn get_event_stream(&self) -> Result<CollectorStream<'_, UniswapXOrder>> {
         let url = format!(
-            "{}/orders?orderStatus=open&chainId={}&orderType={}",
+            "{}/orders?orderStatus=open&chainId={}&orderType={}&limit=50",
             self.base_url, self.chain_id, self.order_type,
         );
 
@@ -219,4 +222,6 @@ mod tests {
             _ => (),
         }
     }
+
+    // TODO: add test for v3 order decoding
 }

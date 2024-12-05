@@ -15,6 +15,8 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use tracing::{error, info, warn};
+
 const REACTOR_ADDRESS: &str = "0x00000011F84B9aa48e5f8aA8B9897600006289Be";
 const SWAPROUTER_02_ADDRESS: &str = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45";
 pub const WETH_ADDRESS: &str = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
@@ -44,7 +46,6 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
                 SWAPROUTER_02_ADDRESS,
             )
             .await?;
-
         let reactor_approval = self
             .get_tokens_to_approve(client.clone(), token_out, executor_address, REACTOR_ADDRESS)
             .await?;
@@ -60,7 +61,6 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
             ],
             &Bytes::from_str(multicall_bytes).expect("Failed to decode multicall bytes"),
         );
-
         let decoded_multicall_bytes = match decoded_multicall_bytes {
             Ok(data) => data[1].clone(), // already in bytes[]
             Err(e) => {
@@ -75,6 +75,8 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
             Token::Array(reactor_approval),
             decoded_multicall_bytes,
         ]);
+        // TODO: remove this
+        // info!("signed_orders: {:?}", signed_orders);
         let mut call = fill_contract.execute_batch(signed_orders, Bytes::from(calldata));
         Ok(call.tx.set_chain_id(chain_id.as_u64()).clone())
     }
