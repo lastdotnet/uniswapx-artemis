@@ -1,5 +1,5 @@
 use super::{
-    shared::{UniswapXStrategy, WETH_ADDRESS},
+    shared::UniswapXStrategy,
     types::{Config, OrderStatus, TokenInTokenOut},
 };
 use crate::collectors::{
@@ -15,7 +15,7 @@ use async_trait::async_trait;
 use bindings_uniswapx::shared_types::SignedOrder;
 use ethers::{
     providers::Middleware,
-    types::{Address, Bytes, Filter, U256},
+    types::{Address, Bytes, Filter},
     utils::hex,
 };
 use std::error::Error;
@@ -385,26 +385,5 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
             // Noop
             _ => {}
         }
-    }
-
-    fn get_profit_eth(&self, RoutedOrder { request, route }: &RoutedOrder) -> Option<U256> {
-        let quote = U256::from_str_radix(&route.quote, 10).ok()?;
-        let amount_out_required =
-            U256::from_str_radix(&request.amount_out_required.to_string(), 10).ok()?;
-        if quote.le(&amount_out_required) {
-            return None;
-        }
-        let profit_quote = quote.saturating_sub(amount_out_required);
-
-        if request.token_out.to_lowercase() == WETH_ADDRESS.to_lowercase() {
-            return Some(profit_quote);
-        }
-
-        let gas_use_eth = U256::from_str_radix(&route.gas_use_estimate, 10)
-            .ok()?
-            .saturating_mul(U256::from_str_radix(&route.gas_price_wei, 10).ok()?);
-        profit_quote
-            .saturating_mul(gas_use_eth)
-            .checked_div(U256::from_str_radix(&route.gas_use_estimate_quote, 10).ok()?)
     }
 }

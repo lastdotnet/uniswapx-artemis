@@ -119,7 +119,7 @@ async fn main() -> Result<()> {
         mevblocker_provider =
             Provider::<Http>::try_from(mevblocker_http).expect("could not instantiate MevBlocker Provider");
     } else {
-        mevblocker_provider = provider.clone();
+        mevblocker_provider = Provider::<Http>::try_from(MEV_BLOCKER).expect("could not instantiate MevBlocker Provider");
     }
 
     let mut key_store = Arc::new(KeyStore::new());
