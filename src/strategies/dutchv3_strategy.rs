@@ -15,12 +15,15 @@ use async_trait::async_trait;
 use bindings_uniswapx::shared_types::SignedOrder;
 use ethers::{
     providers::Middleware,
-    types::{Address, Bytes, Filter},
+    types::{Address, Bytes, Filter, U256},
     utils::hex,
+};
+use std::{
+    ops::{Div, Mul},
+    sync::Arc,
 };
 use std::error::Error;
 use std::str::FromStr;
-use std::sync::Arc;
 use std::{collections::{HashMap, HashSet}, fmt::Debug};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{error, info};
@@ -172,21 +175,47 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
                 profit
             );
             let signed_orders = self.get_signed_orders(filtered_orders.clone()).ok()?;
+            let tx = self
+                .build_fill(
+                    self.client.clone(),
+                    &self.executor_address,
+                    signed_orders,
+                    event,
+                )
+                .await
+                .ok()?;
             let action = Some(Action::SubmitTx(SubmitTxToMempool {
-                tx: self
-                    .build_fill(
-                        self.client.clone(),
-                        &self.executor_address,
-                        signed_orders,
-                        event,
-                    )
-                    .await
-                    .ok()?,
+                tx: tx.clone(),
                 gas_bid_info: Some(GasBidInfo {
                     bid_percentage: self.bid_percentage,
                     total_profit: profit,
                 }),
-            }));
+            }));            
+
+            // Must be able to cover min gas cost
+            let gas_usage = self
+            .client
+            .estimate_gas(&tx, None)
+            .await
+            .unwrap_or_else(|err| {
+                info!("Error estimating gas: {}", err);
+                U256::from(1_000_000)
+            });
+            // Get the current min gas price
+            let min_gas_price = self.client.get_gas_price()
+                .await
+                .unwrap_or(U256::from(10_000_000));
+            
+            // gas price at which we'd break even, meaning 100% of profit goes to validator
+            let breakeven_gas_price = profit / gas_usage;
+            // gas price corresponding to bid percentage
+            let bid_gas_price = breakeven_gas_price
+                .mul(self.bid_percentage)
+                .div(100);
+            info!("min_gas_price: {}", min_gas_price);
+            if bid_gas_price < min_gas_price {
+                return None;
+            }
 
             for order in filtered_orders.iter() {
                 self.processing_orders.insert(order.hash.clone());

@@ -44,6 +44,7 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
                 SWAPROUTER_02_ADDRESS,
             )
             .await?;
+
         let reactor_approval = self
             .get_tokens_to_approve(client.clone(), token_out, executor_address, REACTOR_ADDRESS)
             .await?;
@@ -59,6 +60,7 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
             ],
             &Bytes::from_str(multicall_bytes).expect("Failed to decode multicall bytes"),
         );
+        
         let decoded_multicall_bytes = match decoded_multicall_bytes {
             Ok(data) => data[1].clone(), // already in bytes[]
             Err(e) => {
