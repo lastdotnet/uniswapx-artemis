@@ -133,8 +133,6 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
             inner: order,
             encoded_order: event.encoded_order.clone(),
         };
-        // TODO: remove this
-        // info!("&event.encoded_order: {:?}", &event.encoded_order);
         self.update_order_state(wrapper, &event.signature, &event.order_hash);
         None
     }
@@ -231,19 +229,10 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
     fn get_signed_orders(&self, orders: Vec<OrderData>) -> Result<Vec<SignedOrder>> {
         let mut signed_orders: Vec<SignedOrder> = Vec::new();
         for batch in orders.iter() {
-            match &batch.order {
-                Order::V3DutchOrder(order) => {
-                    // TODO: remove this
-                    // info!("encoded inner: {:?}", batch.encoded_order);
-                    signed_orders.push(SignedOrder {
-                        order: Bytes::from_str(batch.encoded_order.as_ref().unwrap())?,
-                        sig: Bytes::from_str(&batch.signature)?,
-                    });
-                }
-                _ => {
-                    return Err(anyhow::anyhow!("Invalid order type"));
-                }
-            }
+            signed_orders.push(SignedOrder {
+                order: Bytes::from_str(batch.encoded_order.as_ref().unwrap())?,
+                sig: Bytes::from_str(&batch.signature)?,
+            });
         }
         Ok(signed_orders)
     }
@@ -252,7 +241,10 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
         let mut order_batches: HashMap<TokenInTokenOut, OrderBatchData> = HashMap::new();
 
         // group orders by token in and token out
-        self.open_orders.iter().for_each(|(_, order_data)| {
+        self.open_orders
+            .iter()
+            .filter(|(_, order_data)| !self.processing_orders.contains(&order_data.hash))
+            .for_each(|(_, order_data)| {
             let token_in_token_out = TokenInTokenOut {
                 token_in: order_data.resolved.input.token.clone(),
                 token_out: order_data.resolved.outputs[0].token.clone(),

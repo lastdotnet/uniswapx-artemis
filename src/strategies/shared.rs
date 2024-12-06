@@ -15,8 +15,6 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use tracing::{error, info, warn};
-
 const REACTOR_ADDRESS: &str = "0x00000011F84B9aa48e5f8aA8B9897600006289Be";
 const SWAPROUTER_02_ADDRESS: &str = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45";
 pub const WETH_ADDRESS: &str = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
@@ -75,8 +73,6 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
             Token::Array(reactor_approval),
             decoded_multicall_bytes,
         ]);
-        // TODO: remove this
-        // info!("signed_orders: {:?}", signed_orders);
         let mut call = fill_contract.execute_batch(signed_orders, Bytes::from(calldata));
         Ok(call.tx.set_chain_id(chain_id.as_u64()).clone())
     }

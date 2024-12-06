@@ -21,7 +21,7 @@ use strategies::priority_strategy::UniswapXPriorityFill;
 use strategies::dutchv3_strategy::UniswapXDutchV3Fill;
 use strategies::{
     types::{Action, Config, Event},
-    // uniswapx_strategy::UniswapXUniswapFill,
+    uniswapx_strategy::UniswapXUniswapFill,
 };
 use tokio::sync::mpsc::channel;
 use tracing::{error, info, Level};
@@ -207,6 +207,13 @@ async fn main() -> Result<()> {
 
     match &args.order_type {
         OrderType::DutchV2 => {
+            let uniswapx_strategy = UniswapXUniswapFill::new(
+                Arc::new(provider.clone()),
+                config.clone(),
+                batch_sender,
+                route_receiver,
+            );
+            engine.add_strategy(Box::new(uniswapx_strategy));
         }
         OrderType::DutchV3 => {
             let uniswapx_strategy = UniswapXDutchV3Fill::new(

@@ -37,6 +37,16 @@ sol! {
     }
 
     #[derive(Debug)]
+    struct CosignerData {
+        uint256 decayStartTime;
+        uint256 decayEndTime;
+        address exclusiveFiller;
+        uint256 exclusivityOverrideBps;
+        uint256 inputAmount;
+        uint256[] outputAmounts;
+    }
+
+    #[derive(Debug)]
     struct V2DutchOrder {
         OrderInfo info;
         address cosigner;
@@ -85,12 +95,12 @@ sol! {
         uint256 startingBaseFee;
         V3DutchInput baseInput;
         V3DutchOutput[] baseOutputs;
-        CosignerData cosignerData;
+        V3CosignerData cosignerData;
         bytes cosignature;
     }
 
     #[derive(Debug)]
-    struct CosignerData {
+    struct V3CosignerData {
         uint256 decayStartBlock;
         address exclusiveFiller;
         uint256 exclusivityOverrideBps;
@@ -193,35 +203,33 @@ impl V2DutchOrder {
 
         let input = ResolvedInput {
             token: self.baseInput.token.to_string(),
-            amount: self.baseInput.startAmount,
-            // amount: resolve_decay(
-            //     timestamp,
-            //     self.cosignerData.decayStartTime,
-            //     self.cosignerData.decayEndTime,
-            //     self.baseInput.startAmount,
-            //     self.baseInput.endAmount,
-            // ),
+            amount: resolve_decay(
+                timestamp,
+                self.cosignerData.decayStartTime,
+                self.cosignerData.decayEndTime,
+                self.baseInput.startAmount,
+                self.baseInput.endAmount,
+            ),
         };
 
         let outputs: Result<Vec<ResolvedOutput>> = self
             .baseOutputs
             .iter()
             .map(|output| {
-                // let mut amount = resolve_decay(
-                //     timestamp,
-                //     self.cosignerData.decayStartTime,
-                //     self.cosignerData.decayEndTime,
-                //     output.startAmount,
-                //     output.endAmount,
-                // );
-                let amount = output.startAmount;
+                let mut amount = resolve_decay(
+                    timestamp,
+                    self.cosignerData.decayStartTime,
+                    self.cosignerData.decayEndTime,
+                    output.startAmount,
+                    output.endAmount,
+                );
 
                 // add exclusivity override to amount
-                // if self.cosignerData.decayStartTime.gt(&timestamp) && !self.cosignerData.exclusiveFiller.is_zero() {
-                //     let exclusivity = self.cosignerData.exclusivityOverrideBps.checked_add(BPS).ok_or(anyhow::Error::msg("Overflow in exclusivity calculation"))?;
-                //     let exclusivity = exclusivity.checked_mul(amount).ok_or(anyhow::Error::msg("Overflow in exclusivity calculation"))?;
-                //     amount = exclusivity.checked_div(BPS).ok_or(anyhow::Error::msg("Division by zero in exclusivity calculation"))?;
-                // };
+                if self.cosignerData.decayStartTime.gt(&timestamp) && !self.cosignerData.exclusiveFiller.is_zero() {
+                    let exclusivity = self.cosignerData.exclusivityOverrideBps.checked_add(BPS).ok_or(anyhow::Error::msg("Overflow in exclusivity calculation"))?;
+                    let exclusivity = exclusivity.checked_mul(amount).ok_or(anyhow::Error::msg("Overflow in exclusivity calculation"))?;
+                    amount = exclusivity.checked_div(BPS).ok_or(anyhow::Error::msg("Division by zero in exclusivity calculation"))?;
+                };
 
                 Ok(ResolvedOutput {
                     token: output.token.to_string(),
