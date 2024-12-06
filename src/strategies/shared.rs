@@ -7,7 +7,7 @@ use bindings_uniswapx::{
 use ethers::{
     abi::{ethabi, ParamType, Token},
     providers::Middleware,
-    types::{transaction::eip2718::TypedTransaction, Address, Bytes, H160, U256},
+    types::{transaction::eip2718::TypedTransaction, Address, Bytes, Eip1559TransactionRequest, H160, U256},
 };
 use std::sync::Arc;
 use std::{
@@ -60,7 +60,7 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
             ],
             &Bytes::from_str(multicall_bytes).expect("Failed to decode multicall bytes"),
         );
-        
+
         let decoded_multicall_bytes = match decoded_multicall_bytes {
             Ok(data) => data[1].clone(), // already in bytes[]
             Err(e) => {
@@ -128,5 +128,35 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
         profit_quote
             .saturating_mul(gas_use_eth)
             .checked_div(U256::from_str_radix(&route.gas_use_estimate_quote, 10).ok()?)
+    }
+
+    /// Get the minimum gas price on Arbitrum
+    /// https://docs.arbitrum.io/build-decentralized-apps/precompiles/reference#arbgasinfo
+    async fn get_arbitrum_min_gas_price(&self, client: Arc<M>) -> Result<U256> {
+        const ARBITRUM_GAS_PRECOMPILE: &str = "0x000000000000000000000000000000000000006C";
+        
+        let precompile_address = ARBITRUM_GAS_PRECOMPILE.parse::<Address>()?;
+        #[allow(deprecated)]
+        let data = ethers::abi::Function {
+            name: "getMinimumGasPrice".to_string(),
+            inputs: vec![],
+            outputs: vec![ethers::abi::Param {
+                name: "".to_string(),
+                kind: ethers::abi::ParamType::Uint(256),
+                internal_type: None,
+            }],
+            constant: Some(true),
+            state_mutability: ethers::abi::StateMutability::View,
+        }
+        .encode_input(&[])?;
+        let tx = 
+            Eip1559TransactionRequest::new()
+                .to(precompile_address)
+                .data(data);
+        let result = client
+            .call(&TypedTransaction::Eip1559(tx), None)
+            .await?;
+
+        Ok(U256::from_big_endian(&result.0))
     }
 }

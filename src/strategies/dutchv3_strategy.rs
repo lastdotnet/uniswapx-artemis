@@ -202,18 +202,18 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
                 U256::from(1_000_000)
             });
             // Get the current min gas price
-            let min_gas_price = self.client.get_gas_price()
+            let min_gas_price = self.get_arbitrum_min_gas_price(self.client.clone())
                 .await
                 .unwrap_or(U256::from(10_000_000));
-            
+
             // gas price at which we'd break even, meaning 100% of profit goes to validator
             let breakeven_gas_price = profit / gas_usage;
             // gas price corresponding to bid percentage
             let bid_gas_price = breakeven_gas_price
                 .mul(self.bid_percentage)
                 .div(100);
-            info!("min_gas_price: {}", min_gas_price);
             if bid_gas_price < min_gas_price {
+                info!("Bid gas price {} is less than min gas price {}, skipping", bid_gas_price, min_gas_price);
                 return None;
             }
 
@@ -225,6 +225,8 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
 
         None
     }
+
+    
 
     /// Process new block events, updating the internal state.
     async fn process_new_block_event(&mut self, event: &NewBlock) -> Option<Action> {
