@@ -5090,7 +5090,6 @@ dependencies = [
  "aws-config",
  "aws-sdk-cloudwatch",
  "aws-sdk-secretsmanager",
- "aws-smithy-runtime-api",
  "bindings-uniswapx",
  "clap",
  "crossbeam",
