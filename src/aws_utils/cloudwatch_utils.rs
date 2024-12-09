@@ -144,5 +144,5 @@ pub fn receipt_status_to_metric(status: u64) -> CwMetrics {
 
 pub trait MetricSender {
     fn build_metric_future(&self, dimension_value: DimensionValue, metric: CwMetrics, value: f64) -> 
-    Option<Pin<Box<dyn Future<Output = Result<PutMetricDataOutput, SdkError<PutMetricDataError, HttpResponse>>> + Send + 'static>>>;
+    Option<Pin<Box<impl Future<Output = Result<PutMetricDataOutput, SdkError<PutMetricDataError, HttpResponse>>> + Send + 'static>>>;
 }

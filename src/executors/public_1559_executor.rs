@@ -283,7 +283,7 @@ where
 
 impl<M, N> MetricSender for Public1559Executor<M, N> {
     fn build_metric_future(&self, dimension_value: DimensionValue, metric: CwMetrics, value: f64) 
-    -> Option<Pin<Box<dyn Future<Output = Result<PutMetricDataOutput, SdkError<PutMetricDataError, HttpResponse>>> + Send + 'static>>> {
+    -> Option<Pin<Box<impl Future<Output = Result<PutMetricDataOutput, SdkError<PutMetricDataError, HttpResponse>>> + Send + 'static>>> {
         let cw = self.cloudwatch_client.clone();
         cw.map(|client| {
             Box::pin(async move {
@@ -301,7 +301,7 @@ impl<M, N> MetricSender for Public1559Executor<M, N> {
                 )
                 .send()
                 .await
-            }) as Pin<Box<dyn Future<Output = Result<PutMetricDataOutput, SdkError<PutMetricDataError, HttpResponse>>> + Send + 'static>>
+            })
         })
     }
 }
