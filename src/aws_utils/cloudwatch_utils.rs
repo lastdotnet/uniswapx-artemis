@@ -13,6 +13,9 @@ pub const TX_REVERTED_METRIC: &str = "TransactionReverted";
 pub const TX_SUBMITTED_METRIC: &str = "TransactionSubmitted";
 pub const TX_STATUS_UNKNOWN_METRIC: &str = "TransactionStatusUnknown";
 pub const LATEST_BLOCK: &str = "LatestBlock";
+pub const EXECUTION_ATTEMPTED_METRIC: &str = "ExecutionAttempted";
+pub const EXECUTION_SKIPPED_ALREADY_FILLED_METRIC: &str = "ExecutionSkippedAlreadyFilled";
+pub const EXECUTION_SKIPPED_PAST_DEADLINE_METRIC: &str = "ExecutionSkippedPastDeadline";
 
 pub enum DimensionName {
     Service,
@@ -57,6 +60,9 @@ impl AsRef<str> for DimensionValue {
 }
 
 pub enum CwMetrics {
+    ExecutionAttempted,
+    ExecutionSkippedAlreadyFilled,
+    ExecutionSkippedPastDeadline,
     TxSucceeded,
     TxReverted,
     TxSubmitted,
@@ -69,6 +75,9 @@ pub enum CwMetrics {
 impl From<CwMetrics> for String {
     fn from(metric: CwMetrics) -> Self {
         match metric {
+            CwMetrics::ExecutionAttempted => EXECUTION_ATTEMPTED_METRIC.to_string(),
+            CwMetrics::ExecutionSkippedAlreadyFilled => EXECUTION_SKIPPED_ALREADY_FILLED_METRIC.to_string(),
+            CwMetrics::ExecutionSkippedPastDeadline => EXECUTION_SKIPPED_PAST_DEADLINE_METRIC.to_string(),
             CwMetrics::TxSucceeded => TX_SUCCEEDED_METRIC.to_string(),
             CwMetrics::TxReverted => TX_REVERTED_METRIC.to_string(),
             CwMetrics::TxSubmitted => TX_SUBMITTED_METRIC.to_string(),

@@ -68,6 +68,12 @@ where
     /// Send a transaction to the mempool.
     async fn execute(&self, mut action: SubmitTxToMempoolWithExecutionMetadata) -> Result<()> {
         let order_hash = Arc::new(action.metadata.order_hash.clone());
+
+        let metric_future = self.build_metric_future(DimensionValue::PriorityExecutor, CwMetrics::ExecutionAttempted, 1.0);
+        if let Some(metric_future) = metric_future {
+            send_metric_with_order_hash!(&order_hash, metric_future);
+        }
+
         // Acquire a key from the key store
         let (public_address, private_key) = self
             .key_store
@@ -110,10 +116,18 @@ where
                     match error_code {
                         ReactorErrorCode::OrderAlreadyFilled => {
                             info!("{} - Order already filled, skipping execution", order_hash);
+                            let metric_future = self.build_metric_future(DimensionValue::PriorityExecutor, CwMetrics::ExecutionSkippedAlreadyFilled, 1.0);
+                            if let Some(metric_future) = metric_future {
+                                send_metric_with_order_hash!(&order_hash, metric_future);
+                            }
                             Err(anyhow::anyhow!("Order Already Filled"))
                         }
                         ReactorErrorCode::InvalidDeadline => {
                             info!("{} - Order past deadline, skipping execution", order_hash);
+                            let metric_future = self.build_metric_future(DimensionValue::PriorityExecutor, CwMetrics::ExecutionSkippedPastDeadline, 1.0);
+                            if let Some(metric_future) = metric_future {
+                                send_metric_with_order_hash!(&order_hash, metric_future);
+                            }
                             Err(anyhow::anyhow!("Order Past Deadline"))
                         }
                         _ => Ok(U256::from(1_000_000)),
