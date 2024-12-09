@@ -1,3 +1,7 @@
+use std::{future::Future, pin::Pin};
+
+use aws_sdk_cloudwatch::{config::http::HttpResponse, error::SdkError, operation::put_metric_data::{PutMetricDataError, PutMetricDataOutput}, types::Dimension};
+
 /// Constants for dimension names and values
 pub const SERVICE_DIMENSION: &str = "Service";
 pub const PRIORITY_EXECUTOR: &str = "PriorityExecutor";
@@ -75,7 +79,6 @@ impl From<CwMetrics> for String {
     }
 }
 
-use aws_sdk_cloudwatch::types::Dimension;
 
 pub const ARTEMIS_NAMESPACE: &str = "Artemis";
 
@@ -128,4 +131,9 @@ pub fn receipt_status_to_metric(status: u64) -> CwMetrics {
         0 => CwMetrics::TxReverted,
         _ => CwMetrics::TxStatusUnknown,
     }
+}
+
+pub trait MetricSender {
+    fn build_metric_future(&self, dimension_value: DimensionValue, metric: CwMetrics, value: f64) -> 
+    Option<Pin<Box<dyn Future<Output = Result<PutMetricDataOutput, SdkError<PutMetricDataError, HttpResponse>>> + Send + 'static>>>;
 }
