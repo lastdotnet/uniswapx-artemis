@@ -30,6 +30,7 @@ pub mod aws_utils;
 pub mod collectors;
 pub mod executors;
 pub mod strategies;
+pub mod shared;
 
 const MEV_BLOCKER: &str = "https://rpc.mevblocker.io/noreverts";
 
@@ -202,6 +203,7 @@ async fn main() -> Result<()> {
                 config.clone(),
                 batch_sender,
                 route_receiver,
+                cloudwatch_client.clone(),
             );
             engine.add_strategy(Box::new(uniswapx_strategy));
         }

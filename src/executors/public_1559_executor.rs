@@ -17,9 +17,7 @@ use ethers::{
 use crate::{
     aws_utils::cloudwatch_utils::{
         receipt_status_to_metric, CwMetrics, DimensionName, DimensionValue, MetricBuilder, MetricSender, ARTEMIS_NAMESPACE
-    },
-    executors::reactor_error_code::ReactorErrorCode,
-    strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata},
+    }, executors::reactor_error_code::ReactorErrorCode, strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
 };
 
 macro_rules! send_metric_with_order_hash {
