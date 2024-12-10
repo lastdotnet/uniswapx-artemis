@@ -9,6 +9,7 @@ pub const PRIORITY_EXECUTOR: &str = "PriorityExecutor";
 pub const V2_EXECUTOR: &str = "V2Executor";
 
 /// Constants for metric names
+pub const ROUTING_MS: &str = "RoutingMs";
 pub const TX_SUCCEEDED_METRIC: &str = "TransactionSucceeded";
 pub const TX_REVERTED_METRIC: &str = "TransactionReverted";
 pub const TX_SUBMITTED_METRIC: &str = "TransactionSubmitted";
@@ -64,6 +65,7 @@ impl AsRef<str> for DimensionValue {
 }
 
 pub enum CwMetrics {
+    RoutingMs,
     Unprofitable,
     ExecutionAttempted,
     ExecutionSkippedAlreadyFilled,
@@ -80,6 +82,7 @@ pub enum CwMetrics {
 impl From<CwMetrics> for String {
     fn from(metric: CwMetrics) -> Self {
         match metric {
+            CwMetrics::RoutingMs => ROUTING_MS.to_string(),
             CwMetrics::Unprofitable => UNPROFITABLE_METRIC.to_string(),
             CwMetrics::ExecutionAttempted => EXECUTION_ATTEMPTED_METRIC.to_string(),
             CwMetrics::ExecutionSkippedAlreadyFilled => EXECUTION_SKIPPED_ALREADY_FILLED_METRIC.to_string(),

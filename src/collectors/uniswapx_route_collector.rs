@@ -201,7 +201,7 @@ impl UniswapXRouteCollector {
             .map_err(|e| anyhow!("Quote request failed with error: {}", e))?;
 
         let elapsed = start.elapsed();
-        let metric_future = self.build_metric_future(DimensionValue::Router02, CwMetrics::Unprofitable, elapsed.as_millis() as f64);
+        let metric_future = self.build_metric_future(DimensionValue::Router02, CwMetrics::RoutingMs, elapsed.as_millis() as f64);
         if let Some(metric_future) = metric_future {
             send_metric_with_order_hash!(&Arc::new(""), metric_future);
         }
