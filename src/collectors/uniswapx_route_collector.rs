@@ -16,7 +16,7 @@ use futures::StreamExt;
 use reqwest::{Client, StatusCode};
 
 const ROUTING_API: &str = "https://api.uniswap.org/v1/quote";
-const SLIPPAGE_TOLERANCE: &str = "0.5";
+const SLIPPAGE_TOLERANCE: &str = "2.5";
 const DEADLINE: u64 = 1000;
 
 #[derive(Debug, Clone)]

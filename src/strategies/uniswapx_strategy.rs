@@ -2,23 +2,24 @@ use super::{
     shared::{UniswapXStrategy, WETH_ADDRESS},
     types::{Config, OrderStatus, TokenInTokenOut},
 };
-use crate::collectors::{
+use crate::{aws_utils::cloudwatch_utils::{CwMetrics, DimensionName, DimensionValue, MetricBuilder, MetricSender, ARTEMIS_NAMESPACE}, collectors::{
     block_collector::NewBlock,
     uniswapx_order_collector::UniswapXOrder,
     uniswapx_route_collector::{OrderBatchData, OrderData, RoutedOrder},
-};
+}, shared::send_metric_with_order_hash};
 use alloy_primitives::Uint;
 use anyhow::Result;
 use artemis_core::executors::mempool_executor::{GasBidInfo, SubmitTxToMempool};
 use artemis_core::types::Strategy;
 use async_trait::async_trait;
+use aws_sdk_cloudwatch::{config::http::HttpResponse, error::SdkError, operation::put_metric_data::{PutMetricDataError, PutMetricDataOutput}, Client as CloudWatchClient};
 use bindings_uniswapx::shared_types::SignedOrder;
 use ethers::{
     providers::Middleware,
     types::{Address, Bytes, Filter, U256},
     utils::hex,
 };
-use std::error::Error;
+use std::{error::Error, future::Future, pin::Pin};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::{collections::HashMap, fmt::Debug};
@@ -49,6 +50,7 @@ pub struct UniswapXUniswapFill<M> {
     done_orders: HashMap<String, u64>,
     batch_sender: Sender<Vec<OrderBatchData>>,
     route_receiver: Receiver<RoutedOrder>,
+    cloudwatch_client: Option<Arc<CloudWatchClient>>,
 }
 
 impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
@@ -57,6 +59,7 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
         config: Config,
         sender: Sender<Vec<OrderBatchData>>,
         receiver: Receiver<RoutedOrder>,
+        cloudwatch_client: Option<Arc<CloudWatchClient>>,
     ) -> Self {
         info!("syncing state");
 
@@ -70,6 +73,7 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
             done_orders: HashMap::new(),
             batch_sender: sender,
             route_receiver: receiver,
+            cloudwatch_client,
         }
     }
 }
@@ -131,7 +135,6 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
         {
             return None;
         }
-
         let OrderBatchData {
             // orders,
             orders,
@@ -163,6 +166,11 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
                     total_profit: profit,
                 }),
             }));
+        } else {
+            let metric_future = self.build_metric_future(DimensionValue::Router02, CwMetrics::Unprofitable, 1.0);
+            if let Some(metric_future) = metric_future {
+                send_metric_with_order_hash!(&Arc::new(event.request.orders[0].hash.clone()), metric_future);
+            }
         }
 
         None
@@ -375,5 +383,30 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
         profit_quote
             .saturating_mul(gas_use_eth)
             .checked_div(U256::from_str_radix(&route.gas_use_estimate_quote, 10).ok()?)
+    }
+}
+
+impl<M> MetricSender for UniswapXUniswapFill<M> {
+    fn build_metric_future(&self, dimension_value: DimensionValue, metric: CwMetrics, value: f64) -> 
+    Option<Pin<Box<impl Future<Output = Result<PutMetricDataOutput, SdkError<PutMetricDataError, HttpResponse>>> + Send + 'static>>> {
+        let cw = self.cloudwatch_client.clone();
+        cw.map(|client| {
+            Box::pin(async move {
+                client
+                .put_metric_data()
+                .namespace(ARTEMIS_NAMESPACE)
+                .metric_data(
+                    MetricBuilder::new(metric)
+                        .add_dimension(
+                            DimensionName::Service.as_ref(),
+                            dimension_value.as_ref(),
+                        )
+                        .with_value(value)
+                        .build(),
+                )
+                .send()
+                .await
+            })
+        })
     }
 }
