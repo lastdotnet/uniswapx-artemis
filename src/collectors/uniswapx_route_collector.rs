@@ -1,7 +1,8 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, future::Future, pin::Pin, sync::Arc};
 
 use alloy_primitives::Uint;
 use anyhow::{anyhow, Result};
+use aws_sdk_cloudwatch::{config::http::HttpResponse, error::SdkError, operation::put_metric_data::{PutMetricDataError, PutMetricDataOutput}, Client as CloudWatchClient};
 use reqwest::header::ORIGIN;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -14,6 +15,8 @@ use futures::lock::Mutex;
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use reqwest::{Client, StatusCode};
+
+use crate::{aws_utils::cloudwatch_utils::{CwMetrics, DimensionName, DimensionValue, MetricBuilder, MetricSender, ARTEMIS_NAMESPACE}, shared::send_metric_with_order_hash};
 
 const ROUTING_API: &str = "https://api.uniswap.org/v1/quote";
 const SLIPPAGE_TOLERANCE: &str = "2.5";
@@ -148,6 +151,7 @@ pub struct UniswapXRouteCollector {
     pub route_request_receiver: Mutex<Receiver<Vec<OrderBatchData>>>,
     pub route_sender: Sender<RoutedOrder>,
     pub executor_address: String,
+    pub cloudwatch_client: Option<CloudWatchClient>,
 }
 
 impl UniswapXRouteCollector {
@@ -156,6 +160,7 @@ impl UniswapXRouteCollector {
         route_request_receiver: Receiver<Vec<OrderBatchData>>,
         route_sender: Sender<RoutedOrder>,
         executor_address: String,
+        cloudwatch_client: Option<CloudWatchClient>,
     ) -> Self {
         Self {
             client: Client::new(),
@@ -163,7 +168,85 @@ impl UniswapXRouteCollector {
             route_request_receiver: Mutex::new(route_request_receiver),
             route_sender,
             executor_address,
+            cloudwatch_client,
         }
+    }
+
+    pub async fn route_order(&self, params: RouteOrderParams) -> Result<OrderRoute> {
+        // TODO: support exactOutput
+        let query = RoutingApiQuery {
+            token_in_address: resolve_address(params.token_in),
+            token_out_address: resolve_address(params.token_out),
+            token_in_chain_id: params.chain_id,
+            token_out_chain_id: params.chain_id,
+            trade_type: TradeType::ExactIn,
+            amount: params.amount,
+            recipient: params.recipient,
+            slippage_tolerance: SLIPPAGE_TOLERANCE.to_string(),
+            enable_universal_router: false,
+            deadline: DEADLINE,
+        };
+
+        let query_string = serde_qs::to_string(&query).unwrap();
+
+        let client = reqwest::Client::new();
+        let start = std::time::Instant::now();
+
+        let response = client
+            .get(format!("{}?{}", ROUTING_API, query_string))
+            .header(ORIGIN, "https://app.uniswap.org")
+            .header("x-request-source", "uniswap-web")
+            .send()
+            .await
+            .map_err(|e| anyhow!("Quote request failed with error: {}", e))?;
+
+        let elapsed = start.elapsed();
+        let metric_future = self.build_metric_future(DimensionValue::Router02, CwMetrics::Unprofitable, elapsed.as_millis() as f64);
+        if let Some(metric_future) = metric_future {
+            send_metric_with_order_hash!(&Arc::new(""), metric_future);
+        }
+
+        match response.status() {
+            StatusCode::OK => Ok(response
+                .json::<OrderRoute>()
+                .await
+                .map_err(|e| anyhow!("Failed to parse response: {}", e))?),
+            StatusCode::BAD_REQUEST => Err(anyhow!("Bad request: {}", response.status())),
+            StatusCode::NOT_FOUND => Err(anyhow!("Not quote found: {}", response.status())),
+            StatusCode::TOO_MANY_REQUESTS => Err(anyhow!("Too many requests: {}", response.status())),
+            StatusCode::INTERNAL_SERVER_ERROR => {
+                Err(anyhow!("Internal server error: {}", response.status()))
+            }
+            _ => Err(anyhow!(
+                "Unexpected error with status code: {}",
+                response.status()
+            )),
+        }
+    }
+}
+
+impl MetricSender for UniswapXRouteCollector {
+    fn build_metric_future(&self, dimension_value: DimensionValue, metric: CwMetrics, value: f64) -> 
+    Option<Pin<Box<impl Future<Output = Result<PutMetricDataOutput, SdkError<PutMetricDataError, HttpResponse>>> + Send + 'static>>> {
+        let cw = self.cloudwatch_client.clone();
+        cw.map(|client| {
+            Box::pin(async move {
+                client
+                .put_metric_data()
+                .namespace(ARTEMIS_NAMESPACE)
+                .metric_data(
+                    MetricBuilder::new(metric)
+                        .add_dimension(
+                            DimensionName::Service.as_ref(),
+                            dimension_value.as_ref(),
+                        )
+                        .with_value(value)
+                        .build(),
+                )
+                .send()
+                .await
+            })
+        })
     }
 }
 
@@ -246,52 +329,9 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
 
         Ok(Box::pin(stream))
     }
+
 }
 
-pub async fn route_order(params: RouteOrderParams) -> Result<OrderRoute> {
-    // TODO: support exactOutput
-    let query = RoutingApiQuery {
-        token_in_address: resolve_address(params.token_in),
-        token_out_address: resolve_address(params.token_out),
-        token_in_chain_id: params.chain_id,
-        token_out_chain_id: params.chain_id,
-        trade_type: TradeType::ExactIn,
-        amount: params.amount,
-        recipient: params.recipient,
-        slippage_tolerance: SLIPPAGE_TOLERANCE.to_string(),
-        enable_universal_router: false,
-        deadline: DEADLINE,
-    };
-
-    let query_string = serde_qs::to_string(&query).unwrap();
-
-    let client = reqwest::Client::new();
-
-    let response = client
-        .get(format!("{}?{}", ROUTING_API, query_string))
-        .header(ORIGIN, "https://app.uniswap.org")
-        .header("x-request-source", "uniswap-web")
-        .send()
-        .await
-        .map_err(|e| anyhow!("Quote request failed with error: {}", e))?;
-
-    match response.status() {
-        StatusCode::OK => Ok(response
-            .json::<OrderRoute>()
-            .await
-            .map_err(|e| anyhow!("Failed to parse response: {}", e))?),
-        StatusCode::BAD_REQUEST => Err(anyhow!("Bad request: {}", response.status())),
-        StatusCode::NOT_FOUND => Err(anyhow!("Not quote found: {}", response.status())),
-        StatusCode::TOO_MANY_REQUESTS => Err(anyhow!("Too many requests: {}", response.status())),
-        StatusCode::INTERNAL_SERVER_ERROR => {
-            Err(anyhow!("Internal server error: {}", response.status()))
-        }
-        _ => Err(anyhow!(
-            "Unexpected error with status code: {}",
-            response.status()
-        )),
-    }
-}
 
 // The Uniswap routing API requires that "ETH" be used instead of the zero address
 fn resolve_address(token: String) -> String {
