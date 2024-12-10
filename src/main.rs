@@ -238,7 +238,7 @@ async fn main() -> Result<()> {
         provider.clone(),
         provider.clone(),
         key_store.clone(),
-        cloudwatch_client,
+        cloudwatch_client.clone(),
     ));
 
     let queued_executor = ExecutorMap::new(queued_executor, |action| match action {

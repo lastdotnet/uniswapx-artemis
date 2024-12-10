@@ -151,7 +151,7 @@ pub struct UniswapXRouteCollector {
     pub route_request_receiver: Mutex<Receiver<Vec<OrderBatchData>>>,
     pub route_sender: Sender<RoutedOrder>,
     pub executor_address: String,
-    pub cloudwatch_client: Option<CloudWatchClient>,
+    pub cloudwatch_client: Option<Arc<CloudWatchClient>>,
 }
 
 impl UniswapXRouteCollector {
@@ -160,7 +160,7 @@ impl UniswapXRouteCollector {
         route_request_receiver: Receiver<Vec<OrderBatchData>>,
         route_sender: Sender<RoutedOrder>,
         executor_address: String,
-        cloudwatch_client: Option<CloudWatchClient>,
+        cloudwatch_client: Option<Arc<CloudWatchClient>>,
     ) -> Self {
         Self {
             client: Client::new(),
@@ -298,7 +298,7 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
                     );
 
                     let future = async move {
-                        let route_result = route_order(RouteOrderParams {
+                        let route_result = self.route_order(RouteOrderParams {
                             chain_id: self.chain_id,
                             token_in: token_in.clone(),
                             token_out: token_out.clone(),
