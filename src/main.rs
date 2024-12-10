@@ -173,11 +173,20 @@ async fn main() -> Result<()> {
     });
     engine.add_collector(Box::new(uniswapx_order_collector));
 
+    let cloudwatch_client = if args.cloudwatch_metrics {
+        let config = aws_config::load_from_env().await;
+        Some(Arc::new(aws_sdk_cloudwatch::Client::new(&config)))
+    } else {
+        None
+    };
+
+
     let uniswapx_route_collector = Box::new(UniswapXRouteCollector::new(
         chain_id,
         batch_receiver,
         route_sender,
         args.executor_address.clone(),
+        cloudwatch_client.clone(),
     ));
     let uniswapx_route_collector = CollectorMap::new(uniswapx_route_collector, |e| {
         Event::UniswapXRoute(Box::new(e))
@@ -187,13 +196,6 @@ async fn main() -> Result<()> {
     let config = Config {
         bid_percentage: args.bid_percentage,
         executor_address: args.executor_address,
-    };
-
-    let cloudwatch_client = if args.cloudwatch_metrics {
-        let config = aws_config::load_from_env().await;
-        Some(Arc::new(aws_sdk_cloudwatch::Client::new(&config)))
-    } else {
-        None
     };
 
     match &args.order_type {
@@ -236,7 +238,7 @@ async fn main() -> Result<()> {
         provider.clone(),
         provider.clone(),
         key_store.clone(),
-        cloudwatch_client,
+        cloudwatch_client.clone(),
     ));
 
     let queued_executor = ExecutorMap::new(queued_executor, |action| match action {
