@@ -92,20 +92,11 @@ impl<M: Middleware + 'static> Strategy<Event, Action> for UniswapXDutchV3Fill<M>
     }
 
     // Process incoming events, seeing if we can arb new orders, and updating the internal state on new blocks.
-    async fn process_event(&mut self, event: Event) -> Vec<Action> {
+    async fn process_event(&mut self, event: Event) -> Option<Action> {
         match event {
-            Event::UniswapXOrder(order) => self
-                .process_order_event(&order)
-                .await
-                .map_or(vec![], |action| vec![action]),
-            Event::NewBlock(block) => self
-                .process_new_block_event(&block)
-                .await
-                .map_or(vec![], |action| vec![action]),
-            Event::UniswapXRoute(route) => self
-                .process_new_route(&route)
-                .await
-                .map_or(vec![], |action| vec![action]),
+            Event::UniswapXOrder(order) => self.process_order_event(&order).await,
+            Event::NewBlock(block) => self.process_new_block_event(&block).await,
+            Event::UniswapXRoute(route) => self.process_new_route(&route).await,
         }
     }
 }
