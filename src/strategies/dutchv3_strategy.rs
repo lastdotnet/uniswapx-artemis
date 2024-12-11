@@ -18,13 +18,16 @@ use ethers::{
     types::{Address, Bytes, Filter, U256},
     utils::hex,
 };
+use std::error::Error;
+use std::str::FromStr;
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+};
 use std::{
     ops::{Div, Mul},
     sync::Arc,
 };
-use std::error::Error;
-use std::str::FromStr;
-use std::{collections::{HashMap, HashSet}, fmt::Debug};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{error, info};
 use uniswapx_rs::order::{Order, OrderResolution, V3DutchOrder};
@@ -91,11 +94,17 @@ impl<M: Middleware + 'static> Strategy<Event, Action> for UniswapXDutchV3Fill<M>
     // Process incoming events, seeing if we can arb new orders, and updating the internal state on new blocks.
     async fn process_event(&mut self, event: Event) -> Vec<Action> {
         match event {
-            Event::UniswapXOrder(order) => self.process_order_event(&order).await
+            Event::UniswapXOrder(order) => self
+                .process_order_event(&order)
+                .await
                 .map_or(vec![], |action| vec![action]),
-            Event::NewBlock(block) => self.process_new_block_event(&block).await
+            Event::NewBlock(block) => self
+                .process_new_block_event(&block)
+                .await
                 .map_or(vec![], |action| vec![action]),
-            Event::UniswapXRoute(route) => self.process_new_route(&route).await
+            Event::UniswapXRoute(route) => self
+                .process_new_route(&route)
+                .await
                 .map_or(vec![], |action| vec![action]),
         }
     }
@@ -122,9 +131,7 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
 
     // Process new orders as they come in.
     async fn process_order_event(&mut self, event: &UniswapXOrder) -> Option<Action> {
-        if self.last_block_timestamp == 0
-            || self.processing_orders.contains(&event.order_hash)
-        {
+        if self.last_block_timestamp == 0 || self.processing_orders.contains(&event.order_hash) {
             return None;
         }
 
@@ -190,30 +197,32 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
                     bid_percentage: self.bid_percentage,
                     total_profit: profit,
                 }),
-            }));            
+            }));
 
             // Must be able to cover min gas cost
             let gas_usage = self
-            .client
-            .estimate_gas(&tx, None)
-            .await
-            .unwrap_or_else(|err| {
-                info!("Error estimating gas: {}", err);
-                U256::from(1_000_000)
-            });
+                .client
+                .estimate_gas(&tx, None)
+                .await
+                .unwrap_or_else(|err| {
+                    info!("Error estimating gas: {}", err);
+                    U256::from(1_000_000)
+                });
             // Get the current min gas price
-            let min_gas_price = self.get_arbitrum_min_gas_price(self.client.clone())
+            let min_gas_price = self
+                .get_arbitrum_min_gas_price(self.client.clone())
                 .await
                 .unwrap_or(U256::from(10_000_000));
 
             // gas price at which we'd break even, meaning 100% of profit goes to validator
             let breakeven_gas_price = profit / gas_usage;
             // gas price corresponding to bid percentage
-            let bid_gas_price = breakeven_gas_price
-                .mul(self.bid_percentage)
-                .div(100);
+            let bid_gas_price = breakeven_gas_price.mul(self.bid_percentage).div(100);
             if bid_gas_price < min_gas_price {
-                info!("Bid gas price {} is less than min gas price {}, skipping", bid_gas_price, min_gas_price);
+                info!(
+                    "Bid gas price {} is less than min gas price {}, skipping",
+                    bid_gas_price, min_gas_price
+                );
                 return None;
             }
 
@@ -225,8 +234,6 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
 
         None
     }
-
-    
 
     /// Process new block events, updating the internal state.
     async fn process_new_block_event(&mut self, event: &NewBlock) -> Option<Action> {
@@ -276,38 +283,38 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
             .iter()
             .filter(|(_, order_data)| !self.processing_orders.contains(&order_data.hash))
             .for_each(|(_, order_data)| {
-            let token_in_token_out = TokenInTokenOut {
-                token_in: order_data.resolved.input.token.clone(),
-                token_out: order_data.resolved.outputs[0].token.clone(),
-            };
-
-            let amount_in = order_data.resolved.input.amount;
-            let amount_out = order_data
-                .resolved
-                .outputs
-                .iter()
-                .fold(Uint::from(0), |sum, output| sum.wrapping_add(output.amount));
-
-            // insert new order and update total amount out
-            if let std::collections::hash_map::Entry::Vacant(e) =
-                order_batches.entry(token_in_token_out.clone())
-            {
-                e.insert(OrderBatchData {
-                    orders: vec![order_data.clone()],
-                    amount_in,
-                    amount_out_required: amount_out,
+                let token_in_token_out = TokenInTokenOut {
                     token_in: order_data.resolved.input.token.clone(),
                     token_out: order_data.resolved.outputs[0].token.clone(),
-                });
-            } else {
-                let order_batch_data = order_batches.get_mut(&token_in_token_out).unwrap();
-                order_batch_data.orders.push(order_data.clone());
-                order_batch_data.amount_in = order_batch_data.amount_in.wrapping_add(amount_in);
-                order_batch_data.amount_out_required = order_batch_data
-                    .amount_out_required
-                    .wrapping_add(amount_out);
-            }
-        });
+                };
+
+                let amount_in = order_data.resolved.input.amount;
+                let amount_out = order_data
+                    .resolved
+                    .outputs
+                    .iter()
+                    .fold(Uint::from(0), |sum, output| sum.wrapping_add(output.amount));
+
+                // insert new order and update total amount out
+                if let std::collections::hash_map::Entry::Vacant(e) =
+                    order_batches.entry(token_in_token_out.clone())
+                {
+                    e.insert(OrderBatchData {
+                        orders: vec![order_data.clone()],
+                        amount_in,
+                        amount_out_required: amount_out,
+                        token_in: order_data.resolved.input.token.clone(),
+                        token_out: order_data.resolved.outputs[0].token.clone(),
+                    });
+                } else {
+                    let order_batch_data = order_batches.get_mut(&token_in_token_out).unwrap();
+                    order_batch_data.orders.push(order_data.clone());
+                    order_batch_data.amount_in = order_batch_data.amount_in.wrapping_add(amount_in);
+                    order_batch_data.amount_out_required = order_batch_data
+                        .amount_out_required
+                        .wrapping_add(amount_out);
+                }
+            });
         order_batches
     }
 
@@ -381,8 +388,15 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
         }
     }
 
-    fn update_order_state(&mut self, order: DutchV3OrderWrapper, signature: &str, order_hash: &String) {
-        let resolved = order.inner.resolve(self.last_block_number, self.last_block_timestamp);
+    fn update_order_state(
+        &mut self,
+        order: DutchV3OrderWrapper,
+        signature: &str,
+        order_hash: &String,
+    ) {
+        let resolved = order
+            .inner
+            .resolve(self.last_block_number, self.last_block_timestamp);
         let order_status: OrderStatus = match resolved {
             OrderResolution::Expired => OrderStatus::Done,
             OrderResolution::Invalid => OrderStatus::Done,

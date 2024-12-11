@@ -16,9 +16,9 @@ use executors::protect_executor::ProtectExecutor;
 use executors::queued_executor::QueuedExecutor;
 use std::collections::HashMap;
 use std::sync::Arc;
+use strategies::dutchv3_strategy::UniswapXDutchV3Fill;
 use strategies::keystore::KeyStore;
 use strategies::priority_strategy::UniswapXPriorityFill;
-use strategies::dutchv3_strategy::UniswapXDutchV3Fill;
 use strategies::{
     types::{Action, Config, Event},
     uniswapx_strategy::UniswapXUniswapFill,
@@ -116,10 +116,11 @@ async fn main() -> Result<()> {
 
     let mevblocker_provider;
     if let Some(mevblocker_http) = args.mevblocker_http {
-        mevblocker_provider =
-            Provider::<Http>::try_from(mevblocker_http).expect("could not instantiate MevBlocker Provider");
+        mevblocker_provider = Provider::<Http>::try_from(mevblocker_http)
+            .expect("could not instantiate MevBlocker Provider");
     } else {
-        mevblocker_provider = Provider::<Http>::try_from(MEV_BLOCKER).expect("could not instantiate MevBlocker Provider");
+        mevblocker_provider = Provider::<Http>::try_from(MEV_BLOCKER)
+            .expect("could not instantiate MevBlocker Provider");
     }
 
     let mut key_store = Arc::new(KeyStore::new());

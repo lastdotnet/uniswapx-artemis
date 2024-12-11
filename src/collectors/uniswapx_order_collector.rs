@@ -151,7 +151,10 @@ mod tests {
 
     use super::OrderType;
 
-    async fn get_collector(mock_response: &str, order_type: OrderType) -> (UniswapXOrderCollector, ServerGuard, Mock) {
+    async fn get_collector(
+        mock_response: &str,
+        order_type: OrderType,
+    ) -> (UniswapXOrderCollector, ServerGuard, Mock) {
         let mut server = Server::new_async().await;
         let url = server.url();
         let mock = server
@@ -224,7 +227,6 @@ mod tests {
             _ => (),
         }
     }
-
 
     #[tokio::test]
     async fn decodes_v3_order() {
