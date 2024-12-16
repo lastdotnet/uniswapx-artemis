@@ -8,6 +8,7 @@ use collectors::{
     block_collector::BlockCollector, uniswapx_order_collector::UniswapXOrderCollector,
     uniswapx_route_collector::UniswapXRouteCollector,
 };
+use ethers::utils::hex;
 use ethers::{
     providers::{Http, Provider},
     signers::{LocalWallet, Signer},
@@ -155,7 +156,7 @@ async fn main() -> Result<()> {
         let wallet: LocalWallet = pk.parse::<LocalWallet>().unwrap().with_chain_id(chain_id);
         let address = wallet.address();
         Arc::make_mut(&mut key_store)
-            .add_key(address.to_string(), pk)
+            .add_key(hex::encode(address.as_bytes()), pk)
             .await;
     }
     info!("Key store initialized with {} keys", key_store.len());
@@ -222,6 +223,7 @@ async fn main() -> Result<()> {
                 config.clone(),
                 batch_sender,
                 route_receiver,
+                key_store.get_address().unwrap(),
             );
             engine.add_strategy(Box::new(uniswapx_strategy));
         }

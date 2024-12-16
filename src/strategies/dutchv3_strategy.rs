@@ -56,6 +56,7 @@ pub struct UniswapXDutchV3Fill<M> {
     done_orders: HashMap<String, u64>,
     batch_sender: Sender<Vec<OrderBatchData>>,
     route_receiver: Receiver<RoutedOrder>,
+    sender_address: String,
 }
 
 impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
@@ -64,6 +65,7 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
         config: Config,
         sender: Sender<Vec<OrderBatchData>>,
         receiver: Receiver<RoutedOrder>,
+        sender_address: String,
     ) -> Self {
         info!("syncing state");
 
@@ -78,6 +80,7 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
             done_orders: HashMap::new(),
             batch_sender: sender,
             route_receiver: receiver,
+            sender_address,
         }
     }
 }
@@ -173,7 +176,7 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
                 profit
             );
             let signed_orders = self.get_signed_orders(filtered_orders.clone()).ok()?;
-            let tx = self
+            let mut tx = self
                 .build_fill(
                     self.client.clone(),
                     &self.executor_address,
@@ -191,6 +194,8 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
             }));
 
             // Must be able to cover min gas cost
+            let sender_address = Address::from_str(&self.sender_address).unwrap();
+            tx.set_from(sender_address);
             let gas_usage = self
                 .client
                 .estimate_gas(&tx, None)
