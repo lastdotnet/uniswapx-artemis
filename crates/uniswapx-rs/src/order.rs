@@ -269,7 +269,8 @@ impl PriorityOrder {
             .map(|output| output.scale(priority_fee))
             .collect();
 
-        if BigUint::from(block_number).lt(&self.cosignerData.auctionTargetBlock.saturating_sub(BigUint::from(2))) {
+        let min_start_block = std::cmp::min(self.cosignerData.auctionTargetBlock, self.auctionStartBlock);
+        if BigUint::from(block_number).lt(&min_start_block.saturating_sub(BigUint::from(2))) {
             return OrderResolution::NotFillableYet(ResolvedOrder { input, outputs });
         };
 
