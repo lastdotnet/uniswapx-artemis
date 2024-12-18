@@ -244,6 +244,7 @@ async fn main() -> Result<()> {
         provider.clone(),
         mevblocker_provider.clone(),
         key_store.clone(),
+        cloudwatch_client.clone(),
     ));
 
     let protect_executor = ExecutorMap::new(protect_executor, |action| match action {

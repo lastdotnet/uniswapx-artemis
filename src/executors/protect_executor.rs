@@ -2,7 +2,7 @@ use std::{
     ops::{Div, Mul},
     sync::Arc,
 };
-use tracing::info;
+use tracing::{info, warn};
 
 use anyhow::Result;
 use artemis_core::executors::mempool_executor::SubmitTxToMempool;
@@ -12,24 +12,39 @@ use ethers::{
     middleware::MiddlewareBuilder,
     providers::Middleware,
     signers::{LocalWallet, Signer},
-    types::U256,
+    types::{TransactionReceipt, U256}, utils::format_units,
 };
+use aws_sdk_cloudwatch::Client as CloudWatchClient;
 
-use crate::strategies::keystore::KeyStore;
+use crate::{
+    aws_utils::cloudwatch_utils::{
+        receipt_status_to_metric, CwMetrics, DimensionName, DimensionValue, MetricBuilder,
+        ARTEMIS_NAMESPACE,
+    },
+    strategies::keystore::KeyStore,
+    send_metric,
+};
 
 /// An executor that sends transactions to the mempool.
 pub struct ProtectExecutor<M, N> {
     client: Arc<M>,
     sender_client: Arc<N>,
     key_store: Arc<KeyStore>,
+    cloudwatch_client: Option<Arc<CloudWatchClient>>,
 }
 
 impl<M: Middleware, N: Middleware> ProtectExecutor<M, N> {
-    pub fn new(client: Arc<M>, sender_client: Arc<N>, key_store: Arc<KeyStore>) -> Self {
+    pub fn new(
+        client: Arc<M>,
+        sender_client: Arc<N>,
+        key_store: Arc<KeyStore>,
+        cloudwatch_client: Option<Arc<CloudWatchClient>>,
+    ) -> Self {
         Self {
             client,
             sender_client,
             key_store,
+            cloudwatch_client,
         }
     }
 }
@@ -103,10 +118,56 @@ where
         let signer = nonce_manager.with_signer(wallet);
 
         info!("Executing tx {:?}", action.tx);
-        let result = signer
-            .send_transaction(action.tx, None)
-            .await
-            .map_err(|err| anyhow::anyhow!("Error sending transaction: {}", err));
+        if let Some(cw) = &self.cloudwatch_client {
+            let metric_future = cw
+                .put_metric_data()
+                .namespace(ARTEMIS_NAMESPACE)
+                .metric_data(
+                    MetricBuilder::new(CwMetrics::TxSubmitted)
+                        .add_dimension(
+                            DimensionName::Service.as_ref(),
+                            DimensionValue::V3Executor.as_ref(),
+                        )
+                        .with_value(1.0)
+                        .build(),
+                )
+                .send();
+
+            // do not block current thread by awaiting in the background
+            send_metric!(metric_future);
+        }
+        let result = signer.send_transaction(action.tx, None).await;
+
+        // Block on pending transaction getting confirmations
+        let (receipt, status) = match result {
+            Ok(tx) => {
+                let receipt = tx.confirmations(1).await.map_err(|e| {
+                    anyhow::anyhow!("Error waiting for confirmations: {}", e)
+                });
+                match receipt {
+                    Ok(Some(receipt)) => {
+                        let status = receipt.status.unwrap_or_default();
+                        info!(
+                            "receipt: tx_hash: {:?}, status: {}",
+                            receipt.transaction_hash, status,
+                        );
+                        (Some(receipt), status)
+                    }
+                    Ok(None) => {
+                        warn!("No receipt after confirmation");
+                        (None, ethers::types::U64::zero())
+                    }
+                    Err(e) => {
+                        warn!("Error waiting for confirmations: {}", e);
+                        (None, ethers::types::U64::zero())
+                    }
+                }
+            }
+            Err(e) => {
+                warn!("Error sending transaction: {}", e);
+                (None, ethers::types::U64::zero())
+            }
+        };
 
         match self.key_store.release_key(public_address.clone()).await {
             Ok(_) => {
@@ -116,8 +177,65 @@ where
                 info!("Failed to release key: {}", e);
             }
         }
-        // Send result up the stack
-        result?;
+
+        // post key-release processing
+        // TODO: parse revert reason
+        if let Some(cw) = &self.cloudwatch_client {
+            let metric_future = cw
+                .put_metric_data()
+                .namespace(ARTEMIS_NAMESPACE)
+                .metric_data(
+                    MetricBuilder::new(receipt_status_to_metric(status.as_u64()))
+                        .add_dimension(
+                            DimensionName::Service.as_ref(),
+                            DimensionValue::V3Executor.as_ref(),
+                        )
+                        .with_value(1.0)
+                        .build(),
+                )
+                .send();
+
+            send_metric!(metric_future);
+        }
+
+        if let Some(TransactionReceipt {
+            block_number: Some(block_number),
+            ..
+        }) = receipt
+        {
+            let balance_eth = self
+                .client
+                .get_balance(address, Some(block_number.into()))
+                .await
+                .map_or_else(|_| None, |v| Some(format_units(v, "ether").unwrap()));
+
+            // TODO: use if-let chains when it becomes stable https://github.com/rust-lang/rust/issues/53667
+            // if let Some(balance_eth) = balance_eth && let Some(cw) = &self.cloudwatch_client {
+            if let Some(balance_eth) = balance_eth {
+                info!(
+                    "balance: {} at block {}",
+                    balance_eth.clone(),
+                    block_number.as_u64()
+                );
+                if let Some(cw) = &self.cloudwatch_client {
+                    let metric_future = cw
+                        .put_metric_data()
+                        .namespace(ARTEMIS_NAMESPACE)
+                        .metric_data(
+                            MetricBuilder::new(CwMetrics::Balance(format!("{:?}", address))) // {:?} gives the full 0x-prefixed address
+                                .add_dimension(
+                                    DimensionName::Service.as_ref(),
+                                    DimensionValue::V3Executor.as_ref(),
+                                )
+                                .with_value(balance_eth.parse::<f64>().unwrap_or(0.0))
+                                .build(),
+                        )
+                        .send();
+                    send_metric!(metric_future);
+                }
+            }
+        }
+
         Ok(())
     }
 }

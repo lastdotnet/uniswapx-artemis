@@ -21,18 +21,8 @@ use crate::{
     },
     executors::reactor_error_code::ReactorErrorCode,
     strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata},
+    send_metric_with_order_hash,
 };
-
-macro_rules! send_metric_with_order_hash {
-    ($order_hash: expr, $future: expr) => {
-        let hash = Arc::clone($order_hash);
-        tokio::spawn(async move {
-            if let Err(e) = $future.await {
-                warn!("{} - error sending metric: {:?}", hash, e);
-            }
-        })
-    };
-}
 
 /// An executor that sends transactions to the public mempool.
 pub struct Public1559Executor<M, N> {
@@ -290,11 +280,7 @@ where
                                 .build(),
                         )
                         .send();
-                    tokio::spawn(async move {
-                        if let Err(e) = metric_future.await {
-                            warn!("{} - error sending metric: {:?}", order_hash, e);
-                        }
-                    });
+                    send_metric_with_order_hash!(&order_hash, metric_future);
                 }
             }
         }

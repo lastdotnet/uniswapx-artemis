@@ -2,6 +2,7 @@
 pub const SERVICE_DIMENSION: &str = "Service";
 pub const PRIORITY_EXECUTOR: &str = "PriorityExecutor";
 pub const V2_EXECUTOR: &str = "V2Executor";
+pub const V3_EXECUTOR: &str = "V3Executor";
 
 /// Constants for metric names
 pub const TX_SUCCEEDED_METRIC: &str = "TransactionSucceeded";
@@ -33,12 +34,14 @@ impl From<DimensionName> for String {
 pub enum DimensionValue {
     PriorityExecutor,
     V2Executor,
+    V3Executor,
 }
 impl From<DimensionValue> for String {
     fn from(value: DimensionValue) -> Self {
         match value {
             DimensionValue::PriorityExecutor => PRIORITY_EXECUTOR.to_string(),
             DimensionValue::V2Executor => V2_EXECUTOR.to_string(),
+            DimensionValue::V3Executor => V3_EXECUTOR.to_string(),
         }
     }
 }
@@ -48,6 +51,7 @@ impl AsRef<str> for DimensionValue {
         match self {
             DimensionValue::PriorityExecutor => PRIORITY_EXECUTOR,
             DimensionValue::V2Executor => V2_EXECUTOR,
+            DimensionValue::V3Executor => V3_EXECUTOR,
         }
     }
 }
@@ -128,4 +132,27 @@ pub fn receipt_status_to_metric(status: u64) -> CwMetrics {
         0 => CwMetrics::TxReverted,
         _ => CwMetrics::TxStatusUnknown,
     }
+}
+
+#[macro_export]
+macro_rules! send_metric_with_order_hash {
+    ($order_hash: expr, $future: expr) => {
+        let hash = Arc::clone($order_hash);
+        tokio::spawn(async move {
+            if let Err(e) = $future.await {
+                warn!("{} - error sending metric: {:?}", hash, e);
+            }
+        })
+    };
+}
+
+#[macro_export]
+macro_rules! send_metric {
+    ($future: expr) => {
+        tokio::spawn(async move {
+            if let Err(e) = $future.await {
+                warn!("error sending metric: {:?}", e);
+            }
+        })
+    };
 }
