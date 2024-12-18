@@ -325,6 +325,7 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
                             };
                         }
                         Err(e) => {
+                            // formatting is done in fn route_order
                             error!("{}", e);
                         }
                     }
