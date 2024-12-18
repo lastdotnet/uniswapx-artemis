@@ -6,7 +6,7 @@ use aws_sdk_cloudwatch::{config::http::HttpResponse, error::SdkError, operation:
 use reqwest::header::ORIGIN;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{Receiver, Sender};
-use tracing::info;
+use tracing::{error, info};
 use uniswapx_rs::order::{Order, ResolvedOrder};
 
 use artemis_core::types::{Collector, CollectorStream};
@@ -325,7 +325,7 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
                             };
                         }
                         Err(e) => {
-                            info!("Failed to route order: {}", e);
+                            error!("{}", e);
                         }
                     }
                 }
