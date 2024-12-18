@@ -63,6 +63,7 @@ struct RoutingApiQuery {
     deadline: u64,
     #[serde(rename = "enableUniversalRouter")]
     enable_universal_router: bool,
+    protocols: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -172,7 +173,7 @@ impl UniswapXRouteCollector {
         }
     }
 
-    pub async fn route_order(&self, params: RouteOrderParams) -> Result<OrderRoute> {
+    pub async fn route_order(&self, params: RouteOrderParams, order_hash: String) -> Result<OrderRoute> {
         // TODO: support exactOutput
         let query = RoutingApiQuery {
             token_in_address: resolve_address(params.token_in),
@@ -185,10 +186,12 @@ impl UniswapXRouteCollector {
             slippage_tolerance: SLIPPAGE_TOLERANCE.to_string(),
             enable_universal_router: false,
             deadline: DEADLINE,
+            protocols: "v2,v3,mixed".to_string(),
         };
 
         let query_string = serde_qs::to_string(&query).unwrap();
-
+        let full_query = format!("{}?{}", ROUTING_API, query_string);
+        info!("{} - full query: {}", order_hash, full_query);
         let client = reqwest::Client::new();
         let start = std::time::Instant::now();
 
@@ -210,15 +213,16 @@ impl UniswapXRouteCollector {
             StatusCode::OK => Ok(response
                 .json::<OrderRoute>()
                 .await
-                .map_err(|e| anyhow!("Failed to parse response: {}", e))?),
-            StatusCode::BAD_REQUEST => Err(anyhow!("Bad request: {}", response.status())),
-            StatusCode::NOT_FOUND => Err(anyhow!("Not quote found: {}", response.status())),
-            StatusCode::TOO_MANY_REQUESTS => Err(anyhow!("Too many requests: {}", response.status())),
+                .map_err(|e| anyhow!("{} - Failed to parse response: {}", order_hash, e))?),
+            StatusCode::BAD_REQUEST => Err(anyhow!("{} - Bad request: {}", order_hash, response.status())),
+            StatusCode::NOT_FOUND => Err(anyhow!("{} - Not quote found: {}", order_hash, response.status())),
+            StatusCode::TOO_MANY_REQUESTS => Err(anyhow!("{} - Too many requests: {}", order_hash, response.status())),
             StatusCode::INTERNAL_SERVER_ERROR => {
-                Err(anyhow!("Internal server error: {}", response.status()))
+                Err(anyhow!("{} - Internal server error: {}", order_hash, response.status()))
             }
             _ => Err(anyhow!(
-                "Unexpected error with status code: {}",
+                "{} - Unexpected error with status code: {}",
+                order_hash,
                 response.status()
             )),
         }
@@ -290,10 +294,11 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
                 let mut tasks = FuturesUnordered::new();
 
                 for batch in all_requests {
-                    let OrderBatchData { orders, token_in, token_out, amount_in, .. } = batch.clone();
+                    let order_hash = batch.orders[0].hash.clone();
+                    let OrderBatchData { token_in, token_out, amount_in, .. } = batch.clone();
                     info!(
                         "{} - Routing order, token in: {}, token out: {}",
-                        orders[0].hash,
+                        order_hash,
                         token_in, token_out
                     );
 
@@ -304,7 +309,7 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
                             token_out: token_out.clone(),
                             amount: amount_in.to_string(),
                             recipient: self.executor_address.clone(),
-                        }).await;
+                        }, order_hash).await;
                         (batch, route_result)
                     };
 
