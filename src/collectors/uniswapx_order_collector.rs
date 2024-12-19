@@ -106,7 +106,7 @@ impl UniswapXOrderCollector {
 impl Collector<UniswapXOrder> for UniswapXOrderCollector {
     async fn get_event_stream(&self) -> Result<CollectorStream<'_, UniswapXOrder>> {
         let url = format!(
-            "{}/orders?orderStatus=open&chainId={}&orderType={}&limit=50",
+            "{}/orders?orderStatus=open&chainId={}&orderType={}&limit=500",
             self.base_url, self.chain_id, self.order_type,
         );
 
