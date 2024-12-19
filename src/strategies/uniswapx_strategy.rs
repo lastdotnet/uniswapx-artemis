@@ -2,16 +2,17 @@ use super::{
     shared::UniswapXStrategy,
     types::{Config, OrderStatus, TokenInTokenOut},
 };
-use crate::collectors::{
+use crate::{aws_utils::cloudwatch_utils::{build_metric_future, CwMetrics, DimensionValue}, collectors::{
     block_collector::NewBlock,
     uniswapx_order_collector::UniswapXOrder,
     uniswapx_route_collector::{OrderBatchData, OrderData, RoutedOrder},
-};
+}, shared::send_metric_with_order_hash};
 use alloy_primitives::Uint;
 use anyhow::Result;
 use artemis_core::executors::mempool_executor::{GasBidInfo, SubmitTxToMempool};
 use artemis_core::types::Strategy;
 use async_trait::async_trait;
+use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use bindings_uniswapx::shared_types::SignedOrder;
 use ethers::{
     providers::Middleware,
@@ -49,6 +50,7 @@ pub struct UniswapXUniswapFill<M> {
     done_orders: HashMap<String, u64>,
     batch_sender: Sender<Vec<OrderBatchData>>,
     route_receiver: Receiver<RoutedOrder>,
+    cloudwatch_client: Option<Arc<CloudWatchClient>>,
 }
 
 impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
@@ -57,6 +59,7 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
         config: Config,
         sender: Sender<Vec<OrderBatchData>>,
         receiver: Receiver<RoutedOrder>,
+        cloudwatch_client: Option<Arc<CloudWatchClient>>,
     ) -> Self {
         info!("syncing state");
 
@@ -70,6 +73,7 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
             done_orders: HashMap::new(),
             batch_sender: sender,
             route_receiver: receiver,
+            cloudwatch_client,
         }
     }
 }
@@ -131,7 +135,6 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
         {
             return None;
         }
-
         let OrderBatchData {
             // orders,
             orders,
@@ -163,6 +166,11 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
                     total_profit: profit,
                 }),
             }));
+        } else {
+            let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::Router02, CwMetrics::Unprofitable, 1.0);
+            if let Some(metric_future) = metric_future {
+                send_metric_with_order_hash!(&Arc::new(event.request.orders[0].hash.clone()), metric_future);
+            }
         }
 
         None

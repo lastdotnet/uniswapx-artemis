@@ -16,12 +16,9 @@ use ethers::{
 
 use crate::{
     aws_utils::cloudwatch_utils::{
-        receipt_status_to_metric, CwMetrics, DimensionName, DimensionValue, MetricBuilder,
-        ARTEMIS_NAMESPACE,
-    },
-    executors::reactor_error_code::ReactorErrorCode,
-    strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata},
-    send_metric_with_order_hash,
+        build_metric_future, receipt_status_to_metric, CwMetrics, DimensionValue
+    }, executors::reactor_error_code::ReactorErrorCode, shared::send_metric_with_order_hash, strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
+    
 };
 
 /// An executor that sends transactions to the public mempool.
@@ -59,6 +56,12 @@ where
     /// Send a transaction to the mempool.
     async fn execute(&self, mut action: SubmitTxToMempoolWithExecutionMetadata) -> Result<()> {
         let order_hash = Arc::new(action.metadata.order_hash.clone());
+
+        let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::PriorityExecutor, CwMetrics::ExecutionAttempted, 1.0);
+        if let Some(metric_future) = metric_future {
+            send_metric_with_order_hash!(&order_hash, metric_future);
+        }
+
         // Acquire a key from the key store
         let (public_address, private_key) = self
             .key_store
@@ -101,10 +104,18 @@ where
                     match error_code {
                         ReactorErrorCode::OrderAlreadyFilled => {
                             info!("{} - Order already filled, skipping execution", order_hash);
+                            let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::PriorityExecutor, CwMetrics::ExecutionSkippedAlreadyFilled, 1.0);
+                            if let Some(metric_future) = metric_future {
+                                send_metric_with_order_hash!(&order_hash, metric_future);
+                            }
                             Err(anyhow::anyhow!("Order Already Filled"))
                         }
                         ReactorErrorCode::InvalidDeadline => {
                             info!("{} - Order past deadline, skipping execution", order_hash);
+                            let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::PriorityExecutor, CwMetrics::ExecutionSkippedPastDeadline, 1.0);
+                            if let Some(metric_future) = metric_future {
+                                send_metric_with_order_hash!(&order_hash, metric_future);
+                            }
                             Err(anyhow::anyhow!("Order Past Deadline"))
                         }
                         _ => Ok(U256::from(1_000_000)),
@@ -165,21 +176,8 @@ where
         let signer = nonce_manager.with_signer(wallet);
 
         info!("{} - Executing tx from {:?}", order_hash, address);
-        if let Some(cw) = &self.cloudwatch_client {
-            let metric_future = cw
-                .put_metric_data()
-                .namespace(ARTEMIS_NAMESPACE)
-                .metric_data(
-                    MetricBuilder::new(CwMetrics::TxSubmitted)
-                        .add_dimension(
-                            DimensionName::Service.as_ref(),
-                            DimensionValue::PriorityExecutor.as_ref(),
-                        )
-                        .with_value(1.0)
-                        .build(),
-                )
-                .send();
-
+        let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::PriorityExecutor, CwMetrics::TxSubmitted, 1.0);
+        if let Some(metric_future) = metric_future {
             // do not block current thread by awaiting in the background
             send_metric_with_order_hash!(&order_hash, metric_future);
         }
@@ -228,22 +226,12 @@ where
 
         // post key-release processing
         // TODO: parse revert reason
-        if let Some(cw) = &self.cloudwatch_client {
-            let metric_future = cw
-                .put_metric_data()
-                .namespace(ARTEMIS_NAMESPACE)
-                .metric_data(
-                    MetricBuilder::new(receipt_status_to_metric(status.as_u64()))
-                        .add_dimension(
-                            DimensionName::Service.as_ref(),
-                            DimensionValue::PriorityExecutor.as_ref(),
-                        )
-                        .with_value(1.0)
-                        .build(),
-                )
-                .send();
-
-            send_metric_with_order_hash!(&order_hash, metric_future);
+        if let Some(_) = &self.cloudwatch_client {
+            let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::PriorityExecutor, receipt_status_to_metric(status.as_u64()), 1.0);
+            if let Some(metric_future) = metric_future {
+                // do not block current thread by awaiting in the background
+                send_metric_with_order_hash!(&order_hash, metric_future);
+            }
         }
 
         if let Some(TransactionReceipt {
@@ -266,20 +254,8 @@ where
                     balance_eth.clone(),
                     block_number.as_u64()
                 );
-                if let Some(cw) = &self.cloudwatch_client {
-                    let metric_future = cw
-                        .put_metric_data()
-                        .namespace(ARTEMIS_NAMESPACE)
-                        .metric_data(
-                            MetricBuilder::new(CwMetrics::Balance(format!("{:?}", address))) // {:?} gives the full 0x-prefixed address
-                                .add_dimension(
-                                    DimensionName::Service.as_ref(),
-                                    DimensionValue::PriorityExecutor.as_ref(),
-                                )
-                                .with_value(balance_eth.parse::<f64>().unwrap_or(0.0))
-                                .build(),
-                        )
-                        .send();
+                let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::PriorityExecutor, CwMetrics::Balance(format!("{:?}", address)), balance_eth.parse::<f64>().unwrap_or(0.0));
+                if let Some(metric_future) = metric_future {
                     send_metric_with_order_hash!(&order_hash, metric_future);
                 }
             }

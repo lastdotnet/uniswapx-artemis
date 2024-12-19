@@ -2,6 +2,7 @@ use std::{
     ops::{Div, Mul},
     sync::Arc,
 };
+use serde_json::Value;
 use tracing::{info, warn};
 
 use anyhow::Result;
@@ -10,19 +11,17 @@ use artemis_core::types::Executor;
 use async_trait::async_trait;
 use ethers::{
     middleware::MiddlewareBuilder,
-    providers::Middleware,
+    providers::{Middleware, MiddlewareError},
     signers::{LocalWallet, Signer},
-    types::{TransactionReceipt, U256}, utils::format_units,
+    types::{TransactionReceipt, U256},
+    utils::format_units,
 };
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
 
 use crate::{
     aws_utils::cloudwatch_utils::{
-        receipt_status_to_metric, CwMetrics, DimensionName, DimensionValue, MetricBuilder,
-        ARTEMIS_NAMESPACE,
-    },
-    strategies::keystore::KeyStore,
-    send_metric,
+        build_metric_future, receipt_status_to_metric, CwMetrics, DimensionValue
+    }, executors::reactor_error_code::ReactorErrorCode, send_metric, strategies::keystore::KeyStore
 };
 
 /// An executor that sends transactions to the mempool.
@@ -59,6 +58,11 @@ where
 {
     /// Send a transaction to the mempool.
     async fn execute(&self, mut action: SubmitTxToMempool) -> Result<()> {
+        let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::V3Executor, CwMetrics::ExecutionAttempted, 1.0);
+        if let Some(metric_future) = metric_future {
+            send_metric!(metric_future);
+        }
+
         // Acquire a key from the key store
         let (public_address, private_key) = self
             .key_store
@@ -88,9 +92,34 @@ where
             .client
             .estimate_gas(&action.tx, None)
             .await
-            .unwrap_or_else(|err| {
-                info!("Error estimating gas: {}", err);
-                U256::from(1_000_000)
+            .or_else(|err| {
+                if let Some(Value::String(four_byte)) =
+                    err.as_error_response().unwrap().data.clone()
+                {
+                    let error_code = ReactorErrorCode::from(four_byte.clone());
+                    match error_code {
+                        ReactorErrorCode::OrderAlreadyFilled => {
+                            info!("Order already filled, skipping execution");
+                            let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::V3Executor, CwMetrics::ExecutionSkippedAlreadyFilled, 1.0);
+                            if let Some(metric_future) = metric_future {
+                                send_metric!(metric_future);
+                            }
+                            Err(anyhow::anyhow!("Order Already Filled"))
+                        }
+                        ReactorErrorCode::InvalidDeadline => {
+                            info!("Order past deadline, skipping execution");
+                            let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::V3Executor, CwMetrics::ExecutionSkippedPastDeadline, 1.0);
+                            if let Some(metric_future) = metric_future {
+                                send_metric!(metric_future);
+                            }
+                            Err(anyhow::anyhow!("Order Past Deadline"))
+                        }
+                        _ => Ok(U256::from(1_000_000)),
+                    }
+                } else {
+                    warn!("Error estimating gas: {:?}", err);
+                    Ok(U256::from(1_000_000))
+                }
             });
         info!("Gas Usage {:?}", gas_usage_result);
         let gas_usage = gas_usage_result;
@@ -98,7 +127,7 @@ where
         let bid_gas_price;
         if let Some(gas_bid_info) = action.gas_bid_info {
             // gas price at which we'd break even, meaning 100% of profit goes to validator
-            let breakeven_gas_price = gas_bid_info.total_profit / gas_usage;
+            let breakeven_gas_price = gas_bid_info.total_profit / gas_usage?;
             // gas price corresponding to bid percentage
             bid_gas_price = breakeven_gas_price
                 .mul(gas_bid_info.bid_percentage)
@@ -118,21 +147,8 @@ where
         let signer = nonce_manager.with_signer(wallet);
 
         info!("Executing tx {:?}", action.tx);
-        if let Some(cw) = &self.cloudwatch_client {
-            let metric_future = cw
-                .put_metric_data()
-                .namespace(ARTEMIS_NAMESPACE)
-                .metric_data(
-                    MetricBuilder::new(CwMetrics::TxSubmitted)
-                        .add_dimension(
-                            DimensionName::Service.as_ref(),
-                            DimensionValue::V3Executor.as_ref(),
-                        )
-                        .with_value(1.0)
-                        .build(),
-                )
-                .send();
-
+        let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::V3Executor, CwMetrics::TxSubmitted, 1.0);
+        if let Some(metric_future) = metric_future {
             // do not block current thread by awaiting in the background
             send_metric!(metric_future);
         }
@@ -180,22 +196,12 @@ where
 
         // post key-release processing
         // TODO: parse revert reason
-        if let Some(cw) = &self.cloudwatch_client {
-            let metric_future = cw
-                .put_metric_data()
-                .namespace(ARTEMIS_NAMESPACE)
-                .metric_data(
-                    MetricBuilder::new(receipt_status_to_metric(status.as_u64()))
-                        .add_dimension(
-                            DimensionName::Service.as_ref(),
-                            DimensionValue::V3Executor.as_ref(),
-                        )
-                        .with_value(1.0)
-                        .build(),
-                )
-                .send();
-
-            send_metric!(metric_future);
+        if let Some(_) = &self.cloudwatch_client {
+            let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::V3Executor, receipt_status_to_metric(status.as_u64()), 1.0);
+            if let Some(metric_future) = metric_future {
+                // do not block current thread by awaiting in the background
+                send_metric!(metric_future);
+            }
         }
 
         if let Some(TransactionReceipt {
@@ -217,20 +223,8 @@ where
                     balance_eth.clone(),
                     block_number.as_u64()
                 );
-                if let Some(cw) = &self.cloudwatch_client {
-                    let metric_future = cw
-                        .put_metric_data()
-                        .namespace(ARTEMIS_NAMESPACE)
-                        .metric_data(
-                            MetricBuilder::new(CwMetrics::Balance(format!("{:?}", address))) // {:?} gives the full 0x-prefixed address
-                                .add_dimension(
-                                    DimensionName::Service.as_ref(),
-                                    DimensionValue::V3Executor.as_ref(),
-                                )
-                                .with_value(balance_eth.parse::<f64>().unwrap_or(0.0))
-                                .build(),
-                        )
-                        .send();
+                let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::V3Executor, CwMetrics::Balance(format!("{:?}", address)), balance_eth.parse::<f64>().unwrap_or(0.0));
+                if let Some(metric_future) = metric_future {
                     send_metric!(metric_future);
                 }
             }

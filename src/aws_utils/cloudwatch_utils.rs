@@ -1,16 +1,26 @@
+use std::{future::Future, pin::Pin, sync::Arc};
+
+use aws_sdk_cloudwatch::{config::http::HttpResponse, error::SdkError, operation::put_metric_data::{PutMetricDataError, PutMetricDataOutput}, types::Dimension};
+use aws_sdk_cloudwatch::Client as CloudWatchClient;
+
 /// Constants for dimension names and values
 pub const SERVICE_DIMENSION: &str = "Service";
+pub const ROUTER02: &str = "Router02";
 pub const PRIORITY_EXECUTOR: &str = "PriorityExecutor";
 pub const V2_EXECUTOR: &str = "V2Executor";
 pub const V3_EXECUTOR: &str = "V3Executor";
 
 /// Constants for metric names
+pub const ROUTING_MS: &str = "RoutingMs";
 pub const TX_SUCCEEDED_METRIC: &str = "TransactionSucceeded";
 pub const TX_REVERTED_METRIC: &str = "TransactionReverted";
 pub const TX_SUBMITTED_METRIC: &str = "TransactionSubmitted";
 pub const TX_STATUS_UNKNOWN_METRIC: &str = "TransactionStatusUnknown";
 pub const LATEST_BLOCK: &str = "LatestBlock";
-
+pub const EXECUTION_ATTEMPTED_METRIC: &str = "ExecutionAttempted";
+pub const EXECUTION_SKIPPED_ALREADY_FILLED_METRIC: &str = "ExecutionSkippedAlreadyFilled";
+pub const EXECUTION_SKIPPED_PAST_DEADLINE_METRIC: &str = "ExecutionSkippedPastDeadline";
+pub const UNPROFITABLE_METRIC: &str = "Unprofitable";
 pub enum DimensionName {
     Service,
 }
@@ -35,6 +45,7 @@ pub enum DimensionValue {
     PriorityExecutor,
     V2Executor,
     V3Executor,
+    Router02,
 }
 impl From<DimensionValue> for String {
     fn from(value: DimensionValue) -> Self {
@@ -42,6 +53,7 @@ impl From<DimensionValue> for String {
             DimensionValue::PriorityExecutor => PRIORITY_EXECUTOR.to_string(),
             DimensionValue::V2Executor => V2_EXECUTOR.to_string(),
             DimensionValue::V3Executor => V3_EXECUTOR.to_string(),
+            DimensionValue::Router02 => ROUTER02.to_string(),
         }
     }
 }
@@ -52,11 +64,17 @@ impl AsRef<str> for DimensionValue {
             DimensionValue::PriorityExecutor => PRIORITY_EXECUTOR,
             DimensionValue::V2Executor => V2_EXECUTOR,
             DimensionValue::V3Executor => V3_EXECUTOR,
+            DimensionValue::Router02 => ROUTER02,
         }
     }
 }
 
 pub enum CwMetrics {
+    RoutingMs,
+    Unprofitable,
+    ExecutionAttempted,
+    ExecutionSkippedAlreadyFilled,
+    ExecutionSkippedPastDeadline,
     TxSucceeded,
     TxReverted,
     TxSubmitted,
@@ -69,6 +87,11 @@ pub enum CwMetrics {
 impl From<CwMetrics> for String {
     fn from(metric: CwMetrics) -> Self {
         match metric {
+            CwMetrics::RoutingMs => ROUTING_MS.to_string(),
+            CwMetrics::Unprofitable => UNPROFITABLE_METRIC.to_string(),
+            CwMetrics::ExecutionAttempted => EXECUTION_ATTEMPTED_METRIC.to_string(),
+            CwMetrics::ExecutionSkippedAlreadyFilled => EXECUTION_SKIPPED_ALREADY_FILLED_METRIC.to_string(),
+            CwMetrics::ExecutionSkippedPastDeadline => EXECUTION_SKIPPED_PAST_DEADLINE_METRIC.to_string(),
             CwMetrics::TxSucceeded => TX_SUCCEEDED_METRIC.to_string(),
             CwMetrics::TxReverted => TX_REVERTED_METRIC.to_string(),
             CwMetrics::TxSubmitted => TX_SUBMITTED_METRIC.to_string(),
@@ -79,7 +102,6 @@ impl From<CwMetrics> for String {
     }
 }
 
-use aws_sdk_cloudwatch::types::Dimension;
 
 pub const ARTEMIS_NAMESPACE: &str = "Artemis";
 
@@ -132,6 +154,28 @@ pub fn receipt_status_to_metric(status: u64) -> CwMetrics {
         0 => CwMetrics::TxReverted,
         _ => CwMetrics::TxStatusUnknown,
     }
+}
+
+pub fn build_metric_future(cloudwatch_client: Option<Arc<CloudWatchClient>>, dimension_value: DimensionValue, metric: CwMetrics, value: f64) 
+    -> Option<Pin<Box<impl Future<Output = Result<PutMetricDataOutput, SdkError<PutMetricDataError, HttpResponse>>> + Send + 'static>>> {
+        cloudwatch_client.map(|client| {
+            Box::pin(async move {
+                client
+                .put_metric_data()
+                .namespace(ARTEMIS_NAMESPACE)
+                .metric_data(
+                    MetricBuilder::new(metric)
+                        .add_dimension(
+                            DimensionName::Service.as_ref(),
+                            dimension_value.as_ref(),
+                        )
+                        .with_value(value)
+                        .build(),
+                )
+                .send()
+                .await
+            })
+    })
 }
 
 #[macro_export]

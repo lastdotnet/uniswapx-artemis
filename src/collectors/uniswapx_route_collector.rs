@@ -1,11 +1,12 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::Arc};
 
 use alloy_primitives::Uint;
 use anyhow::{anyhow, Result};
+use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use reqwest::header::ORIGIN;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{Receiver, Sender};
-use tracing::info;
+use tracing::{error, info};
 use uniswapx_rs::order::{Order, ResolvedOrder};
 
 use artemis_core::types::{Collector, CollectorStream};
@@ -15,8 +16,10 @@ use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use reqwest::{Client, StatusCode};
 
+use crate::{aws_utils::cloudwatch_utils::{build_metric_future, CwMetrics, DimensionValue}, shared::send_metric_with_order_hash};
+
 const ROUTING_API: &str = "https://api.uniswap.org/v1/quote";
-const SLIPPAGE_TOLERANCE: &str = "0.5";
+const SLIPPAGE_TOLERANCE: &str = "2.5";
 const DEADLINE: u64 = 1000;
 
 #[derive(Debug, Clone)]
@@ -61,6 +64,7 @@ struct RoutingApiQuery {
     deadline: u64,
     #[serde(rename = "enableUniversalRouter")]
     enable_universal_router: bool,
+    protocols: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -149,6 +153,7 @@ pub struct UniswapXRouteCollector {
     pub route_request_receiver: Mutex<Receiver<Vec<OrderBatchData>>>,
     pub route_sender: Sender<RoutedOrder>,
     pub executor_address: String,
+    pub cloudwatch_client: Option<Arc<CloudWatchClient>>,
 }
 
 impl UniswapXRouteCollector {
@@ -157,6 +162,7 @@ impl UniswapXRouteCollector {
         route_request_receiver: Receiver<Vec<OrderBatchData>>,
         route_sender: Sender<RoutedOrder>,
         executor_address: String,
+        cloudwatch_client: Option<Arc<CloudWatchClient>>,
     ) -> Self {
         Self {
             client: Client::new(),
@@ -164,6 +170,62 @@ impl UniswapXRouteCollector {
             route_request_receiver: Mutex::new(route_request_receiver),
             route_sender,
             executor_address,
+            cloudwatch_client,
+        }
+    }
+
+    pub async fn route_order(&self, params: RouteOrderParams, order_hash: String) -> Result<OrderRoute> {
+        // TODO: support exactOutput
+        let query = RoutingApiQuery {
+            token_in_address: resolve_address(params.token_in),
+            token_out_address: resolve_address(params.token_out),
+            token_in_chain_id: params.chain_id,
+            token_out_chain_id: params.chain_id,
+            trade_type: TradeType::ExactIn,
+            amount: params.amount,
+            recipient: params.recipient,
+            slippage_tolerance: SLIPPAGE_TOLERANCE.to_string(),
+            enable_universal_router: false,
+            deadline: DEADLINE,
+            protocols: "v2,v3,mixed".to_string(),
+        };
+
+        let query_string = serde_qs::to_string(&query).unwrap();
+        let full_query = format!("{}?{}", ROUTING_API, query_string);
+        info!("{} - full query: {}", order_hash, full_query);
+        let client = reqwest::Client::new();
+        let start = std::time::Instant::now();
+
+        let response = client
+            .get(format!("{}?{}", ROUTING_API, query_string))
+            .header(ORIGIN, "https://app.uniswap.org")
+            .header("x-request-source", "uniswap-web")
+            .send()
+            .await
+            .map_err(|e| anyhow!("Quote request failed with error: {}", e))?;
+
+        let elapsed = start.elapsed();
+        let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::Router02, CwMetrics::RoutingMs, elapsed.as_millis() as f64);
+        if let Some(metric_future) = metric_future {
+            send_metric_with_order_hash!(&Arc::new(""), metric_future);
+        }
+
+        match response.status() {
+            StatusCode::OK => Ok(response
+                .json::<OrderRoute>()
+                .await
+                .map_err(|e| anyhow!("{} - Failed to parse response: {}", order_hash, e))?),
+            StatusCode::BAD_REQUEST => Err(anyhow!("{} - Bad request: {}", order_hash, response.status())),
+            StatusCode::NOT_FOUND => Err(anyhow!("{} - Not quote found: {}", order_hash, response.status())),
+            StatusCode::TOO_MANY_REQUESTS => Err(anyhow!("{} - Too many requests: {}", order_hash, response.status())),
+            StatusCode::INTERNAL_SERVER_ERROR => {
+                Err(anyhow!("{} - Internal server error: {}", order_hash, response.status()))
+            }
+            _ => Err(anyhow!(
+                "{} - Unexpected error with status code: {}",
+                order_hash,
+                response.status()
+            )),
         }
     }
 }
@@ -208,21 +270,22 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
                 let mut tasks = FuturesUnordered::new();
 
                 for batch in all_requests {
-                    let OrderBatchData { orders, token_in, token_out, amount_in, .. } = batch.clone();
+                    let order_hash = batch.orders[0].hash.clone();
+                    let OrderBatchData { token_in, token_out, amount_in, .. } = batch.clone();
                     info!(
                         "{} - Routing order, token in: {}, token out: {}",
-                        orders[0].hash,
+                        order_hash,
                         token_in, token_out
                     );
 
                     let future = async move {
-                        let route_result = route_order(RouteOrderParams {
+                        let route_result = self.route_order(RouteOrderParams {
                             chain_id: self.chain_id,
                             token_in: token_in.clone(),
                             token_out: token_out.clone(),
                             amount: amount_in.to_string(),
                             recipient: self.executor_address.clone(),
-                        }).await;
+                        }, order_hash).await;
                         (batch, route_result)
                     };
 
@@ -238,7 +301,8 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
                             };
                         }
                         Err(e) => {
-                            info!("Failed to route order: {}", e);
+                            // formatting is done in fn route_order
+                            error!("{}", e);
                         }
                     }
                 }
@@ -247,52 +311,9 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
 
         Ok(Box::pin(stream))
     }
+
 }
 
-pub async fn route_order(params: RouteOrderParams) -> Result<OrderRoute> {
-    // TODO: support exactOutput
-    let query = RoutingApiQuery {
-        token_in_address: resolve_address(params.token_in),
-        token_out_address: resolve_address(params.token_out),
-        token_in_chain_id: params.chain_id,
-        token_out_chain_id: params.chain_id,
-        trade_type: TradeType::ExactIn,
-        amount: params.amount,
-        recipient: params.recipient,
-        slippage_tolerance: SLIPPAGE_TOLERANCE.to_string(),
-        enable_universal_router: false,
-        deadline: DEADLINE,
-    };
-
-    let query_string = serde_qs::to_string(&query).unwrap();
-
-    let client = reqwest::Client::new();
-
-    let response = client
-        .get(format!("{}?{}", ROUTING_API, query_string))
-        .header(ORIGIN, "https://app.uniswap.org")
-        .header("x-request-source", "uniswap-web")
-        .send()
-        .await
-        .map_err(|e| anyhow!("Quote request failed with error: {}", e))?;
-
-    match response.status() {
-        StatusCode::OK => Ok(response
-            .json::<OrderRoute>()
-            .await
-            .map_err(|e| anyhow!("Failed to parse response: {}", e))?),
-        StatusCode::BAD_REQUEST => Err(anyhow!("Bad request: {}", response.status())),
-        StatusCode::NOT_FOUND => Err(anyhow!("Not quote found: {}", response.status())),
-        StatusCode::TOO_MANY_REQUESTS => Err(anyhow!("Too many requests: {}", response.status())),
-        StatusCode::INTERNAL_SERVER_ERROR => {
-            Err(anyhow!("Internal server error: {}", response.status()))
-        }
-        _ => Err(anyhow!(
-            "Unexpected error with status code: {}",
-            response.status()
-        )),
-    }
-}
 
 // The Uniswap routing API requires that "ETH" be used instead of the zero address
 fn resolve_address(token: String) -> String {
