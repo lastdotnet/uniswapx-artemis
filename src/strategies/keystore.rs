@@ -1,3 +1,4 @@
+use rand::seq::IteratorRandom;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{Mutex, Notify};
@@ -70,8 +71,8 @@ impl KeyStore {
         if self.keys.len() == 0 {
             return None;
         }
-        let public_address = self.keys.keys().next().unwrap();
-        Some(public_address.clone())
+        let mut rng = rand::thread_rng();
+        self.keys.keys().choose(&mut rng).cloned()
     }
 
     pub async fn acquire_key(&self) -> Result<(String, PrivateKey), KeyStoreError> {
@@ -210,5 +211,28 @@ mod tests {
         // Clean up
         keystore.release_key(addr2).await.unwrap();
         keystore.release_key(acquired_addr).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_get_address_randomness() {
+        let mut keystore = KeyStore::new();
+        keystore.add_key("address1".to_string(), "private_key1".to_string()).await;
+        keystore.add_key("address2".to_string(), "private_key2".to_string()).await;
+        keystore.add_key("address3".to_string(), "private_key3".to_string()).await;
+
+        let mut counts = HashMap::new();
+        let iterations = 1000000;
+
+        for _ in 0..iterations {
+            if let Some(address) = keystore.get_address() {
+                *counts.entry(address).or_insert(0) += 1;
+            }
+        }
+
+        // Check that each address was selected roughly equally
+        for count in counts.values() {
+            let proportion = *count as f64 / iterations as f64;
+            assert!((0.32..0.34).contains(&proportion), "Proportion out of expected range");
+        }
     }
 }
