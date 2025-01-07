@@ -122,6 +122,7 @@ where
             .client
             .provider()
             .call_raw(&action.execution.tx).block(target_block)
+            .await
             .or_else(|err| {
                 Err(anyhow::anyhow!("{} - Error getting gas usage: {}", order_hash, err))
             });
