@@ -13,7 +13,7 @@ use crate::{
     },
     strategies::types::SubmitTxToMempoolWithExecutionMetadata,
 };
-use alloy_primitives::Uint;
+use alloy_primitives::{Uint, U64};
 use anyhow::Result;
 use artemis_core::executors::mempool_executor::{GasBidInfo, SubmitTxToMempool};
 use artemis_core::types::Strategy;
@@ -51,14 +51,16 @@ pub struct ExecutionMetadata {
     // amount of quote token needed to fill the order
     pub amount_out_required: U256,
     pub order_hash: String,
+    pub target_block: Option<U64>,
 }
 
 impl ExecutionMetadata {
-    pub fn new(quote: U256, amount_out_required: U256, order_hash: &str) -> Self {
+    pub fn new(quote: U256, amount_out_required: U256, order_hash: &str, target_block: Option<Uint<64, 1>>) -> Self {
         Self {
             quote,
             amount_out_required,
             order_hash: order_hash.to_owned(),
+            target_block
         }
     }
 
@@ -448,7 +450,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
     ///     - we return the data needed to calculate the maximum MPS of improvement we can offer from our quote and the order specs
     fn get_execution_metadata(
         &self,
-        RoutedOrder { request, route }: &RoutedOrder,
+        RoutedOrder { request, route, target_block, ..}: &RoutedOrder,
     ) -> Option<ExecutionMetadata> {
         let quote = U256::from_str_radix(&route.quote, 10).ok()?;
         let amount_out_required =
@@ -462,6 +464,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                 quote,
                 amount_out_required,
                 order_hash: request.orders[0].hash.clone(),
+                target_block: target_block.clone(),
             }
         })
     }

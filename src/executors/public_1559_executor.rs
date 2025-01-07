@@ -1,3 +1,4 @@
+use alloy_primitives::U64;
 use serde_json::Value;
 use std::sync::Arc;
 use tracing::{info, warn};
@@ -10,9 +11,11 @@ use ethers::{
     middleware::MiddlewareBuilder,
     providers::{Middleware, MiddlewareError},
     signers::{LocalWallet, Signer},
-    types::{TransactionReceipt, U256},
+    types::{BlockId, BlockNumber, TransactionReceipt, U256},
     utils::format_units,
 };
+use ethers::types::U64 as EthersU64;
+
 
 use crate::{
     aws_utils::cloudwatch_utils::{
@@ -20,6 +23,23 @@ use crate::{
     }, executors::reactor_error_code::ReactorErrorCode, shared::send_metric_with_order_hash, strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
     
 };
+
+pub trait ToEthers {
+    /// The corresponding Ethers type.
+    type To;
+
+    /// Converts the Alloy type to the corresponding Ethers type.
+    fn to_ethers(self) -> Self::To;
+}
+
+impl ToEthers for U64 {
+    type To = EthersU64;
+
+    #[inline(always)]
+    fn to_ethers(self) -> Self::To {
+        EthersU64(self.into_limbs())
+    }
+}
 
 /// An executor that sends transactions to the public mempool.
 pub struct Public1559Executor<M, N> {
@@ -92,9 +112,14 @@ where
 
         // early return on OrderAlready filled
         // always use 1_000_000 gas for now
+        let target_block = match action.metadata.target_block {
+            Some(b) => Some(BlockId::Number(BlockNumber::Number(b.to_ethers()))),
+            _ => None,
+        };
+
         let gas_usage_result: Result<U256, anyhow::Error> = self
             .client
-            .estimate_gas(&action.execution.tx, None)
+            .estimate_gas(&action.execution.tx, target_block)
             .await
             .or_else(|err| {
                 if let Some(Value::String(four_byte)) =
@@ -118,11 +143,14 @@ where
                             }
                             Err(anyhow::anyhow!("Order Past Deadline"))
                         }
-                        _ => Ok(U256::from(2_000_000)),
+                        _ => {
+                            warn!("{} - Unknown error {}, skip execution", order_hash, error_code);
+                            Err(anyhow::anyhow!("GasEstimationError"))
+                        }
                     }
                 } else {
                     warn!("Error estimating gas: {:?}", err);
-                    Ok(U256::from(2_000_000))
+                    Err(anyhow::anyhow!("GasEstimationError"))
                 }
             });
 

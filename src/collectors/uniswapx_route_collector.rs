@@ -1,6 +1,6 @@
 use std::{collections::HashSet, sync::Arc};
 
-use alloy_primitives::Uint;
+use alloy_primitives::{Uint, U64};
 use anyhow::{anyhow, Result};
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use reqwest::header::ORIGIN;
@@ -137,6 +137,7 @@ pub struct RouteOrderParams {
 pub struct RoutedOrder {
     pub route: OrderRoute,
     pub request: OrderBatchData,
+    pub target_block: Option<U64>,
 }
 
 /// A new order event, containing the internal order.
@@ -295,9 +296,14 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
                 while let Some((batch, route_result)) = tasks.next().await {
                     match route_result {
                         Ok(route) => {
+                            let target_block = match &batch.orders[0].order {
+                                Order::PriorityOrder(order) => Some(U64::from(order.cosignerData.auctionTargetBlock)),
+                                _ => None,
+                            };
                             yield RoutedOrder {
                                 request: batch,
                                 route,
+                                target_block,
                             };
                         }
                         Err(e) => {
