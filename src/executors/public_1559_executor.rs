@@ -118,11 +118,11 @@ where
                             }
                             Err(anyhow::anyhow!("Order Past Deadline"))
                         }
-                        _ => Ok(U256::from(1_000_000)),
+                        _ => Ok(U256::from(2_000_000)),
                     }
                 } else {
                     warn!("Error estimating gas: {:?}", err);
-                    Ok(U256::from(1_000_000))
+                    Ok(U256::from(2_000_000))
                 }
             });
 
