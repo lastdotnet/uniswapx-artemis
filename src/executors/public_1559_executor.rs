@@ -1,5 +1,4 @@
 use alloy_primitives::U64;
-use serde_json::Value;
 use std::sync::Arc;
 use tracing::{info, warn};
 
@@ -9,7 +8,7 @@ use async_trait::async_trait;
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use ethers::{
     middleware::MiddlewareBuilder,
-    providers::{Middleware, MiddlewareError},
+    providers::{call_raw::RawCall, Middleware},
     signers::{LocalWallet, Signer},
     types::{BlockId, BlockNumber, TransactionReceipt, U256},
     utils::format_units,
@@ -20,7 +19,7 @@ use ethers::types::U64 as EthersU64;
 use crate::{
     aws_utils::cloudwatch_utils::{
         build_metric_future, receipt_status_to_metric, CwMetrics, DimensionValue
-    }, executors::reactor_error_code::ReactorErrorCode, shared::send_metric_with_order_hash, strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
+    }, shared::send_metric_with_order_hash, strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
     
 };
 
@@ -113,50 +112,24 @@ where
         // early return on OrderAlready filled
         // always use 1_000_000 gas for now
         let target_block = match action.metadata.target_block {
-            Some(b) => Some(BlockId::Number(BlockNumber::Number(b.to_ethers()))),
-            _ => None,
+            Some(b) => BlockId::Number(BlockNumber::Number(b.to_ethers())),
+            _ => BlockId::Number(BlockNumber::Latest),
         };
 
-        let gas_usage_result: Result<U256, anyhow::Error> = self
+        info!("{} - target_block: {:?}", order_hash, target_block);
+
+        let gas_usage_result = self
             .client
-            .estimate_gas(&action.execution.tx, target_block)
-            .await
+            .provider()
+            .call_raw(&action.execution.tx).block(target_block)
             .or_else(|err| {
-                if let Some(Value::String(four_byte)) =
-                    err.as_error_response().unwrap().data.clone()
-                {
-                    let error_code = ReactorErrorCode::from(four_byte.clone());
-                    match error_code {
-                        ReactorErrorCode::OrderAlreadyFilled => {
-                            info!("{} - Order already filled, skipping execution", order_hash);
-                            let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::PriorityExecutor, CwMetrics::ExecutionSkippedAlreadyFilled, 1.0);
-                            if let Some(metric_future) = metric_future {
-                                send_metric_with_order_hash!(&order_hash, metric_future);
-                            }
-                            Err(anyhow::anyhow!("Order Already Filled"))
-                        }
-                        ReactorErrorCode::InvalidDeadline => {
-                            info!("{} - Order past deadline, skipping execution", order_hash);
-                            let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::PriorityExecutor, CwMetrics::ExecutionSkippedPastDeadline, 1.0);
-                            if let Some(metric_future) = metric_future {
-                                send_metric_with_order_hash!(&order_hash, metric_future);
-                            }
-                            Err(anyhow::anyhow!("Order Past Deadline"))
-                        }
-                        _ => {
-                            warn!("{} - Unknown error {}, skip execution", order_hash, error_code);
-                            Err(anyhow::anyhow!("GasEstimationError"))
-                        }
-                    }
-                } else {
-                    warn!("Error estimating gas: {:?}", err);
-                    Err(anyhow::anyhow!("GasEstimationError"))
-                }
+                Err(anyhow::anyhow!("{} - Error getting gas usage: {}", order_hash, err))
             });
 
         let gas_usage = match gas_usage_result {
-            Ok(gas) => gas,
+            Ok(_) => U256::from(1_000_000),
             Err(e) => {
+                warn!("{} - Error getting gas usage: {}", order_hash, e);
                 // Release the key before returning
                 match self.key_store.release_key(public_address.clone()).await {
                     Ok(_) => {
