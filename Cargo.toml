@@ -9,8 +9,8 @@ edition = "2021"
 uniswapx-rs = { path = "./crates/uniswapx-rs" }
 bindings-uniswapx = { path = "./crates/bindings-uniswapx" }
 
-artemis-core = { git = "https://github.com/paradigmxyz/artemis"}
-ethers = { version = "2", features = ["ws", "rustls"]}
+artemis-core = { git = "https://github.com/paradigmxyz/artemis", rev = "70f3bce3488cf29f34197b9b2c0c02d329b95793"}
+ethers = { version = "2.0.14", features = ["ws", "rustls"]}
 tokio = { version = "1.18", features = ["full"] }
 dotenv = "0.15.0"
 async-trait = "0.1.64"
@@ -25,7 +25,7 @@ crossbeam = "0.8.2"
 crossbeam-channel = "0.5.8"
 tokio-stream = "0.1.14"
 reqwest = "0.11.18"
-alloy-primitives = "0.2.0"
+alloy-primitives = "0.8.18"
 serde_qs = "0.12.0"
 async-stream = "0.3.5"
 mockito = "1.1.0"

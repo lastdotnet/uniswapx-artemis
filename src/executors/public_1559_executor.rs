@@ -112,7 +112,7 @@ where
         // early return on OrderAlready filled
         // always use 1_000_000 gas for now
         let target_block = match action.metadata.target_block {
-            Some(b) => BlockId::Number(BlockNumber::Number(b.to_ethers())),
+            Some(b) => BlockId::Number(BlockNumber::Number(b)),
             _ => BlockId::Number(BlockNumber::Latest),
         };
 

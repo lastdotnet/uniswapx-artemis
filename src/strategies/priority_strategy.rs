@@ -13,7 +13,7 @@ use crate::{
     },
     strategies::types::SubmitTxToMempoolWithExecutionMetadata,
 };
-use alloy_primitives::{Uint, U64};
+use alloy_primitives::Uint;
 use anyhow::Result;
 use artemis_core::executors::mempool_executor::{GasBidInfo, SubmitTxToMempool};
 use artemis_core::types::Strategy;
@@ -23,7 +23,7 @@ use bindings_uniswapx::shared_types::SignedOrder;
 use dashmap::DashMap;
 use ethers::{
     providers::Middleware,
-    types::{Address, Bytes, Filter, U256},
+    types::{Address, Bytes, Filter, U256, U64},
     utils::hex,
 };
 use std::error::Error;
@@ -55,7 +55,7 @@ pub struct ExecutionMetadata {
 }
 
 impl ExecutionMetadata {
-    pub fn new(quote: U256, amount_out_required: U256, order_hash: &str, target_block: Option<Uint<64, 1>>) -> Self {
+    pub fn new(quote: U256, amount_out_required: U256, order_hash: &str, target_block: Option<U64>) -> Self {
         Self {
             quote,
             amount_out_required,
@@ -464,7 +464,9 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                 quote,
                 amount_out_required,
                 order_hash: request.orders[0].hash.clone(),
-                target_block: target_block.clone(),
+                // Conversion between alloy and ethers.rs types
+                // TODO: fully migrate to alloy 
+                target_block: target_block.map(|b| U64::from(U256(b.into_limbs()).as_u64())),
             }
         })
     }
