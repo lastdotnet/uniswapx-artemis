@@ -1,4 +1,5 @@
 use alloy_primitives::U64;
+use serde_json::Value;
 use std::sync::Arc;
 use tracing::{info, warn};
 
@@ -8,7 +9,7 @@ use async_trait::async_trait;
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use ethers::{
     middleware::MiddlewareBuilder,
-    providers::{call_raw::RawCall, Middleware},
+    providers::{Middleware, MiddlewareError},
     signers::{LocalWallet, Signer},
     types::{BlockId, BlockNumber, TransactionReceipt, U256},
     utils::format_units,
@@ -19,7 +20,7 @@ use ethers::types::U64 as EthersU64;
 use crate::{
     aws_utils::cloudwatch_utils::{
         build_metric_future, receipt_status_to_metric, CwMetrics, DimensionValue
-    }, shared::send_metric_with_order_hash, strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
+    }, executors::reactor_error_code::ReactorErrorCode, shared::send_metric_with_order_hash, strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
     
 };
 
@@ -120,15 +121,43 @@ where
 
         let gas_usage_result = self
             .client
-            .provider()
-            .call_raw(&action.execution.tx).block(target_block)
+            .estimate_gas(&action.execution.tx, None)
+            //.call_raw(&action.execution.tx).block(target_block)
+            //
             .await
             .or_else(|err| {
-                Err(anyhow::anyhow!("{} - Error getting gas usage: {}", order_hash, err))
+                if let Some(Value::String(four_byte)) =
+                    err.as_error_response().unwrap().data.clone()
+                {
+                    let error_code = ReactorErrorCode::from(four_byte.clone());
+                    match error_code {
+                        ReactorErrorCode::OrderAlreadyFilled => {
+                            info!("{} - Order already filled, skipping execution", order_hash);
+                            let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::PriorityExecutor, CwMetrics::ExecutionSkippedAlreadyFilled, 1.0);
+                            if let Some(metric_future) = metric_future {
+                                send_metric_with_order_hash!(&order_hash, metric_future);
+                            }
+                            Err(anyhow::anyhow!("Order Already Filled"))
+                        }
+                        ReactorErrorCode::InvalidDeadline => {
+                            info!("{} - Order past deadline, skipping execution", order_hash);
+                            let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::PriorityExecutor, CwMetrics::ExecutionSkippedPastDeadline, 1.0);
+                            if let Some(metric_future) = metric_future {
+                                send_metric_with_order_hash!(&order_hash, metric_future);
+                            }
+                            Err(anyhow::anyhow!("Order Past Deadline"))
+                        }
+                        _ => Ok(U256::from(2_000_000)),
+                    }
+                } else {
+                    warn!("Error estimating gas: {:?}", err);
+                    Ok(U256::from(2_000_000))
+                }
             });
+            
 
         let gas_usage = match gas_usage_result {
-            Ok(_) => U256::from(1_000_000),
+            Ok(gas) => gas,
             Err(e) => {
                 warn!("{} - Error getting gas usage: {}", order_hash, e);
                 // Release the key before returning
