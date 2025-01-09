@@ -24,6 +24,9 @@ use crate::{
     
 };
 
+
+// code snippet from alloy book
+// remove after fully migrated to alloy
 pub trait ToEthers {
     /// The corresponding Ethers type.
     type To;
