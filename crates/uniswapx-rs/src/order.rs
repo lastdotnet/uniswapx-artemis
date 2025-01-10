@@ -184,11 +184,11 @@ pub enum OrderResolution {
 
 impl V2DutchOrder {
     pub fn decode_inner(order_hex: &[u8], validate: bool) -> Result<Self, Box<dyn Error>> {
-        Ok(V2DutchOrder::decode_single(order_hex, validate)?)
+        Ok(V2DutchOrder::abi_decode(order_hex, validate)?)
     }
 
     pub fn encode_inner(&self) -> Vec<u8> {
-        V2DutchOrder::encode_single(self)
+        V2DutchOrder::abi_encode(self)
     }
 
     pub fn resolve(&self, timestamp: u64) -> OrderResolution {
@@ -248,11 +248,11 @@ impl V2DutchOrder {
 
 impl PriorityOrder {
     pub fn decode_inner(order_hex: &[u8], validate: bool) -> Result<Self, Box<dyn Error>> {
-        Ok(PriorityOrder::decode_single(order_hex, validate)?)
+        Ok(PriorityOrder::abi_decode(order_hex, validate)?)
     }
 
     pub fn encode_inner(&self) -> Vec<u8> {
-        PriorityOrder::encode_single(self)
+        PriorityOrder::abi_encode(self)
     }
 
     pub fn resolve(&self, block_number: u64, timestamp: u64, priority_fee: BigUint) -> OrderResolution {
@@ -301,11 +301,11 @@ impl PriorityOutput {
 
 impl V3DutchOrder {
     pub fn decode_inner(order_hex: &[u8], validate: bool) -> Result<Self, Box<dyn Error>> {
-        Ok(V3DutchOrder::decode_single(order_hex, validate)?)
+        Ok(V3DutchOrder::abi_decode(order_hex, validate)?)
     }
 
     pub fn encode_inner(&self) -> Vec<u8> {
-        V3DutchOrder::encode_single(self)
+        V3DutchOrder::abi_encode(self)
     }
 
     pub fn resolve(&self, block_number: u64, timestamp: u64) -> OrderResolution {

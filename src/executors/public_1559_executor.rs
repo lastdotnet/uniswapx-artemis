@@ -1,3 +1,4 @@
+use alloy_primitives::U64;
 use serde_json::Value;
 use std::sync::Arc;
 use tracing::{info, warn};
@@ -10,9 +11,11 @@ use ethers::{
     middleware::MiddlewareBuilder,
     providers::{Middleware, MiddlewareError},
     signers::{LocalWallet, Signer},
-    types::{TransactionReceipt, U256},
+    types::{BlockId, BlockNumber, TransactionReceipt, U256},
     utils::format_units,
 };
+use ethers::types::U64 as EthersU64;
+
 
 use crate::{
     aws_utils::cloudwatch_utils::{
@@ -20,6 +23,26 @@ use crate::{
     }, executors::reactor_error_code::ReactorErrorCode, shared::send_metric_with_order_hash, strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
     
 };
+
+
+// code snippet from alloy book
+// remove after fully migrated to alloy
+pub trait ToEthers {
+    /// The corresponding Ethers type.
+    type To;
+
+    /// Converts the Alloy type to the corresponding Ethers type.
+    fn to_ethers(self) -> Self::To;
+}
+
+impl ToEthers for U64 {
+    type To = EthersU64;
+
+    #[inline(always)]
+    fn to_ethers(self) -> Self::To {
+        EthersU64(self.into_limbs())
+    }
+}
 
 /// An executor that sends transactions to the public mempool.
 pub struct Public1559Executor<M, N> {
@@ -92,10 +115,17 @@ where
 
         // early return on OrderAlready filled
         // always use 1_000_000 gas for now
-        let gas_usage_result: Result<U256, anyhow::Error> = self
+        let target_block = match action.metadata.target_block {
+            Some(b) => BlockId::Number(BlockNumber::Number(b)),
+            _ => BlockId::Number(BlockNumber::Latest),
+        };
+
+        info!("{} - target_block: {:?}", order_hash, target_block);
+
+        let gas_usage_result = self
             .client
             .estimate_gas(&action.execution.tx, None)
-            .await
+            t c.await
             .or_else(|err| {
                 if let Some(Value::String(four_byte)) =
                     err.as_error_response().unwrap().data.clone()
@@ -125,10 +155,12 @@ where
                     Ok(U256::from(2_000_000))
                 }
             });
+            
 
         let gas_usage = match gas_usage_result {
             Ok(gas) => gas,
             Err(e) => {
+                warn!("{} - Error getting gas usage: {}", order_hash, e);
                 // Release the key before returning
                 match self.key_store.release_key(public_address.clone()).await {
                     Ok(_) => {

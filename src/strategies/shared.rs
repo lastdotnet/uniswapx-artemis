@@ -30,7 +30,7 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
         client: Arc<M>,
         executor_address: &str,
         signed_orders: Vec<SignedOrder>,
-        RoutedOrder { request, route }: &RoutedOrder,
+        RoutedOrder { request, route, ..}: &RoutedOrder,
     ) -> Result<TypedTransaction> {
         let chain_id: U256 = client.get_chainid().await?;
         let fill_contract =
@@ -112,7 +112,7 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
         }
     }
 
-    fn get_profit_eth(&self, RoutedOrder { request, route }: &RoutedOrder) -> Option<U256> {
+    fn get_profit_eth(&self, RoutedOrder { request, route, .. }: &RoutedOrder) -> Option<U256> {
         let quote = U256::from_str_radix(&route.quote, 10).ok()?;
         let amount_out_required =
             U256::from_str_radix(&request.amount_out_required.to_string(), 10).ok()?;

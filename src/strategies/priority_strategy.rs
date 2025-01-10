@@ -23,7 +23,7 @@ use bindings_uniswapx::shared_types::SignedOrder;
 use dashmap::DashMap;
 use ethers::{
     providers::Middleware,
-    types::{Address, Bytes, Filter, U256},
+    types::{Address, Bytes, Filter, U256, U64},
     utils::hex,
 };
 use std::error::Error;
@@ -51,14 +51,16 @@ pub struct ExecutionMetadata {
     // amount of quote token needed to fill the order
     pub amount_out_required: U256,
     pub order_hash: String,
+    pub target_block: Option<U64>,
 }
 
 impl ExecutionMetadata {
-    pub fn new(quote: U256, amount_out_required: U256, order_hash: &str) -> Self {
+    pub fn new(quote: U256, amount_out_required: U256, order_hash: &str, target_block: Option<U64>) -> Self {
         Self {
             quote,
             amount_out_required,
             order_hash: order_hash.to_owned(),
+            target_block
         }
     }
 
@@ -448,7 +450,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
     ///     - we return the data needed to calculate the maximum MPS of improvement we can offer from our quote and the order specs
     fn get_execution_metadata(
         &self,
-        RoutedOrder { request, route }: &RoutedOrder,
+        RoutedOrder { request, route, target_block, ..}: &RoutedOrder,
     ) -> Option<ExecutionMetadata> {
         let quote = U256::from_str_radix(&route.quote, 10).ok()?;
         let amount_out_required =
@@ -462,6 +464,9 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                 quote,
                 amount_out_required,
                 order_hash: request.orders[0].hash.clone(),
+                // Conversion between alloy and ethers.rs types
+                // TODO: fully migrate to alloy 
+                target_block: target_block.map(|b| U64::from(U256(b.into_limbs()).as_u64())),
             }
         })
     }
