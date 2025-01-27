@@ -1,7 +1,12 @@
 use std::{future::Future, pin::Pin, sync::Arc};
 
-use aws_sdk_cloudwatch::{config::http::HttpResponse, error::SdkError, operation::put_metric_data::{PutMetricDataError, PutMetricDataOutput}, types::Dimension};
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
+use aws_sdk_cloudwatch::{
+    config::http::HttpResponse,
+    error::SdkError,
+    operation::put_metric_data::{PutMetricDataError, PutMetricDataOutput},
+    types::Dimension,
+};
 
 /// Constants for dimension names and values
 pub const SERVICE_DIMENSION: &str = "Service";
@@ -70,16 +75,16 @@ impl AsRef<str> for DimensionValue {
 }
 
 pub enum CwMetrics {
-    RoutingMs,
-    Unprofitable,
-    ExecutionAttempted,
-    ExecutionSkippedAlreadyFilled,
-    ExecutionSkippedPastDeadline,
-    TxSucceeded,
-    TxReverted,
-    TxSubmitted,
-    TxStatusUnknown,
-    LatestBlock,
+    RoutingMs(u64),
+    Unprofitable(u64),
+    ExecutionAttempted(u64),
+    ExecutionSkippedAlreadyFilled(u64),
+    ExecutionSkippedPastDeadline(u64),
+    TxSucceeded(u64),
+    TxReverted(u64),
+    TxSubmitted(u64),
+    TxStatusUnknown(u64),
+    LatestBlock(u64),
 
     /// Balance for individual address
     Balance(String),
@@ -87,21 +92,28 @@ pub enum CwMetrics {
 impl From<CwMetrics> for String {
     fn from(metric: CwMetrics) -> Self {
         match metric {
-            CwMetrics::RoutingMs => ROUTING_MS.to_string(),
-            CwMetrics::Unprofitable => UNPROFITABLE_METRIC.to_string(),
-            CwMetrics::ExecutionAttempted => EXECUTION_ATTEMPTED_METRIC.to_string(),
-            CwMetrics::ExecutionSkippedAlreadyFilled => EXECUTION_SKIPPED_ALREADY_FILLED_METRIC.to_string(),
-            CwMetrics::ExecutionSkippedPastDeadline => EXECUTION_SKIPPED_PAST_DEADLINE_METRIC.to_string(),
-            CwMetrics::TxSucceeded => TX_SUCCEEDED_METRIC.to_string(),
-            CwMetrics::TxReverted => TX_REVERTED_METRIC.to_string(),
-            CwMetrics::TxSubmitted => TX_SUBMITTED_METRIC.to_string(),
-            CwMetrics::TxStatusUnknown => TX_STATUS_UNKNOWN_METRIC.to_string(),
+            CwMetrics::RoutingMs(chain_id) => format!("{}-{}", chain_id, ROUTING_MS),
+            CwMetrics::Unprofitable(chain_id) => format!("{}-{}", chain_id, UNPROFITABLE_METRIC),
+            CwMetrics::ExecutionAttempted(chain_id) => {
+                format!("{}-{}", chain_id, EXECUTION_ATTEMPTED_METRIC)
+            }
+            CwMetrics::ExecutionSkippedAlreadyFilled(chain_id) => {
+                format!("{}-{}", chain_id, EXECUTION_SKIPPED_ALREADY_FILLED_METRIC)
+            }
+            CwMetrics::ExecutionSkippedPastDeadline(chain_id) => {
+                format!("{}-{}", chain_id, EXECUTION_SKIPPED_PAST_DEADLINE_METRIC)
+            }
+            CwMetrics::TxSucceeded(chain_id) => format!("{}-{}", chain_id, TX_SUCCEEDED_METRIC),
+            CwMetrics::TxReverted(chain_id) => format!("{}-{}", chain_id, TX_REVERTED_METRIC),
+            CwMetrics::TxSubmitted(chain_id) => format!("{}-{}", chain_id, TX_SUBMITTED_METRIC),
+            CwMetrics::TxStatusUnknown(chain_id) => {
+                format!("{}-{}", chain_id, TX_STATUS_UNKNOWN_METRIC)
+            }
             CwMetrics::Balance(val) => format!("Bal-{}", val),
-            CwMetrics::LatestBlock => LATEST_BLOCK.to_string(),
+            CwMetrics::LatestBlock(chain_id) => format!("{}-{}", chain_id, LATEST_BLOCK),
         }
     }
 }
-
 
 pub const ARTEMIS_NAMESPACE: &str = "Artemis";
 
@@ -148,33 +160,46 @@ impl MetricBuilder {
     }
 }
 
-pub fn receipt_status_to_metric(status: u64) -> CwMetrics {
+pub fn receipt_status_to_metric(status: u64, chain_id: u64) -> CwMetrics {
     match status {
-        1 => CwMetrics::TxSucceeded,
-        0 => CwMetrics::TxReverted,
-        _ => CwMetrics::TxStatusUnknown,
+        1 => CwMetrics::TxSucceeded(chain_id),
+        0 => CwMetrics::TxReverted(chain_id),
+        _ => CwMetrics::TxStatusUnknown(chain_id),
     }
 }
 
-pub fn build_metric_future(cloudwatch_client: Option<Arc<CloudWatchClient>>, dimension_value: DimensionValue, metric: CwMetrics, value: f64) 
-    -> Option<Pin<Box<impl Future<Output = Result<PutMetricDataOutput, SdkError<PutMetricDataError, HttpResponse>>> + Send + 'static>>> {
-        cloudwatch_client.map(|client| {
-            Box::pin(async move {
-                client
+pub fn build_metric_future(
+    cloudwatch_client: Option<Arc<CloudWatchClient>>,
+    dimension_value: DimensionValue,
+    metric: CwMetrics,
+    value: f64,
+) -> Option<
+    Pin<
+        Box<
+            impl Future<
+                    Output = Result<
+                        PutMetricDataOutput,
+                        SdkError<PutMetricDataError, HttpResponse>,
+                    >,
+                > + Send
+                + 'static,
+        >,
+    >,
+> {
+    cloudwatch_client.map(|client| {
+        Box::pin(async move {
+            client
                 .put_metric_data()
                 .namespace(ARTEMIS_NAMESPACE)
                 .metric_data(
                     MetricBuilder::new(metric)
-                        .add_dimension(
-                            DimensionName::Service.as_ref(),
-                            dimension_value.as_ref(),
-                        )
+                        .add_dimension(DimensionName::Service.as_ref(), dimension_value.as_ref())
                         .with_value(value)
                         .build(),
                 )
                 .send()
                 .await
-            })
+        })
     })
 }
 

@@ -2,11 +2,15 @@ use super::{
     shared::UniswapXStrategy,
     types::{Config, OrderStatus, TokenInTokenOut},
 };
-use crate::{aws_utils::cloudwatch_utils::{build_metric_future, CwMetrics, DimensionValue}, collectors::{
-    block_collector::NewBlock,
-    uniswapx_order_collector::UniswapXOrder,
-    uniswapx_route_collector::{OrderBatchData, OrderData, RoutedOrder},
-}, shared::send_metric_with_order_hash};
+use crate::{
+    aws_utils::cloudwatch_utils::{build_metric_future, CwMetrics, DimensionValue},
+    collectors::{
+        block_collector::NewBlock,
+        uniswapx_order_collector::UniswapXOrder,
+        uniswapx_route_collector::{OrderBatchData, OrderData, RoutedOrder},
+    },
+    shared::send_metric_with_order_hash,
+};
 use alloy_primitives::Uint;
 use anyhow::Result;
 use artemis_core::executors::mempool_executor::{GasBidInfo, SubmitTxToMempool};
@@ -51,6 +55,7 @@ pub struct UniswapXUniswapFill<M> {
     batch_sender: Sender<Vec<OrderBatchData>>,
     route_receiver: Receiver<RoutedOrder>,
     cloudwatch_client: Option<Arc<CloudWatchClient>>,
+    chain_id: u64,
 }
 
 impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
@@ -60,6 +65,7 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
         sender: Sender<Vec<OrderBatchData>>,
         receiver: Receiver<RoutedOrder>,
         cloudwatch_client: Option<Arc<CloudWatchClient>>,
+        chain_id: u64,
     ) -> Self {
         info!("syncing state");
 
@@ -74,6 +80,7 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
             batch_sender: sender,
             route_receiver: receiver,
             cloudwatch_client,
+            chain_id,
         }
     }
 }
@@ -167,9 +174,17 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
                 }),
             }));
         } else {
-            let metric_future = build_metric_future(self.cloudwatch_client.clone(), DimensionValue::Router02, CwMetrics::Unprofitable, 1.0);
+            let metric_future = build_metric_future(
+                self.cloudwatch_client.clone(),
+                DimensionValue::Router02,
+                CwMetrics::Unprofitable(event.request.chain_id),
+                1.0,
+            );
             if let Some(metric_future) = metric_future {
-                send_metric_with_order_hash!(&Arc::new(event.request.orders[0].hash.clone()), metric_future);
+                send_metric_with_order_hash!(
+                    &Arc::new(event.request.orders[0].hash.clone()),
+                    metric_future
+                );
             }
         }
 
@@ -249,6 +264,7 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
                     amount_out_required: amount_out,
                     token_in: order_data.resolved.input.token.clone(),
                     token_out: order_data.resolved.outputs[0].token.clone(),
+                    chain_id: self.chain_id,
                 });
             } else {
                 let order_batch_data = order_batches.get_mut(&token_in_token_out).unwrap();

@@ -55,12 +55,17 @@ pub struct ExecutionMetadata {
 }
 
 impl ExecutionMetadata {
-    pub fn new(quote: U256, amount_out_required: U256, order_hash: &str, target_block: Option<U64>) -> Self {
+    pub fn new(
+        quote: U256,
+        amount_out_required: U256,
+        order_hash: &str,
+        target_block: Option<U64>,
+    ) -> Self {
         Self {
             quote,
             amount_out_required,
             order_hash: order_hash.to_owned(),
-            target_block
+            target_block,
         }
     }
 
@@ -102,6 +107,7 @@ pub struct UniswapXPriorityFill<M> {
     done_orders: Arc<DashMap<String, u64>>,
     batch_sender: Sender<Vec<OrderBatchData>>,
     route_receiver: Receiver<RoutedOrder>,
+    chain_id: u64,
 }
 
 impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
@@ -111,6 +117,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
         config: Config,
         sender: Sender<Vec<OrderBatchData>>,
         receiver: Receiver<RoutedOrder>,
+        chain_id: u64,
     ) -> Self {
         info!("syncing state");
 
@@ -126,6 +133,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
             done_orders: Arc::new(DashMap::new()),
             batch_sender: sender,
             route_receiver: receiver,
+            chain_id,
         }
     }
 }
@@ -360,7 +368,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                     .put_metric_data()
                     .namespace(ARTEMIS_NAMESPACE)
                     .metric_data(
-                        MetricBuilder::new(CwMetrics::LatestBlock)
+                        MetricBuilder::new(CwMetrics::LatestBlock(self.chain_id))
                             .add_dimension(
                                 DimensionName::Service.as_ref(),
                                 DimensionValue::PriorityExecutor.as_ref(),
@@ -413,6 +421,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
             amount_out_required: amount_out,
             token_in: order_data.resolved.input.token.clone(),
             token_out: order_data.resolved.outputs[0].token.clone(),
+            chain_id: self.chain_id,
         }
     }
 
@@ -450,7 +459,12 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
     ///     - we return the data needed to calculate the maximum MPS of improvement we can offer from our quote and the order specs
     fn get_execution_metadata(
         &self,
-        RoutedOrder { request, route, target_block, ..}: &RoutedOrder,
+        RoutedOrder {
+            request,
+            route,
+            target_block,
+            ..
+        }: &RoutedOrder,
     ) -> Option<ExecutionMetadata> {
         let quote = U256::from_str_radix(&route.quote, 10).ok()?;
         let amount_out_required =
@@ -465,7 +479,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                 amount_out_required,
                 order_hash: request.orders[0].hash.clone(),
                 // Conversion between alloy and ethers.rs types
-                // TODO: fully migrate to alloy 
+                // TODO: fully migrate to alloy
                 target_block: target_block.map(|b| U64::from(U256(b.into_limbs()).as_u64())),
             }
         })
