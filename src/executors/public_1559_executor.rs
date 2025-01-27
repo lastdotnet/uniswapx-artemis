@@ -79,11 +79,12 @@ where
     /// Send a transaction to the mempool.
     async fn execute(&self, mut action: SubmitTxToMempoolWithExecutionMetadata) -> Result<()> {
         let order_hash = Arc::new(action.metadata.order_hash.clone());
+        let chain_id_u64 = action.execution.tx.chain_id().expect("Chain ID not found on transaction").to_string().parse::<u64>().unwrap();
 
         let metric_future = build_metric_future(
             self.cloudwatch_client.clone(),
             DimensionValue::PriorityExecutor,
-            CwMetrics::ExecutionAttempted(action.execution.tx.chain_id().expect("Chain ID not found on transaction").to_string().parse::<u64>().unwrap()),
+            CwMetrics::ExecutionAttempted(chain_id_u64),
             1.0,
         );
         if let Some(metric_future) = metric_future {
@@ -142,7 +143,7 @@ where
                             let metric_future = build_metric_future(
                                 self.cloudwatch_client.clone(),
                                 DimensionValue::PriorityExecutor,
-                                CwMetrics::ExecutionSkippedAlreadyFilled(action.execution.tx.chain_id().expect("Chain ID not found on transaction").to_string().parse::<u64>().unwrap()),
+                                CwMetrics::ExecutionSkippedAlreadyFilled(chain_id_u64),
                                 1.0,
                             );
                             if let Some(metric_future) = metric_future {
@@ -155,7 +156,7 @@ where
                             let metric_future = build_metric_future(
                                 self.cloudwatch_client.clone(),
                                 DimensionValue::PriorityExecutor,
-                                CwMetrics::ExecutionSkippedPastDeadline(action.execution.tx.chain_id().expect("Chain ID not found on transaction").to_string().parse::<u64>().unwrap()),
+                                CwMetrics::ExecutionSkippedPastDeadline(chain_id_u64),
                                 1.0,
                             );
                             if let Some(metric_future) = metric_future {
@@ -222,11 +223,10 @@ where
         let signer = nonce_manager.with_signer(wallet);
 
         info!("{} - Executing tx from {:?}", order_hash, address);
-        let chain_id = action.execution.tx.chain_id().expect("Chain ID not found on transaction").to_string().parse::<u64>().unwrap();
         let metric_future = build_metric_future(
             self.cloudwatch_client.clone(),
             DimensionValue::PriorityExecutor,
-            CwMetrics::TxSubmitted(chain_id),
+            CwMetrics::TxSubmitted(chain_id_u64),
             1.0,
         );
         if let Some(metric_future) = metric_future {
@@ -282,7 +282,7 @@ where
             let metric_future = build_metric_future(
                 self.cloudwatch_client.clone(),
                 DimensionValue::PriorityExecutor,
-                receipt_status_to_metric(status.as_u64(), chain_id),
+                receipt_status_to_metric(status.as_u64(), chain_id_u64),
                 1.0,
             );
             if let Some(metric_future) = metric_future {

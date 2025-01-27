@@ -61,18 +61,11 @@ where
 {
     /// Send a transaction to the mempool.
     async fn execute(&self, mut action: SubmitTxToMempool) -> Result<()> {
+        let chain_id = action.tx.chain_id().expect("Chain ID not found on transaction").to_string().parse::<u64>().unwrap();
         let metric_future = build_metric_future(
             self.cloudwatch_client.clone(),
             DimensionValue::V3Executor,
-            CwMetrics::ExecutionAttempted(
-                action
-                    .tx
-                    .chain_id()
-                    .expect("Chain ID not found on transaction")
-                    .to_string()
-                    .parse::<u64>()
-                    .unwrap(),
-            ),
+            CwMetrics::ExecutionAttempted(chain_id),
             1.0,
         );
         if let Some(metric_future) = metric_future {
@@ -119,15 +112,7 @@ where
                             let metric_future = build_metric_future(
                                 self.cloudwatch_client.clone(),
                                 DimensionValue::V3Executor,
-                                CwMetrics::ExecutionSkippedAlreadyFilled(
-                                    action
-                                        .tx
-                                        .chain_id()
-                                        .expect("Chain ID not found on transaction")
-                                        .to_string()
-                                        .parse::<u64>()
-                                        .unwrap(),
-                                ),
+                                CwMetrics::ExecutionSkippedAlreadyFilled(chain_id),
                                 1.0,
                             );
                             if let Some(metric_future) = metric_future {
@@ -140,15 +125,7 @@ where
                             let metric_future = build_metric_future(
                                 self.cloudwatch_client.clone(),
                                 DimensionValue::V3Executor,
-                                CwMetrics::ExecutionSkippedPastDeadline(
-                                    action
-                                        .tx
-                                        .chain_id()
-                                        .expect("Chain ID not found on transaction")
-                                        .to_string()
-                                        .parse::<u64>()
-                                        .unwrap(),
-                                ),
+                                CwMetrics::ExecutionSkippedPastDeadline(chain_id),
                                 1.0,
                             );
                             if let Some(metric_future) = metric_future {
