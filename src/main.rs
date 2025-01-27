@@ -31,8 +31,8 @@ use tracing_subscriber::{filter, prelude::*};
 pub mod aws_utils;
 pub mod collectors;
 pub mod executors;
-pub mod strategies;
 pub mod shared;
+pub mod strategies;
 
 /// CLI Options.
 #[derive(Parser, Debug)]
@@ -111,8 +111,8 @@ async fn main() -> Result<()> {
 
     // Set up ethers provider.
     let chain_id = args.chain_id;
-    let provider =
-        Provider::<Http>::try_from(args.http.as_str()).expect("could not instantiate HTTP Provider");
+    let provider = Provider::<Http>::try_from(args.http.as_str())
+        .expect("could not instantiate HTTP Provider");
 
     let mevblocker_provider;
     if let Some(mevblocker_http) = args.mevblocker_http {
@@ -190,7 +190,6 @@ async fn main() -> Result<()> {
         None
     };
 
-
     let uniswapx_route_collector = Box::new(UniswapXRouteCollector::new(
         chain_id,
         batch_receiver,
@@ -216,6 +215,7 @@ async fn main() -> Result<()> {
                 batch_sender,
                 route_receiver,
                 cloudwatch_client.clone(),
+                chain_id,
             );
             engine.add_strategy(Box::new(uniswapx_strategy));
         }
@@ -226,6 +226,7 @@ async fn main() -> Result<()> {
                 batch_sender,
                 route_receiver,
                 key_store.get_address().unwrap(),
+                chain_id,
             );
             engine.add_strategy(Box::new(uniswapx_strategy));
         }
@@ -236,6 +237,7 @@ async fn main() -> Result<()> {
                 config.clone(),
                 batch_sender,
                 route_receiver,
+                chain_id,
             );
 
             engine.add_strategy(Box::new(priority_strategy));

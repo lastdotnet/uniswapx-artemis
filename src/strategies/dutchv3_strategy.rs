@@ -57,6 +57,7 @@ pub struct UniswapXDutchV3Fill<M> {
     batch_sender: Sender<Vec<OrderBatchData>>,
     route_receiver: Receiver<RoutedOrder>,
     sender_address: String,
+    chain_id: u64,
 }
 
 impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
@@ -66,6 +67,7 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
         sender: Sender<Vec<OrderBatchData>>,
         receiver: Receiver<RoutedOrder>,
         sender_address: String,
+        chain_id: u64,
     ) -> Self {
         info!("syncing state");
 
@@ -81,6 +83,7 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
             batch_sender: sender,
             route_receiver: receiver,
             sender_address,
+            chain_id,
         }
     }
 }
@@ -301,6 +304,7 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
                         amount_out_required: amount_out,
                         token_in: order_data.resolved.input.token.clone(),
                         token_out: order_data.resolved.outputs[0].token.clone(),
+                        chain_id: self.chain_id,
                     });
                 } else {
                     let order_batch_data = order_batches.get_mut(&token_in_token_out).unwrap();
