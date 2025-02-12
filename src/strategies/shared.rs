@@ -1,11 +1,12 @@
 use crate::collectors::uniswapx_route_collector::RoutedOrder;
+use alloy_primitives::hex;
 use anyhow::Result;
 use async_trait::async_trait;
 use bindings_uniswapx::{
-    erc20::ERC20, shared_types::SignedOrder, swap_router_02_executor::SwapRouter02Executor,
+    erc20::ERC20, shared_types::SignedOrder, universal_router_executor::UniversalRouterExecutor,
 };
 use ethers::{
-    abi::{ethabi, ParamType, Token},
+    abi::{ethabi, Token},
     providers::Middleware,
     types::{
         transaction::eip2718::TypedTransaction, Address, Bytes, Eip1559TransactionRequest, H160,
@@ -19,7 +20,7 @@ use std::{
 };
 
 const REACTOR_ADDRESS: &str = "0x00000011F84B9aa48e5f8aA8B9897600006289Be";
-const SWAPROUTER_02_ADDRESS: &str = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45";
+const PERMIT2_ADDRESS: &str = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
 pub const WETH_ADDRESS: &str = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
 #[async_trait]
@@ -34,17 +35,17 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
     ) -> Result<TypedTransaction> {
         let chain_id: U256 = client.get_chainid().await?;
         let fill_contract =
-            SwapRouter02Executor::new(H160::from_str(executor_address)?, client.clone());
+            UniversalRouterExecutor::new(H160::from_str(executor_address)?, client.clone());
 
         let token_in: H160 = H160::from_str(&request.token_in)?;
         let token_out: H160 = H160::from_str(&request.token_out)?;
 
-        let swaprouter_02_approval = self
+        let permit2_approval = self
             .get_tokens_to_approve(
                 client.clone(),
                 token_in,
                 executor_address,
-                SWAPROUTER_02_ADDRESS,
+                PERMIT2_ADDRESS,
             )
             .await?;
 
@@ -52,33 +53,18 @@ pub trait UniswapXStrategy<M: Middleware + 'static> {
             .get_tokens_to_approve(client.clone(), token_out, executor_address, REACTOR_ADDRESS)
             .await?;
 
-        // Strip off function selector
-        let multicall_bytes = &route.method_parameters.calldata[10..];
+        let execute_bytes = &route.method_parameters.calldata;
 
-        // Decode multicall into [Uint256, bytes[]] (deadline, multicallData)
-        let decoded_multicall_bytes = ethabi::decode(
-            &[
-                ParamType::Uint(256),
-                ParamType::Array(Box::new(ParamType::Bytes)),
-            ],
-            &Bytes::from_str(multicall_bytes).expect("Failed to decode multicall bytes"),
-        );
+        let encoded_execute_bytes = hex::decode(&execute_bytes[2..]).expect("Failed to decode hex");
 
-        let decoded_multicall_bytes = match decoded_multicall_bytes {
-            Ok(data) => data[1].clone(), // already in bytes[]
-            Err(e) => {
-                return Err(anyhow::anyhow!("Failed to decode multicall bytes: {}", e));
-            }
-        };
-
-        // abi encode as [tokens to approve to swap router 02, tokens to approve to reactor,  multicall data]
+        // abi encode as [tokens to approve to permit2, tokens to approve to reactor, execute data]
         //               [address[], address[], bytes[]]
-        let calldata = ethabi::encode(&[
-            Token::Array(swaprouter_02_approval),
+        let encoded_params = ethabi::encode(&[
+            Token::Array(permit2_approval),
             Token::Array(reactor_approval),
-            decoded_multicall_bytes,
+            Token::Bytes(encoded_execute_bytes),
         ]);
-        let mut call = fill_contract.execute_batch(signed_orders, Bytes::from(calldata));
+        let mut call = fill_contract.execute_batch(signed_orders, Bytes::from(encoded_params));
         Ok(call.tx.set_chain_id(chain_id.as_u64()).clone())
     }
 
