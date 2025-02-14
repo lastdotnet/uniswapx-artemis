@@ -1,22 +1,25 @@
+use alloy_primitives::utils::format_units;
 use serde_json::Value;
 use std::{
+    marker::PhantomData,
     ops::{Div, Mul},
     sync::Arc,
 };
 use tracing::{info, warn};
 
+use alloy::{
+    network::AnyNetwork,
+    primitives::{U256, U64},
+    providers::Provider,
+    rpc::types::TransactionReceipt,
+    signers::local::PrivateKeySigner,
+    transports::Transport,
+};
 use anyhow::Result;
 use artemis_core::executors::mempool_executor::SubmitTxToMempool;
 use artemis_core::types::Executor;
 use async_trait::async_trait;
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
-use ethers::{
-    middleware::MiddlewareBuilder,
-    providers::{Middleware, MiddlewareError},
-    signers::{LocalWallet, Signer},
-    types::{TransactionReceipt, U256},
-    utils::format_units,
-};
 
 use crate::{
     aws_utils::cloudwatch_utils::{
@@ -28,17 +31,22 @@ use crate::{
 };
 
 /// An executor that sends transactions to the mempool.
-pub struct ProtectExecutor<M, N> {
-    client: Arc<M>,
-    sender_client: Arc<N>,
+pub struct ProtectExecutor<P, T> {
+    client: Arc<P>,
+    sender_client: Arc<P>,
     key_store: Arc<KeyStore>,
     cloudwatch_client: Option<Arc<CloudWatchClient>>,
+    _transport: PhantomData<T>,
 }
 
-impl<M: Middleware, N: Middleware> ProtectExecutor<M, N> {
+impl<P, T> ProtectExecutor<P, T>
+where
+    P: Provider<T, AnyNetwork>,
+    T: Transport + Clone,
+{
     pub fn new(
-        client: Arc<M>,
-        sender_client: Arc<N>,
+        client: Arc<P>,
+        sender_client: Arc<P>,
         key_store: Arc<KeyStore>,
         cloudwatch_client: Option<Arc<CloudWatchClient>>,
     ) -> Self {
@@ -47,21 +55,26 @@ impl<M: Middleware, N: Middleware> ProtectExecutor<M, N> {
             sender_client,
             key_store,
             cloudwatch_client,
+            _transport: PhantomData,
         }
     }
 }
 
 #[async_trait]
-impl<M, N> Executor<SubmitTxToMempool> for ProtectExecutor<M, N>
+impl<P, T> Executor<SubmitTxToMempool> for ProtectExecutor<P, T>
 where
-    M: Middleware,
-    M::Error: 'static,
-    N: Middleware + 'static,
-    N::Error: 'static,
+    P: Provider<T, AnyNetwork>,
+    T: Transport + Clone,
 {
     /// Send a transaction to the mempool.
     async fn execute(&self, mut action: SubmitTxToMempool) -> Result<()> {
-        let chain_id = action.tx.chain_id().expect("Chain ID not found on transaction").to_string().parse::<u64>().unwrap();
+        let chain_id = action
+            .tx
+            .chain_id()
+            .expect("Chain ID not found on transaction")
+            .to_string()
+            .parse::<u64>()
+            .unwrap();
         let metric_future = build_metric_future(
             self.cloudwatch_client.clone(),
             DimensionValue::V3Executor,
@@ -90,56 +103,51 @@ where
         )
         .expect("Failed to parse chain ID");
 
-        let wallet: LocalWallet = private_key
+        let wallet: PrivateKeySigner = private_key
             .as_str()
-            .parse::<LocalWallet>()
+            .parse::<PrivateKeySigner>()
             .unwrap()
             .with_chain_id(chain_id);
         let address = wallet.address();
         action.tx.set_from(address);
-        let gas_usage_result = self
-            .client
-            .estimate_gas(&action.tx, None)
-            .await
-            .or_else(|err| {
-                if let Some(Value::String(four_byte)) =
-                    err.as_error_response().unwrap().data.clone()
-                {
-                    let error_code = ReactorErrorCode::from(four_byte.clone());
-                    match error_code {
-                        ReactorErrorCode::OrderAlreadyFilled => {
-                            info!("Order already filled, skipping execution");
-                            let metric_future = build_metric_future(
-                                self.cloudwatch_client.clone(),
-                                DimensionValue::V3Executor,
-                                CwMetrics::ExecutionSkippedAlreadyFilled(chain_id),
-                                1.0,
-                            );
-                            if let Some(metric_future) = metric_future {
-                                send_metric!(metric_future);
-                            }
-                            Err(anyhow::anyhow!("Order Already Filled"))
+
+        let gas_usage_result = self.client.estimate_gas(&action.tx).await.or_else(|err| {
+            if let Some(Value::String(four_byte)) = err.as_error_response().unwrap().data.clone() {
+                let error_code = ReactorErrorCode::from(four_byte.clone());
+                match error_code {
+                    ReactorErrorCode::OrderAlreadyFilled => {
+                        info!("Order already filled, skipping execution");
+                        let metric_future = build_metric_future(
+                            self.cloudwatch_client.clone(),
+                            DimensionValue::V3Executor,
+                            CwMetrics::ExecutionSkippedAlreadyFilled(chain_id),
+                            1.0,
+                        );
+                        if let Some(metric_future) = metric_future {
+                            send_metric!(metric_future);
                         }
-                        ReactorErrorCode::InvalidDeadline => {
-                            info!("Order past deadline, skipping execution");
-                            let metric_future = build_metric_future(
-                                self.cloudwatch_client.clone(),
-                                DimensionValue::V3Executor,
-                                CwMetrics::ExecutionSkippedPastDeadline(chain_id),
-                                1.0,
-                            );
-                            if let Some(metric_future) = metric_future {
-                                send_metric!(metric_future);
-                            }
-                            Err(anyhow::anyhow!("Order Past Deadline"))
-                        }
-                        _ => Ok(U256::from(1_000_000)),
+                        Err(anyhow::anyhow!("Order Already Filled"))
                     }
-                } else {
-                    warn!("Error estimating gas: {:?}", err);
-                    Ok(U256::from(1_000_000))
+                    ReactorErrorCode::InvalidDeadline => {
+                        info!("Order past deadline, skipping execution");
+                        let metric_future = build_metric_future(
+                            self.cloudwatch_client.clone(),
+                            DimensionValue::V3Executor,
+                            CwMetrics::ExecutionSkippedPastDeadline(chain_id),
+                            1.0,
+                        );
+                        if let Some(metric_future) = metric_future {
+                            send_metric!(metric_future);
+                        }
+                        Err(anyhow::anyhow!("Order Past Deadline"))
+                    }
+                    _ => Ok(U256::from(1_000_000)),
                 }
-            });
+            } else {
+                warn!("Error estimating gas: {:?}", err);
+                Ok(U256::from(1_000_000))
+            }
+        });
         info!("Gas Usage {:?}", gas_usage_result);
         let gas_usage = gas_usage_result;
 
@@ -166,7 +174,13 @@ where
         let signer = nonce_manager.with_signer(wallet);
 
         info!("Executing tx {:?}", action.tx);
-        let chain_id = action.tx.chain_id().expect("Chain ID not found on transaction").to_string().parse::<u64>().unwrap();
+        let chain_id = action
+            .tx
+            .chain_id()
+            .expect("Chain ID not found on transaction")
+            .to_string()
+            .parse::<u64>()
+            .unwrap();
         let metric_future = build_metric_future(
             self.cloudwatch_client.clone(),
             DimensionValue::V3Executor,
@@ -197,17 +211,17 @@ where
                     }
                     Ok(None) => {
                         warn!("No receipt after confirmation");
-                        (None, ethers::types::U64::zero())
+                        (None, U64::zero())
                     }
                     Err(e) => {
                         warn!("Error waiting for confirmations: {}", e);
-                        (None, ethers::types::U64::zero())
+                        (None, U64::zero())
                     }
                 }
             }
             Err(e) => {
                 warn!("Error sending transaction: {}", e);
-                (None, ethers::types::U64::zero())
+                (None, U64::zero())
             }
         };
 
@@ -242,7 +256,7 @@ where
         {
             let balance_eth = self
                 .client
-                .get_balance(address, Some(block_number.into()))
+                .get_balance(address)
                 .await
                 .map_or_else(|_| None, |v| Some(format_units(v, "ether").unwrap()));
 

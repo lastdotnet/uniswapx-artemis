@@ -11,22 +11,29 @@ use crate::{
     },
     shared::send_metric_with_order_hash,
 };
-use alloy_primitives::Uint;
+use alloy::{
+    hex,
+    network::AnyNetwork,
+    primitives::{Address, Bytes, Uint, U128, U256},
+    providers::Provider,
+    rpc::types::Filter,
+    transports::Transport,
+};
 use anyhow::Result;
 use artemis_core::executors::mempool_executor::{GasBidInfo, SubmitTxToMempool};
 use artemis_core::types::Strategy;
 use async_trait::async_trait;
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
-use bindings_uniswapx::shared_types::SignedOrder;
-use ethers::{
-    providers::Middleware,
-    types::{Address, Bytes, Filter},
-    utils::hex,
-};
-use std::error::Error;
+use bindings_uniswapx::basereactor::BaseReactor::SignedOrder;
+//use ethers::{
+//    providers::Middleware,
+//    types::{Address, Bytes, Filter},
+//    utils::hex,
+//};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::{collections::HashMap, fmt::Debug};
+use std::{error::Error, marker::PhantomData};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{error, info};
 use uniswapx_rs::order::{Order, OrderResolution, V2DutchOrder};
@@ -39,9 +46,13 @@ const REACTOR_ADDRESS: &str = "0x00000011F84B9aa48e5f8aA8B9897600006289Be";
 
 #[derive(Debug)]
 #[allow(dead_code)]
-pub struct UniswapXUniswapFill<M> {
+pub struct UniswapXUniswapFill<P, T>
+where
+    P: Provider<T, AnyNetwork>,
+    T: Transport + Clone,
+{
     /// Ethers client.
-    client: Arc<M>,
+    client: Arc<P>,
     /// executor address
     executor_address: String,
     /// Amount of profits to bid in gas
@@ -56,11 +67,16 @@ pub struct UniswapXUniswapFill<M> {
     route_receiver: Receiver<RoutedOrder>,
     cloudwatch_client: Option<Arc<CloudWatchClient>>,
     chain_id: u64,
+    _transport: PhantomData<T>,
 }
 
-impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
+impl<P, T> UniswapXUniswapFill<P, T>
+where
+    P: Provider<T, AnyNetwork>,
+    T: Transport + Clone,
+{
     pub fn new(
-        client: Arc<M>,
+        client: Arc<P>,
         config: Config,
         sender: Sender<Vec<OrderBatchData>>,
         receiver: Receiver<RoutedOrder>,
@@ -81,12 +97,17 @@ impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
             route_receiver: receiver,
             cloudwatch_client,
             chain_id,
+            _transport: PhantomData,
         }
     }
 }
 
 #[async_trait]
-impl<M: Middleware + 'static> Strategy<Event, Action> for UniswapXUniswapFill<M> {
+impl<P, T> Strategy<Event, Action> for UniswapXUniswapFill<P, T>
+where
+    P: Provider<T, AnyNetwork>,
+    T: Transport + Clone,
+{
     // In order to sync this strategy, we need to get the current bid for all Sudo pools.
     async fn sync_state(&mut self) -> Result<()> {
         info!("syncing state");
@@ -95,7 +116,7 @@ impl<M: Middleware + 'static> Strategy<Event, Action> for UniswapXUniswapFill<M>
     }
 
     // Process incoming events, seeing if we can arb new orders, and updating the internal state on new blocks.
-    async fn process_event(&mut self, event: Event) -> Option<Action> {
+    async fn process_event(&mut self, event: Event) -> Vec<Action> {
         match event {
             Event::UniswapXOrder(order) => self.process_order_event(&order).await,
             Event::NewBlock(block) => self.process_new_block_event(&block).await,
@@ -104,9 +125,13 @@ impl<M: Middleware + 'static> Strategy<Event, Action> for UniswapXUniswapFill<M>
     }
 }
 
-impl<M: Middleware + 'static> UniswapXStrategy<M> for UniswapXUniswapFill<M> {}
+impl<P, T> UniswapXStrategy<P, T> for UniswapXUniswapFill<P, T> {}
 
-impl<M: Middleware + 'static> UniswapXUniswapFill<M> {
+impl<P, T> UniswapXUniswapFill<P, T>
+where
+    P: Provider<T, AnyNetwork> + 'static,
+    T: Transport + Clone + 'static,
+{
     fn decode_order(&self, encoded_order: &str) -> Result<V2DutchOrder, Box<dyn Error>> {
         let encoded_order = if let Some(stripped) = encoded_order.strip_prefix("0x") {
             stripped

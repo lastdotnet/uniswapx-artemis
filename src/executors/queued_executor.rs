@@ -1,23 +1,35 @@
 use crate::executors::public_1559_executor::Public1559Executor;
 use crate::strategies::keystore::KeyStore;
 use crate::strategies::types::SubmitTxToMempoolWithExecutionMetadata;
+use alloy::network::AnyNetwork;
+use alloy::providers::Provider;
+use alloy::transports::Transport;
 use artemis_core::types::Executor;
 use async_trait::async_trait;
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
-use ethers::providers::Middleware;
+use std::marker::PhantomData;
 use std::sync::Arc;
 
-pub struct QueuedExecutor<M: Middleware + 'static, N: Middleware + 'static> {
-    provider: Arc<M>,
-    sender_client: Arc<N>,
+pub struct QueuedExecutor<P, T>
+where
+    P: Provider<T, AnyNetwork> + 'static,
+    T: Transport + Clone + 'static,
+{
+    provider: Arc<P>,
+    sender_client: Arc<P>,
     key_store: Arc<KeyStore>,
     cloudwatch_client: Option<Arc<CloudWatchClient>>,
+    _transport: PhantomData<T>,
 }
 
-impl<M: Middleware + 'static, N: Middleware + 'static> QueuedExecutor<M, N> {
+impl<P, T> QueuedExecutor<P, T>
+where
+    P: Provider<T, AnyNetwork> + 'static,
+    T: Transport + Clone + 'static,
+{
     pub fn new(
-        provider: Arc<M>,
-        sender_client: Arc<N>,
+        provider: Arc<P>,
+        sender_client: Arc<P>,
         key_store: Arc<KeyStore>,
         cloudwatch_client: Option<Arc<CloudWatchClient>>,
     ) -> Self {
@@ -26,23 +38,22 @@ impl<M: Middleware + 'static, N: Middleware + 'static> QueuedExecutor<M, N> {
             sender_client,
             key_store,
             cloudwatch_client,
+            _transport: PhantomData,
         }
     }
 }
 
 #[async_trait]
-impl<M, N> Executor<SubmitTxToMempoolWithExecutionMetadata> for QueuedExecutor<M, N>
+impl<P, T> Executor<SubmitTxToMempoolWithExecutionMetadata> for QueuedExecutor<P, T>
 where
-    M: Middleware + 'static,
-    M::Error: 'static,
-    N: Middleware + 'static,
-    N::Error: 'static,
+    P: Provider<T, AnyNetwork> + 'static,
+    T: Transport + Clone + 'static,
 {
     async fn execute(
         &self,
         action: SubmitTxToMempoolWithExecutionMetadata,
     ) -> Result<(), anyhow::Error> {
-        let public_executor = Public1559Executor::<M, N>::new(
+        let public_executor = Public1559Executor::<P, T>::new(
             self.provider.clone(),
             self.sender_client.clone(),
             self.key_store.clone(),

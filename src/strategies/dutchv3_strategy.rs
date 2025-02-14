@@ -7,23 +7,26 @@ use crate::collectors::{
     uniswapx_order_collector::UniswapXOrder,
     uniswapx_route_collector::{OrderBatchData, OrderData, RoutedOrder},
 };
-use alloy_primitives::Uint;
+use alloy::{
+    hex,
+    network::AnyNetwork,
+    primitives::{Address, Bytes, Uint, U128, U256},
+    providers::Provider,
+    rpc::types::Filter,
+    transports::Transport,
+};
 use anyhow::Result;
 use artemis_core::executors::mempool_executor::{GasBidInfo, SubmitTxToMempool};
 use artemis_core::types::Strategy;
 use async_trait::async_trait;
-use bindings_uniswapx::shared_types::SignedOrder;
-use ethers::{
-    providers::Middleware,
-    types::{Address, Bytes, Filter, U256},
-    utils::hex,
-};
-use std::error::Error;
+use bindings_uniswapx::basereactor::BaseReactor::SignedOrder;
+
 use std::str::FromStr;
 use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
 };
+use std::{error::Error, marker::PhantomData};
 use std::{
     ops::{Div, Mul},
     sync::Arc,
@@ -39,13 +42,13 @@ const REACTOR_ADDRESS: &str = "0xB274d5F4b833b61B340b654d600A864fB604a87c";
 
 #[derive(Debug)]
 #[allow(dead_code)]
-pub struct UniswapXDutchV3Fill<M> {
+pub struct UniswapXDutchV3Fill<P, T> {
     /// Ethers client.
-    client: Arc<M>,
+    client: Arc<P>,
     /// executor address
     executor_address: String,
     /// Amount of profits to bid in gas
-    bid_percentage: u64,
+    bid_percentage: u128,
     last_block_number: u64,
     last_block_timestamp: u64,
     // map of open order hashes to order data
@@ -58,11 +61,16 @@ pub struct UniswapXDutchV3Fill<M> {
     route_receiver: Receiver<RoutedOrder>,
     sender_address: String,
     chain_id: u64,
+    _transport: PhantomData<T>,
 }
 
-impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
+impl<P, T> UniswapXDutchV3Fill<P, T>
+where
+    P: Provider<T, AnyNetwork>,
+    T: Transport + Clone,
+{
     pub fn new(
-        client: Arc<M>,
+        client: Arc<P>,
         config: Config,
         sender: Sender<Vec<OrderBatchData>>,
         receiver: Receiver<RoutedOrder>,
@@ -84,12 +92,17 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
             route_receiver: receiver,
             sender_address,
             chain_id,
+            _transport: PhantomData,
         }
     }
 }
 
 #[async_trait]
-impl<M: Middleware + 'static> Strategy<Event, Action> for UniswapXDutchV3Fill<M> {
+impl<P, T> Strategy<Event, Action> for UniswapXDutchV3Fill<P, T>
+where
+    P: Provider<T, AnyNetwork> + 'static,
+    T: Transport + Clone + 'static,
+{
     // In order to sync this strategy, we need to get the current bid for all Sudo pools.
     async fn sync_state(&mut self) -> Result<()> {
         info!("syncing state");
@@ -98,7 +111,7 @@ impl<M: Middleware + 'static> Strategy<Event, Action> for UniswapXDutchV3Fill<M>
     }
 
     // Process incoming events, seeing if we can arb new orders, and updating the internal state on new blocks.
-    async fn process_event(&mut self, event: Event) -> Option<Action> {
+    async fn process_event(&mut self, event: Event) -> Vec<Action> {
         match event {
             Event::UniswapXOrder(order) => self.process_order_event(&order).await,
             Event::NewBlock(block) => self.process_new_block_event(&block).await,
@@ -107,14 +120,18 @@ impl<M: Middleware + 'static> Strategy<Event, Action> for UniswapXDutchV3Fill<M>
     }
 }
 
-impl<M: Middleware + 'static> UniswapXStrategy<M> for UniswapXDutchV3Fill<M> {}
+impl<P, T> UniswapXStrategy<P, T> for UniswapXDutchV3Fill<P, T> {}
 
 struct DutchV3OrderWrapper {
     inner: V3DutchOrder,
     encoded_order: String,
 }
 
-impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
+impl<P, T> UniswapXDutchV3Fill<P, T>
+where
+    P: Provider<T, AnyNetwork>,
+    T: Transport + Clone,
+{
     fn decode_order(&self, encoded_order: &str) -> Result<V3DutchOrder, Box<dyn Error>> {
         let encoded_order = if let Some(stripped) = encoded_order.strip_prefix("0x") {
             stripped
@@ -191,22 +208,18 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
             let action = Some(Action::SubmitTx(SubmitTxToMempool {
                 tx: tx.clone(),
                 gas_bid_info: Some(GasBidInfo {
-                    bid_percentage: self.bid_percentage,
-                    total_profit: profit,
+                    bid_percentage: U128::from(self.bid_percentage),
+                    total_profit: profit.to(),
                 }),
             }));
 
             // Must be able to cover min gas cost
             let sender_address = Address::from_str(&self.sender_address).unwrap();
             tx.set_from(sender_address);
-            let gas_usage = self
-                .client
-                .estimate_gas(&tx, None)
-                .await
-                .unwrap_or_else(|err| {
-                    info!("Error estimating gas: {}", err);
-                    U256::from(1_000_000)
-                });
+            let gas_usage = self.client.estimate_gas(&tx).await.unwrap_or_else(|err| {
+                info!("Error estimating gas: {}", err);
+                1_000_000
+            });
             // Get the current min gas price
             let min_gas_price = self
                 .get_arbitrum_min_gas_price(self.client.clone())
@@ -214,9 +227,11 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
                 .unwrap_or(U256::from(10_000_000));
 
             // gas price at which we'd break even, meaning 100% of profit goes to validator
-            let breakeven_gas_price = profit / gas_usage;
+            let breakeven_gas_price = profit / U256::from(gas_usage);
             // gas price corresponding to bid percentage
-            let bid_gas_price = breakeven_gas_price.mul(self.bid_percentage).div(100);
+            let bid_gas_price = breakeven_gas_price
+                .mul(U256::from(self.bid_percentage))
+                .div(U256::from(100));
             if bid_gas_price < min_gas_price {
                 info!(
                     "Bid gas price {} is less than min gas price {}, skipping",
@@ -236,8 +251,8 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
 
     /// Process new block events, updating the internal state.
     async fn process_new_block_event(&mut self, event: &NewBlock) -> Option<Action> {
-        self.last_block_number = event.number.as_u64();
-        self.last_block_timestamp = event.timestamp.as_u64();
+        self.last_block_number = event.number;
+        self.last_block_timestamp = event.timestamp;
 
         info!(
             "Processing block {} at {}, Order set sizes -- open: {}, processing: {}, done: {}",
@@ -328,7 +343,7 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
         // early return on error
         let logs = self.client.get_logs(&filter).await?;
         for log in logs {
-            let order_hash = format!("0x{:x}", log.topics[1]);
+            let order_hash = format!("0x{:x}", log.topics()[1]);
             // remove from open
             info!("{} - Removing filled order", order_hash);
             self.open_orders.remove(&order_hash);

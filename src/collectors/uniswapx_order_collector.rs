@@ -143,8 +143,8 @@ impl Collector<UniswapXOrder> for UniswapXOrderCollector {
 #[cfg(test)]
 mod tests {
     use crate::collectors::uniswapx_order_collector::UniswapXOrderCollector;
+    use alloy::hex;
     use artemis_core::types::Collector;
-    use ethers::utils::hex;
     use futures::StreamExt;
     use mockito::{Mock, Server, ServerGuard};
     use uniswapx_rs::order::{V2DutchOrder, V3DutchOrder};
