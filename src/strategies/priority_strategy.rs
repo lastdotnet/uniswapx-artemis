@@ -17,9 +17,8 @@ use alloy::{
     hex,
     network::AnyNetwork,
     primitives::{Address, Bytes, Uint, U128, U256, U64},
-    providers::Provider,
+    providers::{DynProvider, Provider},
     rpc::types::Filter,
-    transports::Transport,
 };
 use anyhow::Result;
 use artemis_core::executors::mempool_executor::{GasBidInfo, SubmitTxToMempool};
@@ -28,9 +27,9 @@ use async_trait::async_trait;
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use bindings_uniswapx::basereactor::BaseReactor::SignedOrder;
 use dashmap::DashMap;
+use std::error::Error;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::{error::Error, marker::PhantomData};
 use tokio::sync::{
     mpsc::{Receiver, Sender},
     RwLock,
@@ -90,15 +89,15 @@ impl ExecutionMetadata {
 
 #[derive(Debug)]
 #[allow(dead_code)]
-pub struct UniswapXPriorityFill<P, T> {
+pub struct UniswapXPriorityFill {
     /// Ethers client.
-    client: Arc<P>,
+    client: Arc<DynProvider<AnyNetwork>>,
     // AWS Cloudwatch CLient for metrics propagation
     cloudwatch_client: Option<Arc<CloudWatchClient>>,
     /// executor address
     executor_address: String,
     /// Amount of profits to bid in gas
-    bid_percentage: u64,
+    bid_percentage: u128,
     last_block_number: RwLock<u64>,
     last_block_timestamp: RwLock<u64>,
     // map of new order hashes to order data
@@ -110,16 +109,11 @@ pub struct UniswapXPriorityFill<P, T> {
     batch_sender: Sender<Vec<OrderBatchData>>,
     route_receiver: Receiver<RoutedOrder>,
     chain_id: u64,
-    _transport: PhantomData<T>,
 }
 
-impl<P, T> UniswapXPriorityFill<P, T>
-where
-    P: Provider<T, AnyNetwork> + 'static,
-    T: Transport + Clone + 'static,
-{
+impl UniswapXPriorityFill {
     pub fn new(
-        client: Arc<P>,
+        client: Arc<DynProvider<AnyNetwork>>,
         cloudwatch_client: Option<Arc<CloudWatchClient>>,
         config: Config,
         sender: Sender<Vec<OrderBatchData>>,
@@ -141,17 +135,12 @@ where
             batch_sender: sender,
             route_receiver: receiver,
             chain_id,
-            _transport: PhantomData,
         }
     }
 }
 
 #[async_trait]
-impl<P, T> Strategy<Event, Action> for UniswapXPriorityFill<P, T>
-where
-    P: Provider<T, AnyNetwork> + 'static,
-    T: Transport + Clone + 'static,
-{
+impl Strategy<Event, Action> for UniswapXPriorityFill {
     async fn sync_state(&mut self) -> Result<()> {
         info!("syncing state");
 
@@ -168,13 +157,9 @@ where
     }
 }
 
-impl<P, T> UniswapXStrategy<P, T> for UniswapXPriorityFill<P, T> {}
+impl UniswapXStrategy for UniswapXPriorityFill {}
 
-impl<P, T> UniswapXPriorityFill<P, T>
-where
-    P: Provider<T, AnyNetwork> + 'static,
-    T: Transport + Clone + 'static,
-{
+impl UniswapXPriorityFill {
     pub fn get_new_order(&self, hash: &str) -> Option<OrderData> {
         self.new_orders.get(hash).map(|entry| entry.value().clone())
     }
@@ -307,7 +292,7 @@ where
                 "{} - Skipping route with done order",
                 event.request.orders[0].hash
             );
-            return None;
+            return vec![];
         }
 
         let OrderBatchData {
@@ -326,31 +311,42 @@ where
                 amount_out_required,
             );
 
-            let signed_orders = self.get_signed_orders(orders.clone()).ok()?;
-            return Some(Action::SubmitPublicTx(
-                SubmitTxToMempoolWithExecutionMetadata {
-                    execution: SubmitTxToMempool {
-                        tx: self
-                            .build_fill(
-                                self.client.clone(),
-                                &self.executor_address,
-                                signed_orders,
-                                event,
-                            )
-                            .await
-                            .ok()?,
-                        gas_bid_info: Some(GasBidInfo {
-                            bid_percentage: U128::from(self.bid_percentage),
-                            // this field is not used for priority orders
-                            total_profit: U128::from(0),
-                        }),
-                    },
-                    metadata,
-                },
-            ));
+            let signed_orders = self.get_signed_orders(orders.clone()).unwrap_or_else(|e| {
+                error!("Error getting signed orders: {}", e);
+                vec![]
+            });
+            let fill_tx_request = self
+                .build_fill(
+                    self.client.clone(),
+                    &self.executor_address,
+                    signed_orders,
+                    event,
+                )
+                .await;
+            match fill_tx_request {
+                Ok(fill_tx_request) => {
+                    return vec![Action::SubmitPublicTx(
+                        SubmitTxToMempoolWithExecutionMetadata {
+                            execution: SubmitTxToMempool {
+                                tx: fill_tx_request,
+                                gas_bid_info: Some(GasBidInfo {
+                                    bid_percentage: U128::from(self.bid_percentage),
+                                    // this field is not used for priority orders
+                                    total_profit: U128::from(0),
+                                }),
+                            },
+                            metadata,
+                        },
+                    )];
+                }
+                Err(e) => {
+                    warn!("{} - Error building fill: {}", metadata.order_hash, e);
+                    return vec![];
+                }
+            }
         }
 
-        None
+        vec![]
     }
 
     /// Process new block events
@@ -358,7 +354,7 @@ where
     /// - check for fills from block logs and remove from processing_orders
     /// - check new_orders for orders that are now fillable and send for execution
     /// - prune done orders
-    async fn process_new_block_event(&mut self, event: &NewBlock) -> Option<Action> {
+    async fn process_new_block_event(&mut self, event: &NewBlock) -> Vec<Action> {
         *self.last_block_number.write().await = event.number;
         *self.last_block_timestamp.write().await = event.timestamp;
 
@@ -402,7 +398,7 @@ where
             }
         }
 
-        None
+        vec![]
     }
 
     /// encode orders into generic signed orders

@@ -9,11 +9,10 @@ use crate::collectors::{
 };
 use alloy::{
     hex,
-    network::AnyNetwork,
+    network::{AnyNetwork, TransactionBuilder},
     primitives::{Address, Bytes, Uint, U128, U256},
-    providers::Provider,
+    providers::{DynProvider, Provider},
     rpc::types::Filter,
-    transports::Transport,
 };
 use anyhow::Result;
 use artemis_core::executors::mempool_executor::{GasBidInfo, SubmitTxToMempool};
@@ -26,8 +25,8 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
 };
-use std::{error::Error, marker::PhantomData};
 use std::{
+    error::Error,
     ops::{Div, Mul},
     sync::Arc,
 };
@@ -42,9 +41,9 @@ const REACTOR_ADDRESS: &str = "0xB274d5F4b833b61B340b654d600A864fB604a87c";
 
 #[derive(Debug)]
 #[allow(dead_code)]
-pub struct UniswapXDutchV3Fill<P, T> {
+pub struct UniswapXDutchV3Fill {
     /// Ethers client.
-    client: Arc<P>,
+    client: Arc<DynProvider<AnyNetwork>>,
     /// executor address
     executor_address: String,
     /// Amount of profits to bid in gas
@@ -61,16 +60,11 @@ pub struct UniswapXDutchV3Fill<P, T> {
     route_receiver: Receiver<RoutedOrder>,
     sender_address: String,
     chain_id: u64,
-    _transport: PhantomData<T>,
 }
 
-impl<P, T> UniswapXDutchV3Fill<P, T>
-where
-    P: Provider<T, AnyNetwork>,
-    T: Transport + Clone,
-{
+impl UniswapXDutchV3Fill {
     pub fn new(
-        client: Arc<P>,
+        client: Arc<DynProvider<AnyNetwork>>,
         config: Config,
         sender: Sender<Vec<OrderBatchData>>,
         receiver: Receiver<RoutedOrder>,
@@ -92,17 +86,12 @@ where
             route_receiver: receiver,
             sender_address,
             chain_id,
-            _transport: PhantomData,
         }
     }
 }
 
 #[async_trait]
-impl<P, T> Strategy<Event, Action> for UniswapXDutchV3Fill<P, T>
-where
-    P: Provider<T, AnyNetwork> + 'static,
-    T: Transport + Clone + 'static,
-{
+impl Strategy<Event, Action> for UniswapXDutchV3Fill {
     // In order to sync this strategy, we need to get the current bid for all Sudo pools.
     async fn sync_state(&mut self) -> Result<()> {
         info!("syncing state");
@@ -120,18 +109,14 @@ where
     }
 }
 
-impl<P, T> UniswapXStrategy<P, T> for UniswapXDutchV3Fill<P, T> {}
+impl UniswapXStrategy for UniswapXDutchV3Fill {}
 
 struct DutchV3OrderWrapper {
     inner: V3DutchOrder,
     encoded_order: String,
 }
 
-impl<P, T> UniswapXDutchV3Fill<P, T>
-where
-    P: Provider<T, AnyNetwork>,
-    T: Transport + Clone,
-{
+impl UniswapXDutchV3Fill {
     fn decode_order(&self, encoded_order: &str) -> Result<V3DutchOrder, Box<dyn Error>> {
         let encoded_order = if let Some(stripped) = encoded_order.strip_prefix("0x") {
             stripped
@@ -144,31 +129,34 @@ where
     }
 
     // Process new orders as they come in.
-    async fn process_order_event(&mut self, event: &UniswapXOrder) -> Option<Action> {
+    async fn process_order_event(&mut self, event: &UniswapXOrder) -> Vec<Action> {
         if self.last_block_timestamp == 0 || self.processing_orders.contains(&event.order_hash) {
-            return None;
+            return vec![];
         }
 
         let order = self
             .decode_order(&event.encoded_order)
             .map_err(|e| error!("failed to decode: {}", e))
-            .ok()?;
-        let wrapper = DutchV3OrderWrapper {
-            inner: order,
-            encoded_order: event.encoded_order.clone(),
-        };
-        self.update_order_state(wrapper, &event.signature, &event.order_hash);
-        None
+            .ok();
+
+        if let Some(order) = order {
+            let wrapper = DutchV3OrderWrapper {
+                inner: order,
+                encoded_order: event.encoded_order.clone(),
+            };
+            self.update_order_state(wrapper, &event.signature, &event.order_hash);
+        }
+        vec![]
     }
 
-    async fn process_new_route(&mut self, event: &RoutedOrder) -> Option<Action> {
+    async fn process_new_route(&mut self, event: &RoutedOrder) -> Vec<Action> {
         if event
             .request
             .orders
             .iter()
             .any(|o| self.done_orders.contains_key(&o.hash))
         {
-            return None;
+            return vec![];
         }
 
         let OrderBatchData {
@@ -184,7 +172,7 @@ where
             .cloned()
             .collect();
         if filtered_orders.is_empty() {
-            return None;
+            return vec![];
         }
 
         if let Some(profit) = self.get_profit_eth(event) {
@@ -195,62 +183,72 @@ where
                 amount_out_required,
                 profit
             );
-            let signed_orders = self.get_signed_orders(filtered_orders.clone()).ok()?;
-            let mut tx = self
+            let signed_orders = self
+                .get_signed_orders(filtered_orders.clone())
+                .unwrap_or_else(|e| {
+                    error!("Error getting signed orders: {}", e);
+                    vec![]
+                });
+            let tx_request = self
                 .build_fill(
                     self.client.clone(),
                     &self.executor_address,
                     signed_orders,
                     event,
                 )
-                .await
-                .ok()?;
-            let action = Some(Action::SubmitTx(SubmitTxToMempool {
-                tx: tx.clone(),
-                gas_bid_info: Some(GasBidInfo {
-                    bid_percentage: U128::from(self.bid_percentage),
-                    total_profit: profit.to(),
-                }),
-            }));
+                .await;
 
-            // Must be able to cover min gas cost
-            let sender_address = Address::from_str(&self.sender_address).unwrap();
-            tx.set_from(sender_address);
-            let gas_usage = self.client.estimate_gas(&tx).await.unwrap_or_else(|err| {
-                info!("Error estimating gas: {}", err);
-                1_000_000
-            });
-            // Get the current min gas price
-            let min_gas_price = self
-                .get_arbitrum_min_gas_price(self.client.clone())
-                .await
-                .unwrap_or(U256::from(10_000_000));
+            match tx_request {
+                Ok(mut req) => {
+                    // Must be able to cover min gas cost
+                    let sender_address = Address::from_str(&self.sender_address).unwrap();
+                    req.set_from(sender_address);
+                    let gas_usage = self.client.estimate_gas(&req).await.unwrap_or_else(|err| {
+                        info!("Error estimating gas: {}", err);
+                        1_000_000
+                    });
+                    // Get the current min gas price
+                    let min_gas_price = self
+                        .get_arbitrum_min_gas_price(self.client.clone())
+                        .await
+                        .unwrap_or(U256::from(10_000_000));
 
-            // gas price at which we'd break even, meaning 100% of profit goes to validator
-            let breakeven_gas_price = profit / U256::from(gas_usage);
-            // gas price corresponding to bid percentage
-            let bid_gas_price = breakeven_gas_price
-                .mul(U256::from(self.bid_percentage))
-                .div(U256::from(100));
-            if bid_gas_price < min_gas_price {
-                info!(
-                    "Bid gas price {} is less than min gas price {}, skipping",
-                    bid_gas_price, min_gas_price
-                );
-                return None;
+                    // gas price at which we'd break even, meaning 100% of profit goes to validator
+                    let breakeven_gas_price = profit / U256::from(gas_usage);
+                    // gas price corresponding to bid percentage
+                    let bid_gas_price = breakeven_gas_price
+                        .mul(U256::from(self.bid_percentage))
+                        .div(U256::from(100));
+                    if bid_gas_price < min_gas_price {
+                        info!(
+                            "Bid gas price {} is less than min gas price {}, skipping",
+                            bid_gas_price, min_gas_price
+                        );
+                        return vec![];
+                    }
+
+                    for order in filtered_orders.iter() {
+                        self.processing_orders.insert(order.hash.clone());
+                    }
+                    return vec![Action::SubmitTx(SubmitTxToMempool {
+                        tx: req,
+                        gas_bid_info: Some(GasBidInfo {
+                            bid_percentage: U128::from(self.bid_percentage),
+                            total_profit: U128::from(profit),
+                        }),
+                    })];
+                }
+                Err(e) => {
+                    error!("Error building fill: {}", e);
+                    return vec![];
+                }
             }
-
-            for order in filtered_orders.iter() {
-                self.processing_orders.insert(order.hash.clone());
-            }
-            return action;
         }
-
-        None
+        vec![]
     }
 
     /// Process new block events, updating the internal state.
-    async fn process_new_block_event(&mut self, event: &NewBlock) -> Option<Action> {
+    async fn process_new_block_event(&mut self, event: &NewBlock) -> Vec<Action> {
         self.last_block_number = event.number;
         self.last_block_timestamp = event.timestamp;
 
@@ -264,17 +262,20 @@ where
         );
         self.handle_fills()
             .await
-            .map_err(|e| error!("Error handling fills {}", e))
-            .ok()?;
+            .unwrap_or_else(|e| {
+                error!("Error handling fills: {}", e);
+            });
         self.update_open_orders();
         self.prune_done_orders();
 
         self.batch_sender
             .send(self.get_order_batches().values().cloned().collect())
             .await
-            .ok()?;
+            .unwrap_or_else(|e| {
+                error!("Error sending order batches: {}", e);
+            });
 
-        None
+        vec![]
     }
 
     /// encode orders into generic signed orders

@@ -1,12 +1,12 @@
 use crate::collectors::uniswapx_route_collector::RoutedOrder;
 use alloy::{
-    consensus::TypedTransaction,
-    dyn_abi::{abi::Token, DynSolType, DynSolValue},
-    network::AnyNetwork,
+    dyn_abi::{DynSolType, DynSolValue},
+    network::{AnyNetwork, TransactionBuilder},
     primitives::{Address, U256},
     providers::{DynProvider, Provider},
+    rpc::types::TransactionRequest,
+    serde::WithOtherFields,
     sol,
-    transports::Transport,
 };
 use alloy_primitives::Bytes;
 use anyhow::Result;
@@ -14,14 +14,6 @@ use async_trait::async_trait;
 use bindings_uniswapx::{
     basereactor::BaseReactor::SignedOrder, erc20::ERC20, swaprouter02executor::SwapRouter02Executor,
 };
-//use ethers::{
-//    abi::{ethabi, ParamType, Token},
-//    providers::Middleware,
-//    types::{
-//        transaction::eip2718::TypedTransaction, Address, Bytes, Eip1559TransactionRequest, H160,
-//        U256,
-//    },
-//};
 use std::sync::Arc;
 use std::{
     str::FromStr,
@@ -42,8 +34,7 @@ sol! {
 }
 
 #[async_trait]
-pub trait UniswapXStrategy
-{
+pub trait UniswapXStrategy {
     // builds a transaction to fill an order
     async fn build_fill(
         &self,
@@ -51,7 +42,7 @@ pub trait UniswapXStrategy
         executor_address: &str,
         signed_orders: Vec<SignedOrder>,
         RoutedOrder { request, route, .. }: &RoutedOrder,
-    ) -> Result<TypedTransaction> {
+    ) -> Result<WithOtherFields<TransactionRequest>> {
         let multicall_type: DynSolType = DynSolType::Tuple(vec![
             DynSolType::Uint(256),
             DynSolType::Array(Box::new(DynSolType::Bytes)),
@@ -106,20 +97,30 @@ pub trait UniswapXStrategy
         // abi encode as [tokens to approve to swap router 02, tokens to approve to reactor,  multicall data]
         //               [address[], address[], bytes[]]
         let calldata = DynSolValue::Tuple(vec![
-            DynSolValue::Array(swaprouter_02_approval.iter().map(|a| DynSolValue::Address(a.clone())).collect()),
-            DynSolValue::Array(reactor_approval.iter().map(|a| DynSolValue::Address(a.clone())).collect()),
+            DynSolValue::Array(
+                swaprouter_02_approval
+                    .iter()
+                    .map(|a| DynSolValue::Address(a.clone()))
+                    .collect(),
+            ),
+            DynSolValue::Array(
+                reactor_approval
+                    .iter()
+                    .map(|a| DynSolValue::Address(a.clone()))
+                    .collect(),
+            ),
             DynSolValue::Array(vec![decoded_multicall_bytes]),
         ]);
         let encoded_calldata = calldata.abi_encode();
-        let orders: Vec<SwapRouter02Executor::SignedOrder> =
-            signed_orders.into_iter().map(|order| {
-                SwapRouter02Executor::SignedOrder {
-                    order: order.order,
-                    sig: order.sig,
-                }
-            }).collect();
-        let mut call = fill_contract.executeBatch(orders, Bytes::from(encoded_calldata));
-        Ok(call.tx.set_chain_id(chain_id).clone())
+        let orders: Vec<SwapRouter02Executor::SignedOrder> = signed_orders
+            .into_iter()
+            .map(|order| SwapRouter02Executor::SignedOrder {
+                order: order.order,
+                sig: order.sig,
+            })
+            .collect();
+        let call = fill_contract.executeBatch(orders, Bytes::from(encoded_calldata));
+        Ok(call.into_transaction_request().with_chain_id(chain_id))
     }
 
     fn current_timestamp(&self) -> Result<u64> {
@@ -129,12 +130,12 @@ pub trait UniswapXStrategy
 
     async fn get_tokens_to_approve(
         &self,
-        client: Arc<P>,
+        client: Arc<DynProvider<AnyNetwork>>,
         token: Address,
         from: &str,
         to: &str,
     ) -> Result<Vec<Address>, anyhow::Error> {
-        if token == Address::zero() {
+        if token == Address::ZERO {
             return Ok(vec![]);
         }
         let token_contract = ERC20::new(token, client.clone());
@@ -143,9 +144,10 @@ pub trait UniswapXStrategy
                 Address::from_str(from).expect("Error encoding from address"),
                 Address::from_str(to).expect("Error encoding from address"),
             )
+            .call()
             .await
             .expect("Failed to get allowance");
-        if allowance < U256::MAX / 2 {
+        if allowance._0 < U256::MAX / U256::from(2) {
             Ok(vec![token])
         } else {
             Ok(vec![])
@@ -175,7 +177,7 @@ pub trait UniswapXStrategy
 
     /// Get the minimum gas price on Arbitrum
     /// https://docs.arbitrum.io/build-decentralized-apps/precompiles/reference#arbgasinfo
-    async fn get_arbitrum_min_gas_price(&self, client: Arc<P>) -> Result<U256> {
+    async fn get_arbitrum_min_gas_price(&self, client: Arc<DynProvider<AnyNetwork>>) -> Result<U256> {
         let precompile_address = ARBITRUM_GAS_PRECOMPILE.parse::<Address>()?;
         let gas_precompile = GasPrecompileContract::new(precompile_address, client.clone());
         let gas_info = gas_precompile.getMinimumGasPrice().call().await?._0;

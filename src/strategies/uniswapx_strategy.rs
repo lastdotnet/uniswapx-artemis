@@ -14,28 +14,23 @@ use crate::{
 use alloy::{
     hex,
     network::AnyNetwork,
-    primitives::{Address, Bytes, Uint, U128, U256},
-    providers::Provider,
+    primitives::{Address, Bytes, Uint},
+    providers::{DynProvider, Provider},
     rpc::types::Filter,
-    transports::Transport,
 };
+use alloy_primitives::U128;
 use anyhow::Result;
 use artemis_core::executors::mempool_executor::{GasBidInfo, SubmitTxToMempool};
 use artemis_core::types::Strategy;
 use async_trait::async_trait;
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use bindings_uniswapx::basereactor::BaseReactor::SignedOrder;
-//use ethers::{
-//    providers::Middleware,
-//    types::{Address, Bytes, Filter},
-//    utils::hex,
-//};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::{collections::HashMap, fmt::Debug};
-use std::{error::Error, marker::PhantomData};
+use std::error::Error;
 use tokio::sync::mpsc::{Receiver, Sender};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use uniswapx_rs::order::{Order, OrderResolution, V2DutchOrder};
 
 use super::types::{Action, Event};
@@ -46,17 +41,13 @@ const REACTOR_ADDRESS: &str = "0x00000011F84B9aa48e5f8aA8B9897600006289Be";
 
 #[derive(Debug)]
 #[allow(dead_code)]
-pub struct UniswapXUniswapFill<P, T>
-where
-    P: Provider<T, AnyNetwork>,
-    T: Transport + Clone,
-{
+pub struct UniswapXUniswapFill {
     /// Ethers client.
-    client: Arc<P>,
+    client: Arc<DynProvider<AnyNetwork>>,
     /// executor address
     executor_address: String,
     /// Amount of profits to bid in gas
-    bid_percentage: u64,
+    bid_percentage: u128,
     last_block_number: u64,
     last_block_timestamp: u64,
     // map of open order hashes to order data
@@ -67,16 +58,11 @@ where
     route_receiver: Receiver<RoutedOrder>,
     cloudwatch_client: Option<Arc<CloudWatchClient>>,
     chain_id: u64,
-    _transport: PhantomData<T>,
 }
 
-impl<P, T> UniswapXUniswapFill<P, T>
-where
-    P: Provider<T, AnyNetwork>,
-    T: Transport + Clone,
-{
+impl UniswapXUniswapFill {
     pub fn new(
-        client: Arc<P>,
+        client: Arc<DynProvider<AnyNetwork>>,
         config: Config,
         sender: Sender<Vec<OrderBatchData>>,
         receiver: Receiver<RoutedOrder>,
@@ -97,17 +83,12 @@ where
             route_receiver: receiver,
             cloudwatch_client,
             chain_id,
-            _transport: PhantomData,
         }
     }
 }
 
 #[async_trait]
-impl<P, T> Strategy<Event, Action> for UniswapXUniswapFill<P, T>
-where
-    P: Provider<T, AnyNetwork>,
-    T: Transport + Clone,
-{
+impl Strategy<Event, Action> for UniswapXUniswapFill {
     // In order to sync this strategy, we need to get the current bid for all Sudo pools.
     async fn sync_state(&mut self) -> Result<()> {
         info!("syncing state");
@@ -125,13 +106,9 @@ where
     }
 }
 
-impl<P, T> UniswapXStrategy<P, T> for UniswapXUniswapFill<P, T> {}
+impl UniswapXStrategy for UniswapXUniswapFill {}
 
-impl<P, T> UniswapXUniswapFill<P, T>
-where
-    P: Provider<T, AnyNetwork> + 'static,
-    T: Transport + Clone + 'static,
-{
+impl UniswapXUniswapFill {
     fn decode_order(&self, encoded_order: &str) -> Result<V2DutchOrder, Box<dyn Error>> {
         let encoded_order = if let Some(stripped) = encoded_order.strip_prefix("0x") {
             stripped
@@ -144,28 +121,30 @@ where
     }
 
     // Process new orders as they come in.
-    async fn process_order_event(&mut self, event: &UniswapXOrder) -> Option<Action> {
+    async fn process_order_event(&mut self, event: &UniswapXOrder) -> Vec<Action> {
         if self.last_block_timestamp == 0 {
-            return None;
+            return vec![];
         }
 
         let order = self
             .decode_order(&event.encoded_order)
             .map_err(|e| error!("failed to decode: {}", e))
-            .ok()?;
+            .ok();
 
-        self.update_order_state(order, &event.signature, &event.order_hash);
-        None
+        if let Some(order) = order {
+            self.update_order_state(order, &event.signature, &event.order_hash);
+        }
+        vec![]
     }
 
-    async fn process_new_route(&mut self, event: &RoutedOrder) -> Option<Action> {
+    async fn process_new_route(&mut self, event: &RoutedOrder) -> Vec<Action> {
         if event
             .request
             .orders
             .iter()
             .any(|o| self.done_orders.contains_key(&o.hash))
         {
-            return None;
+            return vec![];
         }
         let OrderBatchData {
             // orders,
@@ -182,22 +161,39 @@ where
                 amount_out_required,
                 profit
             );
-            let signed_orders = self.get_signed_orders(orders.clone()).ok()?;
-            return Some(Action::SubmitTx(SubmitTxToMempool {
-                tx: self
-                    .build_fill(
-                        self.client.clone(),
-                        &self.executor_address,
-                        signed_orders,
-                        event,
-                    )
-                    .await
-                    .ok()?,
-                gas_bid_info: Some(GasBidInfo {
-                    bid_percentage: self.bid_percentage,
-                    total_profit: profit,
-                }),
-            }));
+            let signed_orders = self
+                .get_signed_orders(orders.clone())
+                .unwrap_or_else(|e| {
+                    error!("Error getting signed orders: {}", e);
+                    vec![]
+                });
+
+            let fill_tx_request = self
+                .build_fill(
+                    self.client.clone(),
+                    &self.executor_address,
+                    signed_orders,
+                    event,
+                )
+                .await;
+            match fill_tx_request {
+                Ok(fill_tx_request) => {
+                    return vec![Action::SubmitTx(SubmitTxToMempool {
+                        tx: fill_tx_request,
+                        gas_bid_info: Some(GasBidInfo {
+                            bid_percentage: U128::from(self.bid_percentage),
+                            total_profit: U128::from(profit),
+                        }),
+                    })];
+                }
+                Err(e) => {
+                    warn!(
+                        "{} - Error building fill: {}",
+                        event.request.orders[0].hash, e
+                    );
+                    return vec![];
+                }
+            }
         } else {
             let metric_future = build_metric_future(
                 self.cloudwatch_client.clone(),
@@ -213,13 +209,13 @@ where
             }
         }
 
-        None
+        vec![]
     }
 
     /// Process new block events, updating the internal state.
-    async fn process_new_block_event(&mut self, event: &NewBlock) -> Option<Action> {
-        self.last_block_number = event.number.as_u64();
-        self.last_block_timestamp = event.timestamp.as_u64();
+    async fn process_new_block_event(&mut self, event: &NewBlock) -> Vec<Action> {
+        self.last_block_number = event.number;
+        self.last_block_timestamp = event.timestamp;
 
         info!(
             "Processing block {} at {}, Order set sizes -- open: {}, done: {}",
@@ -228,19 +224,20 @@ where
             self.open_orders.len(),
             self.done_orders.len()
         );
-        self.handle_fills()
-            .await
-            .map_err(|e| error!("Error handling fills {}", e))
-            .ok()?;
+        self.handle_fills().await.unwrap_or_else(|e| {
+            error!("{} - Error handling fills: {}", event.number, e);
+        });
         self.update_open_orders();
         self.prune_done_orders();
 
         self.batch_sender
             .send(self.get_order_batches().values().cloned().collect())
             .await
-            .ok()?;
+            .unwrap_or_else(|e| {
+                error!("{} - Error sending order batches: {}", event.number, e);
+            });
 
-        None
+        vec![]
     }
 
     /// encode orders into generic signed orders
@@ -251,7 +248,10 @@ where
                 Order::V2DutchOrder(order) => {
                     signed_orders.push(SignedOrder {
                         order: Bytes::from(order.encode_inner()),
-                        sig: Bytes::from_str(&batch.signature)?,
+                        sig: Bytes::from_str(&batch.signature).unwrap_or_else(|e| {
+                            error!("Error encoding signature: {}", e);
+                            Bytes::new()
+                        }),
                     });
                 }
                 _ => {
@@ -313,7 +313,7 @@ where
         // early return on error
         let logs = self.client.get_logs(&filter).await?;
         for log in logs {
-            let order_hash = format!("0x{:x}", log.topics[1]);
+            let order_hash = format!("0x{:x}", log.topics()[1]);
             // remove from open
             info!("{} - Removing filled order", order_hash);
             self.open_orders.remove(&order_hash);

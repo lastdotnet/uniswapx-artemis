@@ -4,7 +4,7 @@ use tracing::{info, warn};
 use alloy::{
     eips::{BlockId, BlockNumberOrTag},
     network::{AnyNetwork, ReceiptResponse, TransactionBuilder},
-    primitives::{utils::format_units, U256, U64},
+    primitives::{utils::format_units, U256},
     providers::{DynProvider, Provider},
     rpc::types::TransactionReceipt,
     serde::WithOtherFields,
