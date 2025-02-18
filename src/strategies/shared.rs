@@ -1,13 +1,20 @@
 use crate::collectors::uniswapx_route_collector::RoutedOrder;
 use alloy::{
-    dyn_abi::{DynSolType, DynSolValue}, hex, network::{AnyNetwork, TransactionBuilder}, primitives::{Address, U256}, providers::{DynProvider, Provider}, rpc::types::TransactionRequest, serde::WithOtherFields, sol
+    dyn_abi::DynSolValue,
+    hex,
+    network::{AnyNetwork, TransactionBuilder},
+    primitives::{Address, U256},
+    providers::{DynProvider, Provider},
+    rpc::types::TransactionRequest,
+    serde::WithOtherFields,
+    sol,
 };
 use alloy_primitives::Bytes;
 use anyhow::Result;
 use async_trait::async_trait;
 use bindings_uniswapx::{
     basereactor::BaseReactor::SignedOrder, erc20::ERC20,
-    universalrouterexecutor::UniversalRouterExecutor
+    universalrouterexecutor::UniversalRouterExecutor,
 };
 use std::sync::Arc;
 use std::{
@@ -38,16 +45,6 @@ pub trait UniswapXStrategy {
         signed_orders: Vec<SignedOrder>,
         RoutedOrder { request, route, .. }: &RoutedOrder,
     ) -> Result<WithOtherFields<TransactionRequest>> {
-        let multicall_type: DynSolType = DynSolType::Tuple(vec![
-            DynSolType::Uint(256),
-            DynSolType::Array(Box::new(DynSolType::Bytes)),
-        ]);
-
-        let calldata_type: DynSolType = DynSolType::Tuple(vec![
-            DynSolType::Array(Box::new(DynSolType::Address)),
-            DynSolType::Array(Box::new(DynSolType::Address)),
-            DynSolType::Array(Box::new(DynSolType::Bytes)),
-        ]);
         let chain_id = client.get_chain_id().await?;
         let fill_contract =
             UniversalRouterExecutor::new(Address::from_str(executor_address)?, client.clone());
@@ -65,7 +62,6 @@ pub trait UniswapXStrategy {
 
         let execute_bytes = &route.method_parameters.calldata;
         let encoded_execute_bytes = hex::decode(&execute_bytes[2..]).expect("Failed to decode hex");
-
 
         // abi encode as [tokens to approve to swap router 02, tokens to approve to reactor,  multicall data]
         //               [address[], address[], bytes[]]

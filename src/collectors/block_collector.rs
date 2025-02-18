@@ -6,11 +6,9 @@ use alloy::{
 use anyhow::Result;
 use artemis_core::types::{Collector, CollectorStream};
 use async_trait::async_trait;
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 use tokio_stream::StreamExt;
 use tracing::{error, info};
-
-const BLOCK_POLLING_INTERVAL: Duration = Duration::from_millis(250);
 
 /// A collector that listens for new blocks, and generates a stream of
 /// [events](NewBlock) which contain the block number and hash.
