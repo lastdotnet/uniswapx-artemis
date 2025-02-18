@@ -90,7 +90,7 @@ impl ExecutionMetadata {
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct UniswapXPriorityFill {
-    /// Ethers client.
+    /// Alloy DynProvider client.
     client: Arc<DynProvider<AnyNetwork>>,
     // AWS Cloudwatch CLient for metrics propagation
     cloudwatch_client: Option<Arc<CloudWatchClient>>,
@@ -491,8 +491,6 @@ impl UniswapXPriorityFill {
                 quote,
                 amount_out_required,
                 order_hash: request.orders[0].hash.clone(),
-                // Conversion between alloy and ethers.rs types
-                // TODO: fully migrate to alloy
                 target_block: target_block.map(|b| U64::from(b)),
             }
         })
