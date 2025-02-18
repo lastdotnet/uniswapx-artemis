@@ -167,7 +167,13 @@ interface IProtocolFeeController {
   }
 ]
 ```*/
-#[allow(non_camel_case_types, non_snake_case, clippy::style)]
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
 pub mod IProtocolFeeController {
     use super::*;
     use alloy::sol_types as alloy_sol_types;
@@ -194,14 +200,22 @@ pub mod IProtocolFeeController {
     /**```solidity
 struct InputToken { address token; uint256 amount; uint256 maxAmount; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct InputToken {
+        #[allow(missing_docs)]
         pub token: alloy::sol_types::private::Address,
-        pub amount: alloy::sol_types::private::U256,
-        pub maxAmount: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub amount: alloy::sol_types::private::primitives::aliases::U256,
+        #[allow(missing_docs)]
+        pub maxAmount: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -213,8 +227,8 @@ struct InputToken { address token; uint256 amount; uint256 maxAmount; }
         #[doc(hidden)]
         type UnderlyingRustTuple<'a> = (
             alloy::sol_types::private::Address,
-            alloy::sol_types::private::U256,
-            alloy::sol_types::private::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
         );
         #[cfg(test)]
         #[allow(dead_code, unreachable_patterns)]
@@ -431,17 +445,28 @@ struct InputToken { address token; uint256 amount; uint256 maxAmount; }
     /**```solidity
 struct OrderInfo { address reactor; address swapper; uint256 nonce; uint256 deadline; address additionalValidationContract; bytes additionalValidationData; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct OrderInfo {
+        #[allow(missing_docs)]
         pub reactor: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub swapper: alloy::sol_types::private::Address,
-        pub nonce: alloy::sol_types::private::U256,
-        pub deadline: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub nonce: alloy::sol_types::private::primitives::aliases::U256,
+        #[allow(missing_docs)]
+        pub deadline: alloy::sol_types::private::primitives::aliases::U256,
+        #[allow(missing_docs)]
         pub additionalValidationContract: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub additionalValidationData: alloy::sol_types::private::Bytes,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -457,8 +482,8 @@ struct OrderInfo { address reactor; address swapper; uint256 nonce; uint256 dead
         type UnderlyingRustTuple<'a> = (
             alloy::sol_types::private::Address,
             alloy::sol_types::private::Address,
-            alloy::sol_types::private::U256,
-            alloy::sol_types::private::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
             alloy::sol_types::private::Address,
             alloy::sol_types::private::Bytes,
         );
@@ -727,14 +752,22 @@ struct OrderInfo { address reactor; address swapper; uint256 nonce; uint256 dead
     /**```solidity
 struct OutputToken { address token; uint256 amount; address recipient; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct OutputToken {
+        #[allow(missing_docs)]
         pub token: alloy::sol_types::private::Address,
-        pub amount: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub amount: alloy::sol_types::private::primitives::aliases::U256,
+        #[allow(missing_docs)]
         pub recipient: alloy::sol_types::private::Address,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -746,7 +779,7 @@ struct OutputToken { address token; uint256 amount; address recipient; }
         #[doc(hidden)]
         type UnderlyingRustTuple<'a> = (
             alloy::sol_types::private::Address,
-            alloy::sol_types::private::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
             alloy::sol_types::private::Address,
         );
         #[cfg(test)]
@@ -960,18 +993,28 @@ struct OutputToken { address token; uint256 amount; address recipient; }
     /**```solidity
 struct ResolvedOrder { OrderInfo info; InputToken input; OutputToken[] outputs; bytes sig; bytes32 hash; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct ResolvedOrder {
+        #[allow(missing_docs)]
         pub info: <OrderInfo as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
         pub input: <InputToken as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
         pub outputs: alloy::sol_types::private::Vec<
             <OutputToken as alloy::sol_types::SolType>::RustType,
         >,
+        #[allow(missing_docs)]
         pub sig: alloy::sol_types::private::Bytes,
+        #[allow(missing_docs)]
         pub hash: alloy::sol_types::private::FixedBytes<32>,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -1249,20 +1292,27 @@ struct ResolvedOrder { OrderInfo info; InputToken input; OutputToken[] outputs; 
 ```solidity
 function getFeeOutputs(ResolvedOrder memory order) external view returns (OutputToken[] memory);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct getFeeOutputsCall {
+        #[allow(missing_docs)]
         pub order: <ResolvedOrder as alloy::sol_types::SolType>::RustType,
     }
     ///Container type for the return parameters of the [`getFeeOutputs(((address,address,uint256,uint256,address,bytes),(address,uint256,uint256),(address,uint256,address)[],bytes,bytes32))`](getFeeOutputsCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct getFeeOutputsReturn {
+        #[allow(missing_docs)]
         pub _0: alloy::sol_types::private::Vec<
             <OutputToken as alloy::sol_types::SolType>::RustType,
         >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -1372,6 +1422,7 @@ function getFeeOutputs(ResolvedOrder memory order) external view returns (Output
     };
     ///Container for all the [`IProtocolFeeController`](self) function calls.
     pub enum IProtocolFeeControllerCalls {
+        #[allow(missing_docs)]
         getFeeOutputs(getFeeOutputsCall),
     }
     #[automatically_derived]
@@ -1406,7 +1457,7 @@ function getFeeOutputs(ResolvedOrder memory order) external view returns (Output
             Self::SELECTORS.binary_search(&selector).is_ok()
         }
         #[inline]
-        #[allow(unsafe_code, non_snake_case)]
+        #[allow(non_snake_case)]
         fn abi_decode_raw(
             selector: [u8; 4],
             data: &[u8],
@@ -1438,7 +1489,7 @@ function getFeeOutputs(ResolvedOrder memory order) external view returns (Output
                     ),
                 );
             };
-            (unsafe { DECODE_SHIMS.get_unchecked(idx) })(data, validate)
+            DECODE_SHIMS[idx](data, validate)
         }
         #[inline]
         fn abi_encoded_size(&self) -> usize {

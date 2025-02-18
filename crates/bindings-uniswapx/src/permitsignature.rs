@@ -1,8 +1,826 @@
+///Module containing a contract's types and functions.
+/**
+
+```solidity
+library StdInvariant {
+    struct FuzzArtifactSelector { string artifact; bytes4[] selectors; }
+    struct FuzzInterface { address addr; string[] artifacts; }
+    struct FuzzSelector { address addr; bytes4[] selectors; }
+}
+```*/
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
+pub mod StdInvariant {
+    use super::*;
+    use alloy::sol_types as alloy_sol_types;
+    /**```solidity
+struct FuzzArtifactSelector { string artifact; bytes4[] selectors; }
+```*/
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
+    #[derive(Clone)]
+    pub struct FuzzArtifactSelector {
+        #[allow(missing_docs)]
+        pub artifact: alloy::sol_types::private::String,
+        #[allow(missing_docs)]
+        pub selectors: alloy::sol_types::private::Vec<
+            alloy::sol_types::private::FixedBytes<4>,
+        >,
+    }
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
+    const _: () = {
+        use alloy::sol_types as alloy_sol_types;
+        #[doc(hidden)]
+        type UnderlyingSolTuple<'a> = (
+            alloy::sol_types::sol_data::String,
+            alloy::sol_types::sol_data::Array<alloy::sol_types::sol_data::FixedBytes<4>>,
+        );
+        #[doc(hidden)]
+        type UnderlyingRustTuple<'a> = (
+            alloy::sol_types::private::String,
+            alloy::sol_types::private::Vec<alloy::sol_types::private::FixedBytes<4>>,
+        );
+        #[cfg(test)]
+        #[allow(dead_code, unreachable_patterns)]
+        fn _type_assertion(
+            _t: alloy_sol_types::private::AssertTypeEq<UnderlyingRustTuple>,
+        ) {
+            match _t {
+                alloy_sol_types::private::AssertTypeEq::<
+                    <UnderlyingSolTuple as alloy_sol_types::SolType>::RustType,
+                >(_) => {}
+            }
+        }
+        #[automatically_derived]
+        #[doc(hidden)]
+        impl ::core::convert::From<FuzzArtifactSelector> for UnderlyingRustTuple<'_> {
+            fn from(value: FuzzArtifactSelector) -> Self {
+                (value.artifact, value.selectors)
+            }
+        }
+        #[automatically_derived]
+        #[doc(hidden)]
+        impl ::core::convert::From<UnderlyingRustTuple<'_>> for FuzzArtifactSelector {
+            fn from(tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {
+                    artifact: tuple.0,
+                    selectors: tuple.1,
+                }
+            }
+        }
+        #[automatically_derived]
+        impl alloy_sol_types::SolValue for FuzzArtifactSelector {
+            type SolType = Self;
+        }
+        #[automatically_derived]
+        impl alloy_sol_types::private::SolTypeValue<Self> for FuzzArtifactSelector {
+            #[inline]
+            fn stv_to_tokens(&self) -> <Self as alloy_sol_types::SolType>::Token<'_> {
+                (
+                    <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::tokenize(
+                        &self.artifact,
+                    ),
+                    <alloy::sol_types::sol_data::Array<
+                        alloy::sol_types::sol_data::FixedBytes<4>,
+                    > as alloy_sol_types::SolType>::tokenize(&self.selectors),
+                )
+            }
+            #[inline]
+            fn stv_abi_encoded_size(&self) -> usize {
+                if let Some(size) = <Self as alloy_sol_types::SolType>::ENCODED_SIZE {
+                    return size;
+                }
+                let tuple = <UnderlyingRustTuple<
+                    '_,
+                > as ::core::convert::From<Self>>::from(self.clone());
+                <UnderlyingSolTuple<
+                    '_,
+                > as alloy_sol_types::SolType>::abi_encoded_size(&tuple)
+            }
+            #[inline]
+            fn stv_eip712_data_word(&self) -> alloy_sol_types::Word {
+                <Self as alloy_sol_types::SolStruct>::eip712_hash_struct(self)
+            }
+            #[inline]
+            fn stv_abi_encode_packed_to(
+                &self,
+                out: &mut alloy_sol_types::private::Vec<u8>,
+            ) {
+                let tuple = <UnderlyingRustTuple<
+                    '_,
+                > as ::core::convert::From<Self>>::from(self.clone());
+                <UnderlyingSolTuple<
+                    '_,
+                > as alloy_sol_types::SolType>::abi_encode_packed_to(&tuple, out)
+            }
+            #[inline]
+            fn stv_abi_packed_encoded_size(&self) -> usize {
+                if let Some(size) = <Self as alloy_sol_types::SolType>::PACKED_ENCODED_SIZE {
+                    return size;
+                }
+                let tuple = <UnderlyingRustTuple<
+                    '_,
+                > as ::core::convert::From<Self>>::from(self.clone());
+                <UnderlyingSolTuple<
+                    '_,
+                > as alloy_sol_types::SolType>::abi_packed_encoded_size(&tuple)
+            }
+        }
+        #[automatically_derived]
+        impl alloy_sol_types::SolType for FuzzArtifactSelector {
+            type RustType = Self;
+            type Token<'a> = <UnderlyingSolTuple<
+                'a,
+            > as alloy_sol_types::SolType>::Token<'a>;
+            const SOL_NAME: &'static str = <Self as alloy_sol_types::SolStruct>::NAME;
+            const ENCODED_SIZE: Option<usize> = <UnderlyingSolTuple<
+                '_,
+            > as alloy_sol_types::SolType>::ENCODED_SIZE;
+            const PACKED_ENCODED_SIZE: Option<usize> = <UnderlyingSolTuple<
+                '_,
+            > as alloy_sol_types::SolType>::PACKED_ENCODED_SIZE;
+            #[inline]
+            fn valid_token(token: &Self::Token<'_>) -> bool {
+                <UnderlyingSolTuple<'_> as alloy_sol_types::SolType>::valid_token(token)
+            }
+            #[inline]
+            fn detokenize(token: Self::Token<'_>) -> Self::RustType {
+                let tuple = <UnderlyingSolTuple<
+                    '_,
+                > as alloy_sol_types::SolType>::detokenize(token);
+                <Self as ::core::convert::From<UnderlyingRustTuple<'_>>>::from(tuple)
+            }
+        }
+        #[automatically_derived]
+        impl alloy_sol_types::SolStruct for FuzzArtifactSelector {
+            const NAME: &'static str = "FuzzArtifactSelector";
+            #[inline]
+            fn eip712_root_type() -> alloy_sol_types::private::Cow<'static, str> {
+                alloy_sol_types::private::Cow::Borrowed(
+                    "FuzzArtifactSelector(string artifact,bytes4[] selectors)",
+                )
+            }
+            #[inline]
+            fn eip712_components() -> alloy_sol_types::private::Vec<
+                alloy_sol_types::private::Cow<'static, str>,
+            > {
+                alloy_sol_types::private::Vec::new()
+            }
+            #[inline]
+            fn eip712_encode_type() -> alloy_sol_types::private::Cow<'static, str> {
+                <Self as alloy_sol_types::SolStruct>::eip712_root_type()
+            }
+            #[inline]
+            fn eip712_encode_data(&self) -> alloy_sol_types::private::Vec<u8> {
+                [
+                    <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::eip712_data_word(
+                            &self.artifact,
+                        )
+                        .0,
+                    <alloy::sol_types::sol_data::Array<
+                        alloy::sol_types::sol_data::FixedBytes<4>,
+                    > as alloy_sol_types::SolType>::eip712_data_word(&self.selectors)
+                        .0,
+                ]
+                    .concat()
+            }
+        }
+        #[automatically_derived]
+        impl alloy_sol_types::EventTopic for FuzzArtifactSelector {
+            #[inline]
+            fn topic_preimage_length(rust: &Self::RustType) -> usize {
+                0usize
+                    + <alloy::sol_types::sol_data::String as alloy_sol_types::EventTopic>::topic_preimage_length(
+                        &rust.artifact,
+                    )
+                    + <alloy::sol_types::sol_data::Array<
+                        alloy::sol_types::sol_data::FixedBytes<4>,
+                    > as alloy_sol_types::EventTopic>::topic_preimage_length(
+                        &rust.selectors,
+                    )
+            }
+            #[inline]
+            fn encode_topic_preimage(
+                rust: &Self::RustType,
+                out: &mut alloy_sol_types::private::Vec<u8>,
+            ) {
+                out.reserve(
+                    <Self as alloy_sol_types::EventTopic>::topic_preimage_length(rust),
+                );
+                <alloy::sol_types::sol_data::String as alloy_sol_types::EventTopic>::encode_topic_preimage(
+                    &rust.artifact,
+                    out,
+                );
+                <alloy::sol_types::sol_data::Array<
+                    alloy::sol_types::sol_data::FixedBytes<4>,
+                > as alloy_sol_types::EventTopic>::encode_topic_preimage(
+                    &rust.selectors,
+                    out,
+                );
+            }
+            #[inline]
+            fn encode_topic(
+                rust: &Self::RustType,
+            ) -> alloy_sol_types::abi::token::WordToken {
+                let mut out = alloy_sol_types::private::Vec::new();
+                <Self as alloy_sol_types::EventTopic>::encode_topic_preimage(
+                    rust,
+                    &mut out,
+                );
+                alloy_sol_types::abi::token::WordToken(
+                    alloy_sol_types::private::keccak256(out),
+                )
+            }
+        }
+    };
+    /**```solidity
+struct FuzzInterface { address addr; string[] artifacts; }
+```*/
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
+    #[derive(Clone)]
+    pub struct FuzzInterface {
+        #[allow(missing_docs)]
+        pub addr: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
+        pub artifacts: alloy::sol_types::private::Vec<alloy::sol_types::private::String>,
+    }
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
+    const _: () = {
+        use alloy::sol_types as alloy_sol_types;
+        #[doc(hidden)]
+        type UnderlyingSolTuple<'a> = (
+            alloy::sol_types::sol_data::Address,
+            alloy::sol_types::sol_data::Array<alloy::sol_types::sol_data::String>,
+        );
+        #[doc(hidden)]
+        type UnderlyingRustTuple<'a> = (
+            alloy::sol_types::private::Address,
+            alloy::sol_types::private::Vec<alloy::sol_types::private::String>,
+        );
+        #[cfg(test)]
+        #[allow(dead_code, unreachable_patterns)]
+        fn _type_assertion(
+            _t: alloy_sol_types::private::AssertTypeEq<UnderlyingRustTuple>,
+        ) {
+            match _t {
+                alloy_sol_types::private::AssertTypeEq::<
+                    <UnderlyingSolTuple as alloy_sol_types::SolType>::RustType,
+                >(_) => {}
+            }
+        }
+        #[automatically_derived]
+        #[doc(hidden)]
+        impl ::core::convert::From<FuzzInterface> for UnderlyingRustTuple<'_> {
+            fn from(value: FuzzInterface) -> Self {
+                (value.addr, value.artifacts)
+            }
+        }
+        #[automatically_derived]
+        #[doc(hidden)]
+        impl ::core::convert::From<UnderlyingRustTuple<'_>> for FuzzInterface {
+            fn from(tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {
+                    addr: tuple.0,
+                    artifacts: tuple.1,
+                }
+            }
+        }
+        #[automatically_derived]
+        impl alloy_sol_types::SolValue for FuzzInterface {
+            type SolType = Self;
+        }
+        #[automatically_derived]
+        impl alloy_sol_types::private::SolTypeValue<Self> for FuzzInterface {
+            #[inline]
+            fn stv_to_tokens(&self) -> <Self as alloy_sol_types::SolType>::Token<'_> {
+                (
+                    <alloy::sol_types::sol_data::Address as alloy_sol_types::SolType>::tokenize(
+                        &self.addr,
+                    ),
+                    <alloy::sol_types::sol_data::Array<
+                        alloy::sol_types::sol_data::String,
+                    > as alloy_sol_types::SolType>::tokenize(&self.artifacts),
+                )
+            }
+            #[inline]
+            fn stv_abi_encoded_size(&self) -> usize {
+                if let Some(size) = <Self as alloy_sol_types::SolType>::ENCODED_SIZE {
+                    return size;
+                }
+                let tuple = <UnderlyingRustTuple<
+                    '_,
+                > as ::core::convert::From<Self>>::from(self.clone());
+                <UnderlyingSolTuple<
+                    '_,
+                > as alloy_sol_types::SolType>::abi_encoded_size(&tuple)
+            }
+            #[inline]
+            fn stv_eip712_data_word(&self) -> alloy_sol_types::Word {
+                <Self as alloy_sol_types::SolStruct>::eip712_hash_struct(self)
+            }
+            #[inline]
+            fn stv_abi_encode_packed_to(
+                &self,
+                out: &mut alloy_sol_types::private::Vec<u8>,
+            ) {
+                let tuple = <UnderlyingRustTuple<
+                    '_,
+                > as ::core::convert::From<Self>>::from(self.clone());
+                <UnderlyingSolTuple<
+                    '_,
+                > as alloy_sol_types::SolType>::abi_encode_packed_to(&tuple, out)
+            }
+            #[inline]
+            fn stv_abi_packed_encoded_size(&self) -> usize {
+                if let Some(size) = <Self as alloy_sol_types::SolType>::PACKED_ENCODED_SIZE {
+                    return size;
+                }
+                let tuple = <UnderlyingRustTuple<
+                    '_,
+                > as ::core::convert::From<Self>>::from(self.clone());
+                <UnderlyingSolTuple<
+                    '_,
+                > as alloy_sol_types::SolType>::abi_packed_encoded_size(&tuple)
+            }
+        }
+        #[automatically_derived]
+        impl alloy_sol_types::SolType for FuzzInterface {
+            type RustType = Self;
+            type Token<'a> = <UnderlyingSolTuple<
+                'a,
+            > as alloy_sol_types::SolType>::Token<'a>;
+            const SOL_NAME: &'static str = <Self as alloy_sol_types::SolStruct>::NAME;
+            const ENCODED_SIZE: Option<usize> = <UnderlyingSolTuple<
+                '_,
+            > as alloy_sol_types::SolType>::ENCODED_SIZE;
+            const PACKED_ENCODED_SIZE: Option<usize> = <UnderlyingSolTuple<
+                '_,
+            > as alloy_sol_types::SolType>::PACKED_ENCODED_SIZE;
+            #[inline]
+            fn valid_token(token: &Self::Token<'_>) -> bool {
+                <UnderlyingSolTuple<'_> as alloy_sol_types::SolType>::valid_token(token)
+            }
+            #[inline]
+            fn detokenize(token: Self::Token<'_>) -> Self::RustType {
+                let tuple = <UnderlyingSolTuple<
+                    '_,
+                > as alloy_sol_types::SolType>::detokenize(token);
+                <Self as ::core::convert::From<UnderlyingRustTuple<'_>>>::from(tuple)
+            }
+        }
+        #[automatically_derived]
+        impl alloy_sol_types::SolStruct for FuzzInterface {
+            const NAME: &'static str = "FuzzInterface";
+            #[inline]
+            fn eip712_root_type() -> alloy_sol_types::private::Cow<'static, str> {
+                alloy_sol_types::private::Cow::Borrowed(
+                    "FuzzInterface(address addr,string[] artifacts)",
+                )
+            }
+            #[inline]
+            fn eip712_components() -> alloy_sol_types::private::Vec<
+                alloy_sol_types::private::Cow<'static, str>,
+            > {
+                alloy_sol_types::private::Vec::new()
+            }
+            #[inline]
+            fn eip712_encode_type() -> alloy_sol_types::private::Cow<'static, str> {
+                <Self as alloy_sol_types::SolStruct>::eip712_root_type()
+            }
+            #[inline]
+            fn eip712_encode_data(&self) -> alloy_sol_types::private::Vec<u8> {
+                [
+                    <alloy::sol_types::sol_data::Address as alloy_sol_types::SolType>::eip712_data_word(
+                            &self.addr,
+                        )
+                        .0,
+                    <alloy::sol_types::sol_data::Array<
+                        alloy::sol_types::sol_data::String,
+                    > as alloy_sol_types::SolType>::eip712_data_word(&self.artifacts)
+                        .0,
+                ]
+                    .concat()
+            }
+        }
+        #[automatically_derived]
+        impl alloy_sol_types::EventTopic for FuzzInterface {
+            #[inline]
+            fn topic_preimage_length(rust: &Self::RustType) -> usize {
+                0usize
+                    + <alloy::sol_types::sol_data::Address as alloy_sol_types::EventTopic>::topic_preimage_length(
+                        &rust.addr,
+                    )
+                    + <alloy::sol_types::sol_data::Array<
+                        alloy::sol_types::sol_data::String,
+                    > as alloy_sol_types::EventTopic>::topic_preimage_length(
+                        &rust.artifacts,
+                    )
+            }
+            #[inline]
+            fn encode_topic_preimage(
+                rust: &Self::RustType,
+                out: &mut alloy_sol_types::private::Vec<u8>,
+            ) {
+                out.reserve(
+                    <Self as alloy_sol_types::EventTopic>::topic_preimage_length(rust),
+                );
+                <alloy::sol_types::sol_data::Address as alloy_sol_types::EventTopic>::encode_topic_preimage(
+                    &rust.addr,
+                    out,
+                );
+                <alloy::sol_types::sol_data::Array<
+                    alloy::sol_types::sol_data::String,
+                > as alloy_sol_types::EventTopic>::encode_topic_preimage(
+                    &rust.artifacts,
+                    out,
+                );
+            }
+            #[inline]
+            fn encode_topic(
+                rust: &Self::RustType,
+            ) -> alloy_sol_types::abi::token::WordToken {
+                let mut out = alloy_sol_types::private::Vec::new();
+                <Self as alloy_sol_types::EventTopic>::encode_topic_preimage(
+                    rust,
+                    &mut out,
+                );
+                alloy_sol_types::abi::token::WordToken(
+                    alloy_sol_types::private::keccak256(out),
+                )
+            }
+        }
+    };
+    /**```solidity
+struct FuzzSelector { address addr; bytes4[] selectors; }
+```*/
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
+    #[derive(Clone)]
+    pub struct FuzzSelector {
+        #[allow(missing_docs)]
+        pub addr: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
+        pub selectors: alloy::sol_types::private::Vec<
+            alloy::sol_types::private::FixedBytes<4>,
+        >,
+    }
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
+    const _: () = {
+        use alloy::sol_types as alloy_sol_types;
+        #[doc(hidden)]
+        type UnderlyingSolTuple<'a> = (
+            alloy::sol_types::sol_data::Address,
+            alloy::sol_types::sol_data::Array<alloy::sol_types::sol_data::FixedBytes<4>>,
+        );
+        #[doc(hidden)]
+        type UnderlyingRustTuple<'a> = (
+            alloy::sol_types::private::Address,
+            alloy::sol_types::private::Vec<alloy::sol_types::private::FixedBytes<4>>,
+        );
+        #[cfg(test)]
+        #[allow(dead_code, unreachable_patterns)]
+        fn _type_assertion(
+            _t: alloy_sol_types::private::AssertTypeEq<UnderlyingRustTuple>,
+        ) {
+            match _t {
+                alloy_sol_types::private::AssertTypeEq::<
+                    <UnderlyingSolTuple as alloy_sol_types::SolType>::RustType,
+                >(_) => {}
+            }
+        }
+        #[automatically_derived]
+        #[doc(hidden)]
+        impl ::core::convert::From<FuzzSelector> for UnderlyingRustTuple<'_> {
+            fn from(value: FuzzSelector) -> Self {
+                (value.addr, value.selectors)
+            }
+        }
+        #[automatically_derived]
+        #[doc(hidden)]
+        impl ::core::convert::From<UnderlyingRustTuple<'_>> for FuzzSelector {
+            fn from(tuple: UnderlyingRustTuple<'_>) -> Self {
+                Self {
+                    addr: tuple.0,
+                    selectors: tuple.1,
+                }
+            }
+        }
+        #[automatically_derived]
+        impl alloy_sol_types::SolValue for FuzzSelector {
+            type SolType = Self;
+        }
+        #[automatically_derived]
+        impl alloy_sol_types::private::SolTypeValue<Self> for FuzzSelector {
+            #[inline]
+            fn stv_to_tokens(&self) -> <Self as alloy_sol_types::SolType>::Token<'_> {
+                (
+                    <alloy::sol_types::sol_data::Address as alloy_sol_types::SolType>::tokenize(
+                        &self.addr,
+                    ),
+                    <alloy::sol_types::sol_data::Array<
+                        alloy::sol_types::sol_data::FixedBytes<4>,
+                    > as alloy_sol_types::SolType>::tokenize(&self.selectors),
+                )
+            }
+            #[inline]
+            fn stv_abi_encoded_size(&self) -> usize {
+                if let Some(size) = <Self as alloy_sol_types::SolType>::ENCODED_SIZE {
+                    return size;
+                }
+                let tuple = <UnderlyingRustTuple<
+                    '_,
+                > as ::core::convert::From<Self>>::from(self.clone());
+                <UnderlyingSolTuple<
+                    '_,
+                > as alloy_sol_types::SolType>::abi_encoded_size(&tuple)
+            }
+            #[inline]
+            fn stv_eip712_data_word(&self) -> alloy_sol_types::Word {
+                <Self as alloy_sol_types::SolStruct>::eip712_hash_struct(self)
+            }
+            #[inline]
+            fn stv_abi_encode_packed_to(
+                &self,
+                out: &mut alloy_sol_types::private::Vec<u8>,
+            ) {
+                let tuple = <UnderlyingRustTuple<
+                    '_,
+                > as ::core::convert::From<Self>>::from(self.clone());
+                <UnderlyingSolTuple<
+                    '_,
+                > as alloy_sol_types::SolType>::abi_encode_packed_to(&tuple, out)
+            }
+            #[inline]
+            fn stv_abi_packed_encoded_size(&self) -> usize {
+                if let Some(size) = <Self as alloy_sol_types::SolType>::PACKED_ENCODED_SIZE {
+                    return size;
+                }
+                let tuple = <UnderlyingRustTuple<
+                    '_,
+                > as ::core::convert::From<Self>>::from(self.clone());
+                <UnderlyingSolTuple<
+                    '_,
+                > as alloy_sol_types::SolType>::abi_packed_encoded_size(&tuple)
+            }
+        }
+        #[automatically_derived]
+        impl alloy_sol_types::SolType for FuzzSelector {
+            type RustType = Self;
+            type Token<'a> = <UnderlyingSolTuple<
+                'a,
+            > as alloy_sol_types::SolType>::Token<'a>;
+            const SOL_NAME: &'static str = <Self as alloy_sol_types::SolStruct>::NAME;
+            const ENCODED_SIZE: Option<usize> = <UnderlyingSolTuple<
+                '_,
+            > as alloy_sol_types::SolType>::ENCODED_SIZE;
+            const PACKED_ENCODED_SIZE: Option<usize> = <UnderlyingSolTuple<
+                '_,
+            > as alloy_sol_types::SolType>::PACKED_ENCODED_SIZE;
+            #[inline]
+            fn valid_token(token: &Self::Token<'_>) -> bool {
+                <UnderlyingSolTuple<'_> as alloy_sol_types::SolType>::valid_token(token)
+            }
+            #[inline]
+            fn detokenize(token: Self::Token<'_>) -> Self::RustType {
+                let tuple = <UnderlyingSolTuple<
+                    '_,
+                > as alloy_sol_types::SolType>::detokenize(token);
+                <Self as ::core::convert::From<UnderlyingRustTuple<'_>>>::from(tuple)
+            }
+        }
+        #[automatically_derived]
+        impl alloy_sol_types::SolStruct for FuzzSelector {
+            const NAME: &'static str = "FuzzSelector";
+            #[inline]
+            fn eip712_root_type() -> alloy_sol_types::private::Cow<'static, str> {
+                alloy_sol_types::private::Cow::Borrowed(
+                    "FuzzSelector(address addr,bytes4[] selectors)",
+                )
+            }
+            #[inline]
+            fn eip712_components() -> alloy_sol_types::private::Vec<
+                alloy_sol_types::private::Cow<'static, str>,
+            > {
+                alloy_sol_types::private::Vec::new()
+            }
+            #[inline]
+            fn eip712_encode_type() -> alloy_sol_types::private::Cow<'static, str> {
+                <Self as alloy_sol_types::SolStruct>::eip712_root_type()
+            }
+            #[inline]
+            fn eip712_encode_data(&self) -> alloy_sol_types::private::Vec<u8> {
+                [
+                    <alloy::sol_types::sol_data::Address as alloy_sol_types::SolType>::eip712_data_word(
+                            &self.addr,
+                        )
+                        .0,
+                    <alloy::sol_types::sol_data::Array<
+                        alloy::sol_types::sol_data::FixedBytes<4>,
+                    > as alloy_sol_types::SolType>::eip712_data_word(&self.selectors)
+                        .0,
+                ]
+                    .concat()
+            }
+        }
+        #[automatically_derived]
+        impl alloy_sol_types::EventTopic for FuzzSelector {
+            #[inline]
+            fn topic_preimage_length(rust: &Self::RustType) -> usize {
+                0usize
+                    + <alloy::sol_types::sol_data::Address as alloy_sol_types::EventTopic>::topic_preimage_length(
+                        &rust.addr,
+                    )
+                    + <alloy::sol_types::sol_data::Array<
+                        alloy::sol_types::sol_data::FixedBytes<4>,
+                    > as alloy_sol_types::EventTopic>::topic_preimage_length(
+                        &rust.selectors,
+                    )
+            }
+            #[inline]
+            fn encode_topic_preimage(
+                rust: &Self::RustType,
+                out: &mut alloy_sol_types::private::Vec<u8>,
+            ) {
+                out.reserve(
+                    <Self as alloy_sol_types::EventTopic>::topic_preimage_length(rust),
+                );
+                <alloy::sol_types::sol_data::Address as alloy_sol_types::EventTopic>::encode_topic_preimage(
+                    &rust.addr,
+                    out,
+                );
+                <alloy::sol_types::sol_data::Array<
+                    alloy::sol_types::sol_data::FixedBytes<4>,
+                > as alloy_sol_types::EventTopic>::encode_topic_preimage(
+                    &rust.selectors,
+                    out,
+                );
+            }
+            #[inline]
+            fn encode_topic(
+                rust: &Self::RustType,
+            ) -> alloy_sol_types::abi::token::WordToken {
+                let mut out = alloy_sol_types::private::Vec::new();
+                <Self as alloy_sol_types::EventTopic>::encode_topic_preimage(
+                    rust,
+                    &mut out,
+                );
+                alloy_sol_types::abi::token::WordToken(
+                    alloy_sol_types::private::keccak256(out),
+                )
+            }
+        }
+    };
+    use alloy::contract as alloy_contract;
+    /**Creates a new wrapper around an on-chain [`StdInvariant`](self) contract instance.
+
+See the [wrapper's documentation](`StdInvariantInstance`) for more details.*/
+    #[inline]
+    pub const fn new<
+        T: alloy_contract::private::Transport + ::core::clone::Clone,
+        P: alloy_contract::private::Provider<T, N>,
+        N: alloy_contract::private::Network,
+    >(
+        address: alloy_sol_types::private::Address,
+        provider: P,
+    ) -> StdInvariantInstance<T, P, N> {
+        StdInvariantInstance::<T, P, N>::new(address, provider)
+    }
+    /**A [`StdInvariant`](self) instance.
+
+Contains type-safe methods for interacting with an on-chain instance of the
+[`StdInvariant`](self) contract located at a given `address`, using a given
+provider `P`.
+
+If the contract bytecode is available (see the [`sol!`](alloy_sol_types::sol!)
+documentation on how to provide it), the `deploy` and `deploy_builder` methods can
+be used to deploy a new instance of the contract.
+
+See the [module-level documentation](self) for all the available methods.*/
+    #[derive(Clone)]
+    pub struct StdInvariantInstance<T, P, N = alloy_contract::private::Ethereum> {
+        address: alloy_sol_types::private::Address,
+        provider: P,
+        _network_transport: ::core::marker::PhantomData<(N, T)>,
+    }
+    #[automatically_derived]
+    impl<T, P, N> ::core::fmt::Debug for StdInvariantInstance<T, P, N> {
+        #[inline]
+        fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+            f.debug_tuple("StdInvariantInstance").field(&self.address).finish()
+        }
+    }
+    /// Instantiation and getters/setters.
+    #[automatically_derived]
+    impl<
+        T: alloy_contract::private::Transport + ::core::clone::Clone,
+        P: alloy_contract::private::Provider<T, N>,
+        N: alloy_contract::private::Network,
+    > StdInvariantInstance<T, P, N> {
+        /**Creates a new wrapper around an on-chain [`StdInvariant`](self) contract instance.
+
+See the [wrapper's documentation](`StdInvariantInstance`) for more details.*/
+        #[inline]
+        pub const fn new(
+            address: alloy_sol_types::private::Address,
+            provider: P,
+        ) -> Self {
+            Self {
+                address,
+                provider,
+                _network_transport: ::core::marker::PhantomData,
+            }
+        }
+        /// Returns a reference to the address.
+        #[inline]
+        pub const fn address(&self) -> &alloy_sol_types::private::Address {
+            &self.address
+        }
+        /// Sets the address.
+        #[inline]
+        pub fn set_address(&mut self, address: alloy_sol_types::private::Address) {
+            self.address = address;
+        }
+        /// Sets the address and returns `self`.
+        pub fn at(mut self, address: alloy_sol_types::private::Address) -> Self {
+            self.set_address(address);
+            self
+        }
+        /// Returns a reference to the provider.
+        #[inline]
+        pub const fn provider(&self) -> &P {
+            &self.provider
+        }
+    }
+    impl<T, P: ::core::clone::Clone, N> StdInvariantInstance<T, &P, N> {
+        /// Clones the provider and returns a new instance with the cloned provider.
+        #[inline]
+        pub fn with_cloned_provider(self) -> StdInvariantInstance<T, P, N> {
+            StdInvariantInstance {
+                address: self.address,
+                provider: ::core::clone::Clone::clone(&self.provider),
+                _network_transport: ::core::marker::PhantomData,
+            }
+        }
+    }
+    /// Function calls.
+    #[automatically_derived]
+    impl<
+        T: alloy_contract::private::Transport + ::core::clone::Clone,
+        P: alloy_contract::private::Provider<T, N>,
+        N: alloy_contract::private::Network,
+    > StdInvariantInstance<T, P, N> {
+        /// Creates a new call builder using this contract instance's provider and address.
+        ///
+        /// Note that the call can be any function call, not just those defined in this
+        /// contract. Prefer using the other methods for building type-safe contract calls.
+        pub fn call_builder<C: alloy_sol_types::SolCall>(
+            &self,
+            call: &C,
+        ) -> alloy_contract::SolCallBuilder<T, &P, C, N> {
+            alloy_contract::SolCallBuilder::new_sol(&self.provider, &self.address, call)
+        }
+    }
+    /// Event filters.
+    #[automatically_derived]
+    impl<
+        T: alloy_contract::private::Transport + ::core::clone::Clone,
+        P: alloy_contract::private::Provider<T, N>,
+        N: alloy_contract::private::Network,
+    > StdInvariantInstance<T, P, N> {
+        /// Creates a new event filter using this contract instance's provider and address.
+        ///
+        /// Note that the type can be any event, not just those defined in this contract.
+        /// Prefer using the other methods for building type-safe event filters.
+        pub fn event_filter<E: alloy_sol_types::SolEvent>(
+            &self,
+        ) -> alloy_contract::Event<T, &P, E, N> {
+            alloy_contract::Event::new_sol(&self.provider, &self.address)
+        }
+    }
+}
 /**
 
 Generated by the following Solidity interface...
 ```solidity
-interface PermitSignature {
+library StdInvariant {
     struct FuzzArtifactSelector {
         string artifact;
         bytes4[] selectors;
@@ -15,7 +833,9 @@ interface PermitSignature {
         address addr;
         bytes4[] selectors;
     }
+}
 
+interface PermitSignature {
     event log(string);
     event log_address(address);
     event log_array(uint256[] val);
@@ -44,14 +864,14 @@ interface PermitSignature {
     function TYPE_HASH() external view returns (bytes32);
     function excludeArtifacts() external view returns (string[] memory excludedArtifacts_);
     function excludeContracts() external view returns (address[] memory excludedContracts_);
-    function excludeSelectors() external view returns (FuzzSelector[] memory excludedSelectors_);
+    function excludeSelectors() external view returns (StdInvariant.FuzzSelector[] memory excludedSelectors_);
     function excludeSenders() external view returns (address[] memory excludedSenders_);
     function failed() external view returns (bool);
-    function targetArtifactSelectors() external view returns (FuzzArtifactSelector[] memory targetedArtifactSelectors_);
+    function targetArtifactSelectors() external view returns (StdInvariant.FuzzArtifactSelector[] memory targetedArtifactSelectors_);
     function targetArtifacts() external view returns (string[] memory targetedArtifacts_);
     function targetContracts() external view returns (address[] memory targetedContracts_);
-    function targetInterfaces() external view returns (FuzzInterface[] memory targetedInterfaces_);
-    function targetSelectors() external view returns (FuzzSelector[] memory targetedSelectors_);
+    function targetInterfaces() external view returns (StdInvariant.FuzzInterface[] memory targetedInterfaces_);
+    function targetSelectors() external view returns (StdInvariant.FuzzSelector[] memory targetedSelectors_);
     function targetSenders() external view returns (address[] memory targetedSenders_);
 }
 ```
@@ -655,690 +1475,57 @@ interface PermitSignature {
   }
 ]
 ```*/
-#[allow(non_camel_case_types, non_snake_case, clippy::style)]
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
 pub mod PermitSignature {
     use super::*;
     use alloy::sol_types as alloy_sol_types;
     /// The creation / init bytecode of the contract.
     ///
     /// ```text
-    ///0x6080604052600c8054600160ff199182168117909255601f8054909116909117905534801561002d57600080fd5b50610f9b8061003d6000396000f3fe608060405234801561001057600080fd5b50600436106100ea5760003560e01c806385226c811161008c578063b5508aa911610066578063b5508aa9146101d1578063ba414fa6146101d9578063e20c9f71146101f1578063fa7626d4146101f957600080fd5b806385226c811461019f578063916a17c6146101b4578063b0464fdc146101c957600080fd5b80633e5e3c23116100c85780633e5e3c23146101535780633f7286f41461015b57806364d4c8191461016357806366d9a9a01461018a57600080fd5b806304622c2e146100ef5780631ed7831c146101295780632ade38801461013e575b600080fd5b6101167f9ac997416e8ff9d2ff6bebeb7149f65cdae5e32e2b90440b566bb3044041d36a81565b6040519081526020015b60405180910390f35b610131610206565b6040516101209190610b11565b610146610275565b6040516101209190610bcf565b6101316103c4565b610131610431565b6101167f8cad95687ba82c2ce50e74f7b754645e5117c3a5bec8151c0726d5857980a86681565b61019261049e565b6040516101209190610d36565b6101a7610620565b6040516101209190610ddb565b6101bc6106f0565b6040516101209190610e5d565b6101bc6107f8565b6101a7610900565b6101e16109d0565b6040519015158152602001610120565b610131610aa4565b601f546101e19060ff1681565b6060601680548060200260200160405190810160405280929190818152602001828054801561026b57602002820191906000526020600020905b815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610240575b5050505050905090565b6060601e805480602002602001604051908101604052809291908181526020016000905b828210156103bb576000848152602080822060408051808201825260028702909201805473ffffffffffffffffffffffffffffffffffffffff168352600181018054835181870281018701909452808452939591948681019491929084015b828210156103a457838290600052602060002001805461031790610ef9565b80601f016020809104026020016040519081016040528092919081815260200182805461034390610ef9565b80156103905780601f1061036557610100808354040283529160200191610390565b820191906000526020600020905b81548152906001019060200180831161037357829003601f168201915b5050505050815260200190600101906102f8565b505050508152505081526020019060010190610299565b50505050905090565b6060601880548060200260200160405190810160405280929190818152602001828054801561026b5760200282019190600052602060002090815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610240575050505050905090565b6060601780548060200260200160405190810160405280929190818152602001828054801561026b5760200282019190600052602060002090815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610240575050505050905090565b6060601b805480602002602001604051908101604052809291908181526020016000905b828210156103bb57838290600052602060002090600202016040518060400160405290816000820180546104f590610ef9565b80601f016020809104026020016040519081016040528092919081815260200182805461052190610ef9565b801561056e5780601f106105435761010080835404028352916020019161056e565b820191906000526020600020905b81548152906001019060200180831161055157829003601f168201915b505050505081526020016001820180548060200260200160405190810160405280929190818152602001828054801561060857602002820191906000526020600020906000905b82829054906101000a900460e01b7bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916815260200190600401906020826003010492830192600103820291508084116105b55790505b505050505081525050815260200190600101906104c2565b6060601a805480602002602001604051908101604052809291908181526020016000905b828210156103bb57838290600052602060002001805461066390610ef9565b80601f016020809104026020016040519081016040528092919081815260200182805461068f90610ef9565b80156106dc5780601f106106b1576101008083540402835291602001916106dc565b820191906000526020600020905b8154815290600101906020018083116106bf57829003601f168201915b505050505081526020019060010190610644565b6060601d805480602002602001604051908101604052809291908181526020016000905b828210156103bb57600084815260209081902060408051808201825260028602909201805473ffffffffffffffffffffffffffffffffffffffff1683526001810180548351818702810187019094528084529394919385830193928301828280156107e057602002820191906000526020600020906000905b82829054906101000a900460e01b7bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19168152602001906004019060208260030104928301926001038202915080841161078d5790505b50505050508152505081526020019060010190610714565b6060601c805480602002602001604051908101604052809291908181526020016000905b828210156103bb57600084815260209081902060408051808201825260028602909201805473ffffffffffffffffffffffffffffffffffffffff1683526001810180548351818702810187019094528084529394919385830193928301828280156108e857602002820191906000526020600020906000905b82829054906101000a900460e01b7bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916815260200190600401906020826003010492830192600103820291508084116108955790505b5050505050815250508152602001906001019061081c565b60606019805480602002602001604051908101604052809291908181526020016000905b828210156103bb57838290600052602060002001805461094390610ef9565b80601f016020809104026020016040519081016040528092919081815260200182805461096f90610ef9565b80156109bc5780601f10610991576101008083540402835291602001916109bc565b820191906000526020600020905b81548152906001019060200180831161099f57829003601f168201915b505050505081526020019060010190610924565b60085460009060ff16156109e8575060085460ff1690565b6040517f667f9d70000000000000000000000000000000000000000000000000000000008152737109709ecfa91a80626ff3989d68f67f5b1dd12d600482018190527f6661696c65640000000000000000000000000000000000000000000000000000602483015260009163667f9d7090604401602060405180830381865afa158015610a79573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610a9d9190610f4c565b1415905090565b6060601580548060200260200160405190810160405280929190818152602001828054801561026b5760200282019190600052602060002090815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610240575050505050905090565b6020808252825182820181905260009190848201906040850190845b81811015610b5f57835173ffffffffffffffffffffffffffffffffffffffff1683529284019291840191600101610b2d565b50909695505050505050565b6000815180845260005b81811015610b9157602081850181015186830182015201610b75565b5060006020828601015260207fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f83011685010191505092915050565b602080825282518282018190526000919060409081850190600581811b8701840188860187805b85811015610cc8577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc08b85030187528251805173ffffffffffffffffffffffffffffffffffffffff1685528901518985018990528051898601819052908a0190606081881b870181019190870190855b81811015610cb2577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa0898503018352610ca0848651610b6b565b948e01949350918d0191600101610c66565b505050978a019794505091880191600101610bf6565b50919a9950505050505050505050565b60008151808452602080850194506020840160005b83811015610d2b5781517fffffffff000000000000000000000000000000000000000000000000000000001687529582019590820190600101610ced565b509495945050505050565b600060208083018184528085518083526040925060408601915060408160051b87010184880160005b83811015610dcd577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc089840301855281518051878552610da188860182610b6b565b91890151858303868b0152919050610db98183610cd8565b968901969450505090860190600101610d5f565b509098975050505050505050565b600060208083016020845280855180835260408601915060408160051b87010192506020870160005b82811015610e50577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc0888603018452610e3e858351610b6b565b94509285019290850190600101610e04565b5092979650505050505050565b600060208083018184528085518083526040925060408601915060408160051b87010184880160005b83811015610dcd578883037fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc00185528151805173ffffffffffffffffffffffffffffffffffffffff168452870151878401879052610ee687850182610cd8565b9588019593505090860190600101610e86565b600181811c90821680610f0d57607f821691505b602082108103610f46577f4e487b7100000000000000000000000000000000000000000000000000000000600052602260045260246000fd5b50919050565b600060208284031215610f5e57600080fd5b505191905056fea264697066735822122026d939e7d9dd41d878bf01c5cab20688fed635637c6ca152757ad4ebec5dc76d64736f6c63430008180033
+    ///0x6080604052600c8054600160ff199182168117909255601f8054909116909117905534801561002c575f80fd5b50610f538061003a5f395ff3fe608060405234801561000f575f80fd5b50600436106100e5575f3560e01c806385226c8111610088578063b5508aa911610063578063b5508aa9146101cb578063ba414fa6146101d3578063e20c9f71146101eb578063fa7626d4146101f3575f80fd5b806385226c8114610199578063916a17c6146101ae578063b0464fdc146101c3575f80fd5b80633e5e3c23116100c35780633e5e3c231461014d5780633f7286f41461015557806364d4c8191461015d57806366d9a9a014610184575f80fd5b806304622c2e146100e95780631ed7831c146101235780632ade388014610138575b5f80fd5b6101107f9ac997416e8ff9d2ff6bebeb7149f65cdae5e32e2b90440b566bb3044041d36a81565b6040519081526020015b60405180910390f35b61012b610200565b60405161011a9190610adc565b61014061026d565b60405161011a9190610b96565b61012b6103b6565b61012b610421565b6101107f8cad95687ba82c2ce50e74f7b754645e5117c3a5bec8151c0726d5857980a86681565b61018c61048c565b60405161011a9190610cf8565b6101a1610605565b60405161011a9190610d9b565b6101b66106d0565b60405161011a9190610e1b565b6101b66107d3565b6101a16108d6565b6101db6109a1565b604051901515815260200161011a565b61012b610a71565b601f546101db9060ff1681565b6060601680548060200260200160405190810160405280929190818152602001828054801561026357602002820191905f5260205f20905b815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610238575b5050505050905090565b6060601e805480602002602001604051908101604052809291908181526020015f905b828210156103ad575f848152602080822060408051808201825260028702909201805473ffffffffffffffffffffffffffffffffffffffff168352600181018054835181870281018701909452808452939591948681019491929084015b82821015610396578382905f5260205f2001805461030b90610eb5565b80601f016020809104026020016040519081016040528092919081815260200182805461033790610eb5565b80156103825780601f1061035957610100808354040283529160200191610382565b820191905f5260205f20905b81548152906001019060200180831161036557829003601f168201915b5050505050815260200190600101906102ee565b505050508152505081526020019060010190610290565b50505050905090565b6060601880548060200260200160405190810160405280929190818152602001828054801561026357602002820191905f5260205f2090815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610238575050505050905090565b6060601780548060200260200160405190810160405280929190818152602001828054801561026357602002820191905f5260205f2090815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610238575050505050905090565b6060601b805480602002602001604051908101604052809291908181526020015f905b828210156103ad578382905f5260205f2090600202016040518060400160405290815f820180546104df90610eb5565b80601f016020809104026020016040519081016040528092919081815260200182805461050b90610eb5565b80156105565780601f1061052d57610100808354040283529160200191610556565b820191905f5260205f20905b81548152906001019060200180831161053957829003601f168201915b50505050508152602001600182018054806020026020016040519081016040528092919081815260200182805480156105ed57602002820191905f5260205f20905f905b82829054906101000a900460e01b7bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19168152602001906004019060208260030104928301926001038202915080841161059a5790505b505050505081525050815260200190600101906104af565b6060601a805480602002602001604051908101604052809291908181526020015f905b828210156103ad578382905f5260205f2001805461064590610eb5565b80601f016020809104026020016040519081016040528092919081815260200182805461067190610eb5565b80156106bc5780601f10610693576101008083540402835291602001916106bc565b820191905f5260205f20905b81548152906001019060200180831161069f57829003601f168201915b505050505081526020019060010190610628565b6060601d805480602002602001604051908101604052809291908181526020015f905b828210156103ad575f84815260209081902060408051808201825260028602909201805473ffffffffffffffffffffffffffffffffffffffff1683526001810180548351818702810187019094528084529394919385830193928301828280156107bb57602002820191905f5260205f20905f905b82829054906101000a900460e01b7bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916815260200190600401906020826003010492830192600103820291508084116107685790505b505050505081525050815260200190600101906106f3565b6060601c805480602002602001604051908101604052809291908181526020015f905b828210156103ad575f84815260209081902060408051808201825260028602909201805473ffffffffffffffffffffffffffffffffffffffff1683526001810180548351818702810187019094528084529394919385830193928301828280156108be57602002820191905f5260205f20905f905b82829054906101000a900460e01b7bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19168152602001906004019060208260030104928301926001038202915080841161086b5790505b505050505081525050815260200190600101906107f6565b60606019805480602002602001604051908101604052809291908181526020015f905b828210156103ad578382905f5260205f2001805461091690610eb5565b80601f016020809104026020016040519081016040528092919081815260200182805461094290610eb5565b801561098d5780601f106109645761010080835404028352916020019161098d565b820191905f5260205f20905b81548152906001019060200180831161097057829003601f168201915b5050505050815260200190600101906108f9565b6008545f9060ff16156109b8575060085460ff1690565b6040517f667f9d70000000000000000000000000000000000000000000000000000000008152737109709ecfa91a80626ff3989d68f67f5b1dd12d600482018190527f6661696c6564000000000000000000000000000000000000000000000000000060248301525f9163667f9d7090604401602060405180830381865afa158015610a46573d5f803e3d5ffd5b505050506040513d601f19601f82011682018060405250810190610a6a9190610f06565b1415905090565b6060601580548060200260200160405190810160405280929190818152602001828054801561026357602002820191905f5260205f2090815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610238575050505050905090565b602080825282518282018190525f9190848201906040850190845b81811015610b2957835173ffffffffffffffffffffffffffffffffffffffff1683529284019291840191600101610af7565b50909695505050505050565b5f81518084525f5b81811015610b5957602081850181015186830182015201610b3d565b505f6020828601015260207fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f83011685010191505092915050565b602080825282518282018190525f919060409081850190600581811b87018401888601875b84811015610c8d577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc08a84030186528151805173ffffffffffffffffffffffffffffffffffffffff168452880151888401889052805188850181905290890190606081871b8601810191908601905f5b81811015610c77577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa0888503018352610c65848651610b35565b948d01949350918c0191600101610c2b565b5050509689019693505090870190600101610bbb565b50909998505050505050505050565b5f815180845260208085019450602084015f5b83811015610ced5781517fffffffff000000000000000000000000000000000000000000000000000000001687529582019590820190600101610caf565b509495945050505050565b5f60208083018184528085518083526040925060408601915060408160051b8701018488015f5b83811015610d8d577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc089840301855281518051878552610d6188860182610b35565b91890151858303868b0152919050610d798183610c9c565b968901969450505090860190600101610d1f565b509098975050505050505050565b5f60208083016020845280855180835260408601915060408160051b8701019250602087015f5b82811015610e0e577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc0888603018452610dfc858351610b35565b94509285019290850190600101610dc2565b5092979650505050505050565b5f60208083018184528085518083526040925060408601915060408160051b8701018488015f5b83811015610d8d578883037fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc00185528151805173ffffffffffffffffffffffffffffffffffffffff168452870151878401879052610ea287850182610c9c565b9588019593505090860190600101610e42565b600181811c90821680610ec957607f821691505b602082108103610f00577f4e487b71000000000000000000000000000000000000000000000000000000005f52602260045260245ffd5b50919050565b5f60208284031215610f16575f80fd5b505191905056fea2646970667358221220b72d199ce0ced8535f126e6a42a5f6c20bb9b633787f4d0830ecb84995dca7a064736f6c63430008180033
     /// ```
     #[rustfmt::skip]
     #[allow(clippy::all)]
     pub static BYTECODE: alloy_sol_types::private::Bytes = alloy_sol_types::private::Bytes::from_static(
-        b"`\x80`@R`\x0C\x80T`\x01`\xFF\x19\x91\x82\x16\x81\x17\x90\x92U`\x1F\x80T\x90\x91\x16\x90\x91\x17\x90U4\x80\x15a\0-W`\0\x80\xFD[Pa\x0F\x9B\x80a\0=`\09`\0\xF3\xFE`\x80`@R4\x80\x15a\0\x10W`\0\x80\xFD[P`\x046\x10a\0\xEAW`\x005`\xE0\x1C\x80c\x85\"l\x81\x11a\0\x8CW\x80c\xB5P\x8A\xA9\x11a\0fW\x80c\xB5P\x8A\xA9\x14a\x01\xD1W\x80c\xBAAO\xA6\x14a\x01\xD9W\x80c\xE2\x0C\x9Fq\x14a\x01\xF1W\x80c\xFAv&\xD4\x14a\x01\xF9W`\0\x80\xFD[\x80c\x85\"l\x81\x14a\x01\x9FW\x80c\x91j\x17\xC6\x14a\x01\xB4W\x80c\xB0FO\xDC\x14a\x01\xC9W`\0\x80\xFD[\x80c>^<#\x11a\0\xC8W\x80c>^<#\x14a\x01SW\x80c?r\x86\xF4\x14a\x01[W\x80cd\xD4\xC8\x19\x14a\x01cW\x80cf\xD9\xA9\xA0\x14a\x01\x8AW`\0\x80\xFD[\x80c\x04b,.\x14a\0\xEFW\x80c\x1E\xD7\x83\x1C\x14a\x01)W\x80c*\xDE8\x80\x14a\x01>W[`\0\x80\xFD[a\x01\x16\x7F\x9A\xC9\x97An\x8F\xF9\xD2\xFFk\xEB\xEBqI\xF6\\\xDA\xE5\xE3.+\x90D\x0BVk\xB3\x04@A\xD3j\x81V[`@Q\x90\x81R` \x01[`@Q\x80\x91\x03\x90\xF3[a\x011a\x02\x06V[`@Qa\x01 \x91\x90a\x0B\x11V[a\x01Fa\x02uV[`@Qa\x01 \x91\x90a\x0B\xCFV[a\x011a\x03\xC4V[a\x011a\x041V[a\x01\x16\x7F\x8C\xAD\x95h{\xA8,,\xE5\x0Et\xF7\xB7Td^Q\x17\xC3\xA5\xBE\xC8\x15\x1C\x07&\xD5\x85y\x80\xA8f\x81V[a\x01\x92a\x04\x9EV[`@Qa\x01 \x91\x90a\r6V[a\x01\xA7a\x06 V[`@Qa\x01 \x91\x90a\r\xDBV[a\x01\xBCa\x06\xF0V[`@Qa\x01 \x91\x90a\x0E]V[a\x01\xBCa\x07\xF8V[a\x01\xA7a\t\0V[a\x01\xE1a\t\xD0V[`@Q\x90\x15\x15\x81R` \x01a\x01 V[a\x011a\n\xA4V[`\x1FTa\x01\xE1\x90`\xFF\x16\x81V[```\x16\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02kW` \x02\x82\x01\x91\x90`\0R` `\0 \x90[\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x02@W[PPPPP\x90P\x90V[```\x1E\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01`\0\x90[\x82\x82\x10\x15a\x03\xBBW`\0\x84\x81R` \x80\x82 `@\x80Q\x80\x82\x01\x82R`\x02\x87\x02\x90\x92\x01\x80Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R`\x01\x81\x01\x80T\x83Q\x81\x87\x02\x81\x01\x87\x01\x90\x94R\x80\x84R\x93\x95\x91\x94\x86\x81\x01\x94\x91\x92\x90\x84\x01[\x82\x82\x10\x15a\x03\xA4W\x83\x82\x90`\0R` `\0 \x01\x80Ta\x03\x17\x90a\x0E\xF9V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\x03C\x90a\x0E\xF9V[\x80\x15a\x03\x90W\x80`\x1F\x10a\x03eWa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\x03\x90V[\x82\x01\x91\x90`\0R` `\0 \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\x03sW\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01\x90`\x01\x01\x90a\x02\xF8V[PPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x02\x99V[PPPP\x90P\x90V[```\x18\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02kW` \x02\x82\x01\x91\x90`\0R` `\0 \x90\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x02@WPPPPP\x90P\x90V[```\x17\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02kW` \x02\x82\x01\x91\x90`\0R` `\0 \x90\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x02@WPPPPP\x90P\x90V[```\x1B\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01`\0\x90[\x82\x82\x10\x15a\x03\xBBW\x83\x82\x90`\0R` `\0 \x90`\x02\x02\x01`@Q\x80`@\x01`@R\x90\x81`\0\x82\x01\x80Ta\x04\xF5\x90a\x0E\xF9V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\x05!\x90a\x0E\xF9V[\x80\x15a\x05nW\x80`\x1F\x10a\x05CWa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\x05nV[\x82\x01\x91\x90`\0R` `\0 \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\x05QW\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01`\x01\x82\x01\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x06\x08W` \x02\x82\x01\x91\x90`\0R` `\0 \x90`\0\x90[\x82\x82\x90T\x90a\x01\0\n\x90\x04`\xE0\x1B{\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x16\x81R` \x01\x90`\x04\x01\x90` \x82`\x03\x01\x04\x92\x83\x01\x92`\x01\x03\x82\x02\x91P\x80\x84\x11a\x05\xB5W\x90P[PPPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x04\xC2V[```\x1A\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01`\0\x90[\x82\x82\x10\x15a\x03\xBBW\x83\x82\x90`\0R` `\0 \x01\x80Ta\x06c\x90a\x0E\xF9V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\x06\x8F\x90a\x0E\xF9V[\x80\x15a\x06\xDCW\x80`\x1F\x10a\x06\xB1Wa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\x06\xDCV[\x82\x01\x91\x90`\0R` `\0 \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\x06\xBFW\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01\x90`\x01\x01\x90a\x06DV[```\x1D\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01`\0\x90[\x82\x82\x10\x15a\x03\xBBW`\0\x84\x81R` \x90\x81\x90 `@\x80Q\x80\x82\x01\x82R`\x02\x86\x02\x90\x92\x01\x80Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R`\x01\x81\x01\x80T\x83Q\x81\x87\x02\x81\x01\x87\x01\x90\x94R\x80\x84R\x93\x94\x91\x93\x85\x83\x01\x93\x92\x83\x01\x82\x82\x80\x15a\x07\xE0W` \x02\x82\x01\x91\x90`\0R` `\0 \x90`\0\x90[\x82\x82\x90T\x90a\x01\0\n\x90\x04`\xE0\x1B{\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x16\x81R` \x01\x90`\x04\x01\x90` \x82`\x03\x01\x04\x92\x83\x01\x92`\x01\x03\x82\x02\x91P\x80\x84\x11a\x07\x8DW\x90P[PPPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x07\x14V[```\x1C\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01`\0\x90[\x82\x82\x10\x15a\x03\xBBW`\0\x84\x81R` \x90\x81\x90 `@\x80Q\x80\x82\x01\x82R`\x02\x86\x02\x90\x92\x01\x80Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R`\x01\x81\x01\x80T\x83Q\x81\x87\x02\x81\x01\x87\x01\x90\x94R\x80\x84R\x93\x94\x91\x93\x85\x83\x01\x93\x92\x83\x01\x82\x82\x80\x15a\x08\xE8W` \x02\x82\x01\x91\x90`\0R` `\0 \x90`\0\x90[\x82\x82\x90T\x90a\x01\0\n\x90\x04`\xE0\x1B{\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x16\x81R` \x01\x90`\x04\x01\x90` \x82`\x03\x01\x04\x92\x83\x01\x92`\x01\x03\x82\x02\x91P\x80\x84\x11a\x08\x95W\x90P[PPPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x08\x1CV[```\x19\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01`\0\x90[\x82\x82\x10\x15a\x03\xBBW\x83\x82\x90`\0R` `\0 \x01\x80Ta\tC\x90a\x0E\xF9V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\to\x90a\x0E\xF9V[\x80\x15a\t\xBCW\x80`\x1F\x10a\t\x91Wa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\t\xBCV[\x82\x01\x91\x90`\0R` `\0 \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\t\x9FW\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01\x90`\x01\x01\x90a\t$V[`\x08T`\0\x90`\xFF\x16\x15a\t\xE8WP`\x08T`\xFF\x16\x90V[`@Q\x7Ff\x7F\x9Dp\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x81Rsq\tp\x9E\xCF\xA9\x1A\x80bo\xF3\x98\x9Dh\xF6\x7F[\x1D\xD1-`\x04\x82\x01\x81\x90R\x7Ffailed\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0`$\x83\x01R`\0\x91cf\x7F\x9Dp\x90`D\x01` `@Q\x80\x83\x03\x81\x86Z\xFA\x15\x80\x15a\nyW=`\0\x80>=`\0\xFD[PPPP`@Q=`\x1F\x19`\x1F\x82\x01\x16\x82\x01\x80`@RP\x81\x01\x90a\n\x9D\x91\x90a\x0FLV[\x14\x15\x90P\x90V[```\x15\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02kW` \x02\x82\x01\x91\x90`\0R` `\0 \x90\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x02@WPPPPP\x90P\x90V[` \x80\x82R\x82Q\x82\x82\x01\x81\x90R`\0\x91\x90\x84\x82\x01\x90`@\x85\x01\x90\x84[\x81\x81\x10\x15a\x0B_W\x83Qs\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R\x92\x84\x01\x92\x91\x84\x01\x91`\x01\x01a\x0B-V[P\x90\x96\x95PPPPPPV[`\0\x81Q\x80\x84R`\0[\x81\x81\x10\x15a\x0B\x91W` \x81\x85\x01\x81\x01Q\x86\x83\x01\x82\x01R\x01a\x0BuV[P`\0` \x82\x86\x01\x01R` \x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xE0`\x1F\x83\x01\x16\x85\x01\x01\x91PP\x92\x91PPV[` \x80\x82R\x82Q\x82\x82\x01\x81\x90R`\0\x91\x90`@\x90\x81\x85\x01\x90`\x05\x81\x81\x1B\x87\x01\x84\x01\x88\x86\x01\x87\x80[\x85\x81\x10\x15a\x0C\xC8W\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x8B\x85\x03\x01\x87R\x82Q\x80Qs\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x85R\x89\x01Q\x89\x85\x01\x89\x90R\x80Q\x89\x86\x01\x81\x90R\x90\x8A\x01\x90``\x81\x88\x1B\x87\x01\x81\x01\x91\x90\x87\x01\x90\x85[\x81\x81\x10\x15a\x0C\xB2W\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xA0\x89\x85\x03\x01\x83Ra\x0C\xA0\x84\x86Qa\x0BkV[\x94\x8E\x01\x94\x93P\x91\x8D\x01\x91`\x01\x01a\x0CfV[PPP\x97\x8A\x01\x97\x94PP\x91\x88\x01\x91`\x01\x01a\x0B\xF6V[P\x91\x9A\x99PPPPPPPPPPV[`\0\x81Q\x80\x84R` \x80\x85\x01\x94P` \x84\x01`\0[\x83\x81\x10\x15a\r+W\x81Q\x7F\xFF\xFF\xFF\xFF\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x16\x87R\x95\x82\x01\x95\x90\x82\x01\x90`\x01\x01a\x0C\xEDV[P\x94\x95\x94PPPPPV[`\0` \x80\x83\x01\x81\x84R\x80\x85Q\x80\x83R`@\x92P`@\x86\x01\x91P`@\x81`\x05\x1B\x87\x01\x01\x84\x88\x01`\0[\x83\x81\x10\x15a\r\xCDW\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x89\x84\x03\x01\x85R\x81Q\x80Q\x87\x85Ra\r\xA1\x88\x86\x01\x82a\x0BkV[\x91\x89\x01Q\x85\x83\x03\x86\x8B\x01R\x91\x90Pa\r\xB9\x81\x83a\x0C\xD8V[\x96\x89\x01\x96\x94PPP\x90\x86\x01\x90`\x01\x01a\r_V[P\x90\x98\x97PPPPPPPPV[`\0` \x80\x83\x01` \x84R\x80\x85Q\x80\x83R`@\x86\x01\x91P`@\x81`\x05\x1B\x87\x01\x01\x92P` \x87\x01`\0[\x82\x81\x10\x15a\x0EPW\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x88\x86\x03\x01\x84Ra\x0E>\x85\x83Qa\x0BkV[\x94P\x92\x85\x01\x92\x90\x85\x01\x90`\x01\x01a\x0E\x04V[P\x92\x97\x96PPPPPPPV[`\0` \x80\x83\x01\x81\x84R\x80\x85Q\x80\x83R`@\x92P`@\x86\x01\x91P`@\x81`\x05\x1B\x87\x01\x01\x84\x88\x01`\0[\x83\x81\x10\x15a\r\xCDW\x88\x83\x03\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x01\x85R\x81Q\x80Qs\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x84R\x87\x01Q\x87\x84\x01\x87\x90Ra\x0E\xE6\x87\x85\x01\x82a\x0C\xD8V[\x95\x88\x01\x95\x93PP\x90\x86\x01\x90`\x01\x01a\x0E\x86V[`\x01\x81\x81\x1C\x90\x82\x16\x80a\x0F\rW`\x7F\x82\x16\x91P[` \x82\x10\x81\x03a\x0FFW\x7FNH{q\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0`\0R`\"`\x04R`$`\0\xFD[P\x91\x90PV[`\0` \x82\x84\x03\x12\x15a\x0F^W`\0\x80\xFD[PQ\x91\x90PV\xFE\xA2dipfsX\"\x12 &\xD99\xE7\xD9\xDDA\xD8x\xBF\x01\xC5\xCA\xB2\x06\x88\xFE\xD65c|l\xA1Ruz\xD4\xEB\xEC]\xC7mdsolcC\0\x08\x18\x003",
+        b"`\x80`@R`\x0C\x80T`\x01`\xFF\x19\x91\x82\x16\x81\x17\x90\x92U`\x1F\x80T\x90\x91\x16\x90\x91\x17\x90U4\x80\x15a\0,W_\x80\xFD[Pa\x0FS\x80a\0:_9_\xF3\xFE`\x80`@R4\x80\x15a\0\x0FW_\x80\xFD[P`\x046\x10a\0\xE5W_5`\xE0\x1C\x80c\x85\"l\x81\x11a\0\x88W\x80c\xB5P\x8A\xA9\x11a\0cW\x80c\xB5P\x8A\xA9\x14a\x01\xCBW\x80c\xBAAO\xA6\x14a\x01\xD3W\x80c\xE2\x0C\x9Fq\x14a\x01\xEBW\x80c\xFAv&\xD4\x14a\x01\xF3W_\x80\xFD[\x80c\x85\"l\x81\x14a\x01\x99W\x80c\x91j\x17\xC6\x14a\x01\xAEW\x80c\xB0FO\xDC\x14a\x01\xC3W_\x80\xFD[\x80c>^<#\x11a\0\xC3W\x80c>^<#\x14a\x01MW\x80c?r\x86\xF4\x14a\x01UW\x80cd\xD4\xC8\x19\x14a\x01]W\x80cf\xD9\xA9\xA0\x14a\x01\x84W_\x80\xFD[\x80c\x04b,.\x14a\0\xE9W\x80c\x1E\xD7\x83\x1C\x14a\x01#W\x80c*\xDE8\x80\x14a\x018W[_\x80\xFD[a\x01\x10\x7F\x9A\xC9\x97An\x8F\xF9\xD2\xFFk\xEB\xEBqI\xF6\\\xDA\xE5\xE3.+\x90D\x0BVk\xB3\x04@A\xD3j\x81V[`@Q\x90\x81R` \x01[`@Q\x80\x91\x03\x90\xF3[a\x01+a\x02\0V[`@Qa\x01\x1A\x91\x90a\n\xDCV[a\x01@a\x02mV[`@Qa\x01\x1A\x91\x90a\x0B\x96V[a\x01+a\x03\xB6V[a\x01+a\x04!V[a\x01\x10\x7F\x8C\xAD\x95h{\xA8,,\xE5\x0Et\xF7\xB7Td^Q\x17\xC3\xA5\xBE\xC8\x15\x1C\x07&\xD5\x85y\x80\xA8f\x81V[a\x01\x8Ca\x04\x8CV[`@Qa\x01\x1A\x91\x90a\x0C\xF8V[a\x01\xA1a\x06\x05V[`@Qa\x01\x1A\x91\x90a\r\x9BV[a\x01\xB6a\x06\xD0V[`@Qa\x01\x1A\x91\x90a\x0E\x1BV[a\x01\xB6a\x07\xD3V[a\x01\xA1a\x08\xD6V[a\x01\xDBa\t\xA1V[`@Q\x90\x15\x15\x81R` \x01a\x01\x1AV[a\x01+a\nqV[`\x1FTa\x01\xDB\x90`\xFF\x16\x81V[```\x16\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02cW` \x02\x82\x01\x91\x90_R` _ \x90[\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x028W[PPPPP\x90P\x90V[```\x1E\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01_\x90[\x82\x82\x10\x15a\x03\xADW_\x84\x81R` \x80\x82 `@\x80Q\x80\x82\x01\x82R`\x02\x87\x02\x90\x92\x01\x80Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R`\x01\x81\x01\x80T\x83Q\x81\x87\x02\x81\x01\x87\x01\x90\x94R\x80\x84R\x93\x95\x91\x94\x86\x81\x01\x94\x91\x92\x90\x84\x01[\x82\x82\x10\x15a\x03\x96W\x83\x82\x90_R` _ \x01\x80Ta\x03\x0B\x90a\x0E\xB5V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\x037\x90a\x0E\xB5V[\x80\x15a\x03\x82W\x80`\x1F\x10a\x03YWa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\x03\x82V[\x82\x01\x91\x90_R` _ \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\x03eW\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01\x90`\x01\x01\x90a\x02\xEEV[PPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x02\x90V[PPPP\x90P\x90V[```\x18\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02cW` \x02\x82\x01\x91\x90_R` _ \x90\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x028WPPPPP\x90P\x90V[```\x17\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02cW` \x02\x82\x01\x91\x90_R` _ \x90\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x028WPPPPP\x90P\x90V[```\x1B\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01_\x90[\x82\x82\x10\x15a\x03\xADW\x83\x82\x90_R` _ \x90`\x02\x02\x01`@Q\x80`@\x01`@R\x90\x81_\x82\x01\x80Ta\x04\xDF\x90a\x0E\xB5V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\x05\x0B\x90a\x0E\xB5V[\x80\x15a\x05VW\x80`\x1F\x10a\x05-Wa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\x05VV[\x82\x01\x91\x90_R` _ \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\x059W\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01`\x01\x82\x01\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x05\xEDW` \x02\x82\x01\x91\x90_R` _ \x90_\x90[\x82\x82\x90T\x90a\x01\0\n\x90\x04`\xE0\x1B{\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x16\x81R` \x01\x90`\x04\x01\x90` \x82`\x03\x01\x04\x92\x83\x01\x92`\x01\x03\x82\x02\x91P\x80\x84\x11a\x05\x9AW\x90P[PPPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x04\xAFV[```\x1A\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01_\x90[\x82\x82\x10\x15a\x03\xADW\x83\x82\x90_R` _ \x01\x80Ta\x06E\x90a\x0E\xB5V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\x06q\x90a\x0E\xB5V[\x80\x15a\x06\xBCW\x80`\x1F\x10a\x06\x93Wa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\x06\xBCV[\x82\x01\x91\x90_R` _ \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\x06\x9FW\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01\x90`\x01\x01\x90a\x06(V[```\x1D\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01_\x90[\x82\x82\x10\x15a\x03\xADW_\x84\x81R` \x90\x81\x90 `@\x80Q\x80\x82\x01\x82R`\x02\x86\x02\x90\x92\x01\x80Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R`\x01\x81\x01\x80T\x83Q\x81\x87\x02\x81\x01\x87\x01\x90\x94R\x80\x84R\x93\x94\x91\x93\x85\x83\x01\x93\x92\x83\x01\x82\x82\x80\x15a\x07\xBBW` \x02\x82\x01\x91\x90_R` _ \x90_\x90[\x82\x82\x90T\x90a\x01\0\n\x90\x04`\xE0\x1B{\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x16\x81R` \x01\x90`\x04\x01\x90` \x82`\x03\x01\x04\x92\x83\x01\x92`\x01\x03\x82\x02\x91P\x80\x84\x11a\x07hW\x90P[PPPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x06\xF3V[```\x1C\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01_\x90[\x82\x82\x10\x15a\x03\xADW_\x84\x81R` \x90\x81\x90 `@\x80Q\x80\x82\x01\x82R`\x02\x86\x02\x90\x92\x01\x80Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R`\x01\x81\x01\x80T\x83Q\x81\x87\x02\x81\x01\x87\x01\x90\x94R\x80\x84R\x93\x94\x91\x93\x85\x83\x01\x93\x92\x83\x01\x82\x82\x80\x15a\x08\xBEW` \x02\x82\x01\x91\x90_R` _ \x90_\x90[\x82\x82\x90T\x90a\x01\0\n\x90\x04`\xE0\x1B{\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x16\x81R` \x01\x90`\x04\x01\x90` \x82`\x03\x01\x04\x92\x83\x01\x92`\x01\x03\x82\x02\x91P\x80\x84\x11a\x08kW\x90P[PPPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x07\xF6V[```\x19\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01_\x90[\x82\x82\x10\x15a\x03\xADW\x83\x82\x90_R` _ \x01\x80Ta\t\x16\x90a\x0E\xB5V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\tB\x90a\x0E\xB5V[\x80\x15a\t\x8DW\x80`\x1F\x10a\tdWa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\t\x8DV[\x82\x01\x91\x90_R` _ \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\tpW\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01\x90`\x01\x01\x90a\x08\xF9V[`\x08T_\x90`\xFF\x16\x15a\t\xB8WP`\x08T`\xFF\x16\x90V[`@Q\x7Ff\x7F\x9Dp\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x81Rsq\tp\x9E\xCF\xA9\x1A\x80bo\xF3\x98\x9Dh\xF6\x7F[\x1D\xD1-`\x04\x82\x01\x81\x90R\x7Ffailed\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0`$\x83\x01R_\x91cf\x7F\x9Dp\x90`D\x01` `@Q\x80\x83\x03\x81\x86Z\xFA\x15\x80\x15a\nFW=_\x80>=_\xFD[PPPP`@Q=`\x1F\x19`\x1F\x82\x01\x16\x82\x01\x80`@RP\x81\x01\x90a\nj\x91\x90a\x0F\x06V[\x14\x15\x90P\x90V[```\x15\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02cW` \x02\x82\x01\x91\x90_R` _ \x90\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x028WPPPPP\x90P\x90V[` \x80\x82R\x82Q\x82\x82\x01\x81\x90R_\x91\x90\x84\x82\x01\x90`@\x85\x01\x90\x84[\x81\x81\x10\x15a\x0B)W\x83Qs\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R\x92\x84\x01\x92\x91\x84\x01\x91`\x01\x01a\n\xF7V[P\x90\x96\x95PPPPPPV[_\x81Q\x80\x84R_[\x81\x81\x10\x15a\x0BYW` \x81\x85\x01\x81\x01Q\x86\x83\x01\x82\x01R\x01a\x0B=V[P_` \x82\x86\x01\x01R` \x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xE0`\x1F\x83\x01\x16\x85\x01\x01\x91PP\x92\x91PPV[` \x80\x82R\x82Q\x82\x82\x01\x81\x90R_\x91\x90`@\x90\x81\x85\x01\x90`\x05\x81\x81\x1B\x87\x01\x84\x01\x88\x86\x01\x87[\x84\x81\x10\x15a\x0C\x8DW\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x8A\x84\x03\x01\x86R\x81Q\x80Qs\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x84R\x88\x01Q\x88\x84\x01\x88\x90R\x80Q\x88\x85\x01\x81\x90R\x90\x89\x01\x90``\x81\x87\x1B\x86\x01\x81\x01\x91\x90\x86\x01\x90_[\x81\x81\x10\x15a\x0CwW\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xA0\x88\x85\x03\x01\x83Ra\x0Ce\x84\x86Qa\x0B5V[\x94\x8D\x01\x94\x93P\x91\x8C\x01\x91`\x01\x01a\x0C+V[PPP\x96\x89\x01\x96\x93PP\x90\x87\x01\x90`\x01\x01a\x0B\xBBV[P\x90\x99\x98PPPPPPPPPV[_\x81Q\x80\x84R` \x80\x85\x01\x94P` \x84\x01_[\x83\x81\x10\x15a\x0C\xEDW\x81Q\x7F\xFF\xFF\xFF\xFF\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x16\x87R\x95\x82\x01\x95\x90\x82\x01\x90`\x01\x01a\x0C\xAFV[P\x94\x95\x94PPPPPV[_` \x80\x83\x01\x81\x84R\x80\x85Q\x80\x83R`@\x92P`@\x86\x01\x91P`@\x81`\x05\x1B\x87\x01\x01\x84\x88\x01_[\x83\x81\x10\x15a\r\x8DW\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x89\x84\x03\x01\x85R\x81Q\x80Q\x87\x85Ra\ra\x88\x86\x01\x82a\x0B5V[\x91\x89\x01Q\x85\x83\x03\x86\x8B\x01R\x91\x90Pa\ry\x81\x83a\x0C\x9CV[\x96\x89\x01\x96\x94PPP\x90\x86\x01\x90`\x01\x01a\r\x1FV[P\x90\x98\x97PPPPPPPPV[_` \x80\x83\x01` \x84R\x80\x85Q\x80\x83R`@\x86\x01\x91P`@\x81`\x05\x1B\x87\x01\x01\x92P` \x87\x01_[\x82\x81\x10\x15a\x0E\x0EW\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x88\x86\x03\x01\x84Ra\r\xFC\x85\x83Qa\x0B5V[\x94P\x92\x85\x01\x92\x90\x85\x01\x90`\x01\x01a\r\xC2V[P\x92\x97\x96PPPPPPPV[_` \x80\x83\x01\x81\x84R\x80\x85Q\x80\x83R`@\x92P`@\x86\x01\x91P`@\x81`\x05\x1B\x87\x01\x01\x84\x88\x01_[\x83\x81\x10\x15a\r\x8DW\x88\x83\x03\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x01\x85R\x81Q\x80Qs\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x84R\x87\x01Q\x87\x84\x01\x87\x90Ra\x0E\xA2\x87\x85\x01\x82a\x0C\x9CV[\x95\x88\x01\x95\x93PP\x90\x86\x01\x90`\x01\x01a\x0EBV[`\x01\x81\x81\x1C\x90\x82\x16\x80a\x0E\xC9W`\x7F\x82\x16\x91P[` \x82\x10\x81\x03a\x0F\0W\x7FNH{q\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0_R`\"`\x04R`$_\xFD[P\x91\x90PV[_` \x82\x84\x03\x12\x15a\x0F\x16W_\x80\xFD[PQ\x91\x90PV\xFE\xA2dipfsX\"\x12 \xB7-\x19\x9C\xE0\xCE\xD8S_\x12njB\xA5\xF6\xC2\x0B\xB9\xB63x\x7FM\x080\xEC\xB8I\x95\xDC\xA7\xA0dsolcC\0\x08\x18\x003",
     );
     /// The runtime bytecode of the contract, as deployed on the network.
     ///
     /// ```text
-    ///0x608060405234801561001057600080fd5b50600436106100ea5760003560e01c806385226c811161008c578063b5508aa911610066578063b5508aa9146101d1578063ba414fa6146101d9578063e20c9f71146101f1578063fa7626d4146101f957600080fd5b806385226c811461019f578063916a17c6146101b4578063b0464fdc146101c957600080fd5b80633e5e3c23116100c85780633e5e3c23146101535780633f7286f41461015b57806364d4c8191461016357806366d9a9a01461018a57600080fd5b806304622c2e146100ef5780631ed7831c146101295780632ade38801461013e575b600080fd5b6101167f9ac997416e8ff9d2ff6bebeb7149f65cdae5e32e2b90440b566bb3044041d36a81565b6040519081526020015b60405180910390f35b610131610206565b6040516101209190610b11565b610146610275565b6040516101209190610bcf565b6101316103c4565b610131610431565b6101167f8cad95687ba82c2ce50e74f7b754645e5117c3a5bec8151c0726d5857980a86681565b61019261049e565b6040516101209190610d36565b6101a7610620565b6040516101209190610ddb565b6101bc6106f0565b6040516101209190610e5d565b6101bc6107f8565b6101a7610900565b6101e16109d0565b6040519015158152602001610120565b610131610aa4565b601f546101e19060ff1681565b6060601680548060200260200160405190810160405280929190818152602001828054801561026b57602002820191906000526020600020905b815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610240575b5050505050905090565b6060601e805480602002602001604051908101604052809291908181526020016000905b828210156103bb576000848152602080822060408051808201825260028702909201805473ffffffffffffffffffffffffffffffffffffffff168352600181018054835181870281018701909452808452939591948681019491929084015b828210156103a457838290600052602060002001805461031790610ef9565b80601f016020809104026020016040519081016040528092919081815260200182805461034390610ef9565b80156103905780601f1061036557610100808354040283529160200191610390565b820191906000526020600020905b81548152906001019060200180831161037357829003601f168201915b5050505050815260200190600101906102f8565b505050508152505081526020019060010190610299565b50505050905090565b6060601880548060200260200160405190810160405280929190818152602001828054801561026b5760200282019190600052602060002090815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610240575050505050905090565b6060601780548060200260200160405190810160405280929190818152602001828054801561026b5760200282019190600052602060002090815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610240575050505050905090565b6060601b805480602002602001604051908101604052809291908181526020016000905b828210156103bb57838290600052602060002090600202016040518060400160405290816000820180546104f590610ef9565b80601f016020809104026020016040519081016040528092919081815260200182805461052190610ef9565b801561056e5780601f106105435761010080835404028352916020019161056e565b820191906000526020600020905b81548152906001019060200180831161055157829003601f168201915b505050505081526020016001820180548060200260200160405190810160405280929190818152602001828054801561060857602002820191906000526020600020906000905b82829054906101000a900460e01b7bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916815260200190600401906020826003010492830192600103820291508084116105b55790505b505050505081525050815260200190600101906104c2565b6060601a805480602002602001604051908101604052809291908181526020016000905b828210156103bb57838290600052602060002001805461066390610ef9565b80601f016020809104026020016040519081016040528092919081815260200182805461068f90610ef9565b80156106dc5780601f106106b1576101008083540402835291602001916106dc565b820191906000526020600020905b8154815290600101906020018083116106bf57829003601f168201915b505050505081526020019060010190610644565b6060601d805480602002602001604051908101604052809291908181526020016000905b828210156103bb57600084815260209081902060408051808201825260028602909201805473ffffffffffffffffffffffffffffffffffffffff1683526001810180548351818702810187019094528084529394919385830193928301828280156107e057602002820191906000526020600020906000905b82829054906101000a900460e01b7bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19168152602001906004019060208260030104928301926001038202915080841161078d5790505b50505050508152505081526020019060010190610714565b6060601c805480602002602001604051908101604052809291908181526020016000905b828210156103bb57600084815260209081902060408051808201825260028602909201805473ffffffffffffffffffffffffffffffffffffffff1683526001810180548351818702810187019094528084529394919385830193928301828280156108e857602002820191906000526020600020906000905b82829054906101000a900460e01b7bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916815260200190600401906020826003010492830192600103820291508084116108955790505b5050505050815250508152602001906001019061081c565b60606019805480602002602001604051908101604052809291908181526020016000905b828210156103bb57838290600052602060002001805461094390610ef9565b80601f016020809104026020016040519081016040528092919081815260200182805461096f90610ef9565b80156109bc5780601f10610991576101008083540402835291602001916109bc565b820191906000526020600020905b81548152906001019060200180831161099f57829003601f168201915b505050505081526020019060010190610924565b60085460009060ff16156109e8575060085460ff1690565b6040517f667f9d70000000000000000000000000000000000000000000000000000000008152737109709ecfa91a80626ff3989d68f67f5b1dd12d600482018190527f6661696c65640000000000000000000000000000000000000000000000000000602483015260009163667f9d7090604401602060405180830381865afa158015610a79573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610a9d9190610f4c565b1415905090565b6060601580548060200260200160405190810160405280929190818152602001828054801561026b5760200282019190600052602060002090815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610240575050505050905090565b6020808252825182820181905260009190848201906040850190845b81811015610b5f57835173ffffffffffffffffffffffffffffffffffffffff1683529284019291840191600101610b2d565b50909695505050505050565b6000815180845260005b81811015610b9157602081850181015186830182015201610b75565b5060006020828601015260207fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f83011685010191505092915050565b602080825282518282018190526000919060409081850190600581811b8701840188860187805b85811015610cc8577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc08b85030187528251805173ffffffffffffffffffffffffffffffffffffffff1685528901518985018990528051898601819052908a0190606081881b870181019190870190855b81811015610cb2577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa0898503018352610ca0848651610b6b565b948e01949350918d0191600101610c66565b505050978a019794505091880191600101610bf6565b50919a9950505050505050505050565b60008151808452602080850194506020840160005b83811015610d2b5781517fffffffff000000000000000000000000000000000000000000000000000000001687529582019590820190600101610ced565b509495945050505050565b600060208083018184528085518083526040925060408601915060408160051b87010184880160005b83811015610dcd577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc089840301855281518051878552610da188860182610b6b565b91890151858303868b0152919050610db98183610cd8565b968901969450505090860190600101610d5f565b509098975050505050505050565b600060208083016020845280855180835260408601915060408160051b87010192506020870160005b82811015610e50577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc0888603018452610e3e858351610b6b565b94509285019290850190600101610e04565b5092979650505050505050565b600060208083018184528085518083526040925060408601915060408160051b87010184880160005b83811015610dcd578883037fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc00185528151805173ffffffffffffffffffffffffffffffffffffffff168452870151878401879052610ee687850182610cd8565b9588019593505090860190600101610e86565b600181811c90821680610f0d57607f821691505b602082108103610f46577f4e487b7100000000000000000000000000000000000000000000000000000000600052602260045260246000fd5b50919050565b600060208284031215610f5e57600080fd5b505191905056fea264697066735822122026d939e7d9dd41d878bf01c5cab20688fed635637c6ca152757ad4ebec5dc76d64736f6c63430008180033
+    ///0x608060405234801561000f575f80fd5b50600436106100e5575f3560e01c806385226c8111610088578063b5508aa911610063578063b5508aa9146101cb578063ba414fa6146101d3578063e20c9f71146101eb578063fa7626d4146101f3575f80fd5b806385226c8114610199578063916a17c6146101ae578063b0464fdc146101c3575f80fd5b80633e5e3c23116100c35780633e5e3c231461014d5780633f7286f41461015557806364d4c8191461015d57806366d9a9a014610184575f80fd5b806304622c2e146100e95780631ed7831c146101235780632ade388014610138575b5f80fd5b6101107f9ac997416e8ff9d2ff6bebeb7149f65cdae5e32e2b90440b566bb3044041d36a81565b6040519081526020015b60405180910390f35b61012b610200565b60405161011a9190610adc565b61014061026d565b60405161011a9190610b96565b61012b6103b6565b61012b610421565b6101107f8cad95687ba82c2ce50e74f7b754645e5117c3a5bec8151c0726d5857980a86681565b61018c61048c565b60405161011a9190610cf8565b6101a1610605565b60405161011a9190610d9b565b6101b66106d0565b60405161011a9190610e1b565b6101b66107d3565b6101a16108d6565b6101db6109a1565b604051901515815260200161011a565b61012b610a71565b601f546101db9060ff1681565b6060601680548060200260200160405190810160405280929190818152602001828054801561026357602002820191905f5260205f20905b815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610238575b5050505050905090565b6060601e805480602002602001604051908101604052809291908181526020015f905b828210156103ad575f848152602080822060408051808201825260028702909201805473ffffffffffffffffffffffffffffffffffffffff168352600181018054835181870281018701909452808452939591948681019491929084015b82821015610396578382905f5260205f2001805461030b90610eb5565b80601f016020809104026020016040519081016040528092919081815260200182805461033790610eb5565b80156103825780601f1061035957610100808354040283529160200191610382565b820191905f5260205f20905b81548152906001019060200180831161036557829003601f168201915b5050505050815260200190600101906102ee565b505050508152505081526020019060010190610290565b50505050905090565b6060601880548060200260200160405190810160405280929190818152602001828054801561026357602002820191905f5260205f2090815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610238575050505050905090565b6060601780548060200260200160405190810160405280929190818152602001828054801561026357602002820191905f5260205f2090815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610238575050505050905090565b6060601b805480602002602001604051908101604052809291908181526020015f905b828210156103ad578382905f5260205f2090600202016040518060400160405290815f820180546104df90610eb5565b80601f016020809104026020016040519081016040528092919081815260200182805461050b90610eb5565b80156105565780601f1061052d57610100808354040283529160200191610556565b820191905f5260205f20905b81548152906001019060200180831161053957829003601f168201915b50505050508152602001600182018054806020026020016040519081016040528092919081815260200182805480156105ed57602002820191905f5260205f20905f905b82829054906101000a900460e01b7bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19168152602001906004019060208260030104928301926001038202915080841161059a5790505b505050505081525050815260200190600101906104af565b6060601a805480602002602001604051908101604052809291908181526020015f905b828210156103ad578382905f5260205f2001805461064590610eb5565b80601f016020809104026020016040519081016040528092919081815260200182805461067190610eb5565b80156106bc5780601f10610693576101008083540402835291602001916106bc565b820191905f5260205f20905b81548152906001019060200180831161069f57829003601f168201915b505050505081526020019060010190610628565b6060601d805480602002602001604051908101604052809291908181526020015f905b828210156103ad575f84815260209081902060408051808201825260028602909201805473ffffffffffffffffffffffffffffffffffffffff1683526001810180548351818702810187019094528084529394919385830193928301828280156107bb57602002820191905f5260205f20905f905b82829054906101000a900460e01b7bffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916815260200190600401906020826003010492830192600103820291508084116107685790505b505050505081525050815260200190600101906106f3565b6060601c805480602002602001604051908101604052809291908181526020015f905b828210156103ad575f84815260209081902060408051808201825260028602909201805473ffffffffffffffffffffffffffffffffffffffff1683526001810180548351818702810187019094528084529394919385830193928301828280156108be57602002820191905f5260205f20905f905b82829054906101000a900460e01b7bffffffffffffffffffffffffffffffffffffffffffffffffffffffff19168152602001906004019060208260030104928301926001038202915080841161086b5790505b505050505081525050815260200190600101906107f6565b60606019805480602002602001604051908101604052809291908181526020015f905b828210156103ad578382905f5260205f2001805461091690610eb5565b80601f016020809104026020016040519081016040528092919081815260200182805461094290610eb5565b801561098d5780601f106109645761010080835404028352916020019161098d565b820191905f5260205f20905b81548152906001019060200180831161097057829003601f168201915b5050505050815260200190600101906108f9565b6008545f9060ff16156109b8575060085460ff1690565b6040517f667f9d70000000000000000000000000000000000000000000000000000000008152737109709ecfa91a80626ff3989d68f67f5b1dd12d600482018190527f6661696c6564000000000000000000000000000000000000000000000000000060248301525f9163667f9d7090604401602060405180830381865afa158015610a46573d5f803e3d5ffd5b505050506040513d601f19601f82011682018060405250810190610a6a9190610f06565b1415905090565b6060601580548060200260200160405190810160405280929190818152602001828054801561026357602002820191905f5260205f2090815473ffffffffffffffffffffffffffffffffffffffff168152600190910190602001808311610238575050505050905090565b602080825282518282018190525f9190848201906040850190845b81811015610b2957835173ffffffffffffffffffffffffffffffffffffffff1683529284019291840191600101610af7565b50909695505050505050565b5f81518084525f5b81811015610b5957602081850181015186830182015201610b3d565b505f6020828601015260207fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f83011685010191505092915050565b602080825282518282018190525f919060409081850190600581811b87018401888601875b84811015610c8d577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc08a84030186528151805173ffffffffffffffffffffffffffffffffffffffff168452880151888401889052805188850181905290890190606081871b8601810191908601905f5b81811015610c77577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa0888503018352610c65848651610b35565b948d01949350918c0191600101610c2b565b5050509689019693505090870190600101610bbb565b50909998505050505050505050565b5f815180845260208085019450602084015f5b83811015610ced5781517fffffffff000000000000000000000000000000000000000000000000000000001687529582019590820190600101610caf565b509495945050505050565b5f60208083018184528085518083526040925060408601915060408160051b8701018488015f5b83811015610d8d577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc089840301855281518051878552610d6188860182610b35565b91890151858303868b0152919050610d798183610c9c565b968901969450505090860190600101610d1f565b509098975050505050505050565b5f60208083016020845280855180835260408601915060408160051b8701019250602087015f5b82811015610e0e577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc0888603018452610dfc858351610b35565b94509285019290850190600101610dc2565b5092979650505050505050565b5f60208083018184528085518083526040925060408601915060408160051b8701018488015f5b83811015610d8d578883037fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc00185528151805173ffffffffffffffffffffffffffffffffffffffff168452870151878401879052610ea287850182610c9c565b9588019593505090860190600101610e42565b600181811c90821680610ec957607f821691505b602082108103610f00577f4e487b71000000000000000000000000000000000000000000000000000000005f52602260045260245ffd5b50919050565b5f60208284031215610f16575f80fd5b505191905056fea2646970667358221220b72d199ce0ced8535f126e6a42a5f6c20bb9b633787f4d0830ecb84995dca7a064736f6c63430008180033
     /// ```
     #[rustfmt::skip]
     #[allow(clippy::all)]
     pub static DEPLOYED_BYTECODE: alloy_sol_types::private::Bytes = alloy_sol_types::private::Bytes::from_static(
-        b"`\x80`@R4\x80\x15a\0\x10W`\0\x80\xFD[P`\x046\x10a\0\xEAW`\x005`\xE0\x1C\x80c\x85\"l\x81\x11a\0\x8CW\x80c\xB5P\x8A\xA9\x11a\0fW\x80c\xB5P\x8A\xA9\x14a\x01\xD1W\x80c\xBAAO\xA6\x14a\x01\xD9W\x80c\xE2\x0C\x9Fq\x14a\x01\xF1W\x80c\xFAv&\xD4\x14a\x01\xF9W`\0\x80\xFD[\x80c\x85\"l\x81\x14a\x01\x9FW\x80c\x91j\x17\xC6\x14a\x01\xB4W\x80c\xB0FO\xDC\x14a\x01\xC9W`\0\x80\xFD[\x80c>^<#\x11a\0\xC8W\x80c>^<#\x14a\x01SW\x80c?r\x86\xF4\x14a\x01[W\x80cd\xD4\xC8\x19\x14a\x01cW\x80cf\xD9\xA9\xA0\x14a\x01\x8AW`\0\x80\xFD[\x80c\x04b,.\x14a\0\xEFW\x80c\x1E\xD7\x83\x1C\x14a\x01)W\x80c*\xDE8\x80\x14a\x01>W[`\0\x80\xFD[a\x01\x16\x7F\x9A\xC9\x97An\x8F\xF9\xD2\xFFk\xEB\xEBqI\xF6\\\xDA\xE5\xE3.+\x90D\x0BVk\xB3\x04@A\xD3j\x81V[`@Q\x90\x81R` \x01[`@Q\x80\x91\x03\x90\xF3[a\x011a\x02\x06V[`@Qa\x01 \x91\x90a\x0B\x11V[a\x01Fa\x02uV[`@Qa\x01 \x91\x90a\x0B\xCFV[a\x011a\x03\xC4V[a\x011a\x041V[a\x01\x16\x7F\x8C\xAD\x95h{\xA8,,\xE5\x0Et\xF7\xB7Td^Q\x17\xC3\xA5\xBE\xC8\x15\x1C\x07&\xD5\x85y\x80\xA8f\x81V[a\x01\x92a\x04\x9EV[`@Qa\x01 \x91\x90a\r6V[a\x01\xA7a\x06 V[`@Qa\x01 \x91\x90a\r\xDBV[a\x01\xBCa\x06\xF0V[`@Qa\x01 \x91\x90a\x0E]V[a\x01\xBCa\x07\xF8V[a\x01\xA7a\t\0V[a\x01\xE1a\t\xD0V[`@Q\x90\x15\x15\x81R` \x01a\x01 V[a\x011a\n\xA4V[`\x1FTa\x01\xE1\x90`\xFF\x16\x81V[```\x16\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02kW` \x02\x82\x01\x91\x90`\0R` `\0 \x90[\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x02@W[PPPPP\x90P\x90V[```\x1E\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01`\0\x90[\x82\x82\x10\x15a\x03\xBBW`\0\x84\x81R` \x80\x82 `@\x80Q\x80\x82\x01\x82R`\x02\x87\x02\x90\x92\x01\x80Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R`\x01\x81\x01\x80T\x83Q\x81\x87\x02\x81\x01\x87\x01\x90\x94R\x80\x84R\x93\x95\x91\x94\x86\x81\x01\x94\x91\x92\x90\x84\x01[\x82\x82\x10\x15a\x03\xA4W\x83\x82\x90`\0R` `\0 \x01\x80Ta\x03\x17\x90a\x0E\xF9V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\x03C\x90a\x0E\xF9V[\x80\x15a\x03\x90W\x80`\x1F\x10a\x03eWa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\x03\x90V[\x82\x01\x91\x90`\0R` `\0 \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\x03sW\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01\x90`\x01\x01\x90a\x02\xF8V[PPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x02\x99V[PPPP\x90P\x90V[```\x18\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02kW` \x02\x82\x01\x91\x90`\0R` `\0 \x90\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x02@WPPPPP\x90P\x90V[```\x17\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02kW` \x02\x82\x01\x91\x90`\0R` `\0 \x90\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x02@WPPPPP\x90P\x90V[```\x1B\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01`\0\x90[\x82\x82\x10\x15a\x03\xBBW\x83\x82\x90`\0R` `\0 \x90`\x02\x02\x01`@Q\x80`@\x01`@R\x90\x81`\0\x82\x01\x80Ta\x04\xF5\x90a\x0E\xF9V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\x05!\x90a\x0E\xF9V[\x80\x15a\x05nW\x80`\x1F\x10a\x05CWa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\x05nV[\x82\x01\x91\x90`\0R` `\0 \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\x05QW\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01`\x01\x82\x01\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x06\x08W` \x02\x82\x01\x91\x90`\0R` `\0 \x90`\0\x90[\x82\x82\x90T\x90a\x01\0\n\x90\x04`\xE0\x1B{\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x16\x81R` \x01\x90`\x04\x01\x90` \x82`\x03\x01\x04\x92\x83\x01\x92`\x01\x03\x82\x02\x91P\x80\x84\x11a\x05\xB5W\x90P[PPPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x04\xC2V[```\x1A\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01`\0\x90[\x82\x82\x10\x15a\x03\xBBW\x83\x82\x90`\0R` `\0 \x01\x80Ta\x06c\x90a\x0E\xF9V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\x06\x8F\x90a\x0E\xF9V[\x80\x15a\x06\xDCW\x80`\x1F\x10a\x06\xB1Wa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\x06\xDCV[\x82\x01\x91\x90`\0R` `\0 \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\x06\xBFW\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01\x90`\x01\x01\x90a\x06DV[```\x1D\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01`\0\x90[\x82\x82\x10\x15a\x03\xBBW`\0\x84\x81R` \x90\x81\x90 `@\x80Q\x80\x82\x01\x82R`\x02\x86\x02\x90\x92\x01\x80Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R`\x01\x81\x01\x80T\x83Q\x81\x87\x02\x81\x01\x87\x01\x90\x94R\x80\x84R\x93\x94\x91\x93\x85\x83\x01\x93\x92\x83\x01\x82\x82\x80\x15a\x07\xE0W` \x02\x82\x01\x91\x90`\0R` `\0 \x90`\0\x90[\x82\x82\x90T\x90a\x01\0\n\x90\x04`\xE0\x1B{\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x16\x81R` \x01\x90`\x04\x01\x90` \x82`\x03\x01\x04\x92\x83\x01\x92`\x01\x03\x82\x02\x91P\x80\x84\x11a\x07\x8DW\x90P[PPPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x07\x14V[```\x1C\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01`\0\x90[\x82\x82\x10\x15a\x03\xBBW`\0\x84\x81R` \x90\x81\x90 `@\x80Q\x80\x82\x01\x82R`\x02\x86\x02\x90\x92\x01\x80Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R`\x01\x81\x01\x80T\x83Q\x81\x87\x02\x81\x01\x87\x01\x90\x94R\x80\x84R\x93\x94\x91\x93\x85\x83\x01\x93\x92\x83\x01\x82\x82\x80\x15a\x08\xE8W` \x02\x82\x01\x91\x90`\0R` `\0 \x90`\0\x90[\x82\x82\x90T\x90a\x01\0\n\x90\x04`\xE0\x1B{\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x16\x81R` \x01\x90`\x04\x01\x90` \x82`\x03\x01\x04\x92\x83\x01\x92`\x01\x03\x82\x02\x91P\x80\x84\x11a\x08\x95W\x90P[PPPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x08\x1CV[```\x19\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01`\0\x90[\x82\x82\x10\x15a\x03\xBBW\x83\x82\x90`\0R` `\0 \x01\x80Ta\tC\x90a\x0E\xF9V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\to\x90a\x0E\xF9V[\x80\x15a\t\xBCW\x80`\x1F\x10a\t\x91Wa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\t\xBCV[\x82\x01\x91\x90`\0R` `\0 \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\t\x9FW\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01\x90`\x01\x01\x90a\t$V[`\x08T`\0\x90`\xFF\x16\x15a\t\xE8WP`\x08T`\xFF\x16\x90V[`@Q\x7Ff\x7F\x9Dp\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x81Rsq\tp\x9E\xCF\xA9\x1A\x80bo\xF3\x98\x9Dh\xF6\x7F[\x1D\xD1-`\x04\x82\x01\x81\x90R\x7Ffailed\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0`$\x83\x01R`\0\x91cf\x7F\x9Dp\x90`D\x01` `@Q\x80\x83\x03\x81\x86Z\xFA\x15\x80\x15a\nyW=`\0\x80>=`\0\xFD[PPPP`@Q=`\x1F\x19`\x1F\x82\x01\x16\x82\x01\x80`@RP\x81\x01\x90a\n\x9D\x91\x90a\x0FLV[\x14\x15\x90P\x90V[```\x15\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02kW` \x02\x82\x01\x91\x90`\0R` `\0 \x90\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x02@WPPPPP\x90P\x90V[` \x80\x82R\x82Q\x82\x82\x01\x81\x90R`\0\x91\x90\x84\x82\x01\x90`@\x85\x01\x90\x84[\x81\x81\x10\x15a\x0B_W\x83Qs\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R\x92\x84\x01\x92\x91\x84\x01\x91`\x01\x01a\x0B-V[P\x90\x96\x95PPPPPPV[`\0\x81Q\x80\x84R`\0[\x81\x81\x10\x15a\x0B\x91W` \x81\x85\x01\x81\x01Q\x86\x83\x01\x82\x01R\x01a\x0BuV[P`\0` \x82\x86\x01\x01R` \x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xE0`\x1F\x83\x01\x16\x85\x01\x01\x91PP\x92\x91PPV[` \x80\x82R\x82Q\x82\x82\x01\x81\x90R`\0\x91\x90`@\x90\x81\x85\x01\x90`\x05\x81\x81\x1B\x87\x01\x84\x01\x88\x86\x01\x87\x80[\x85\x81\x10\x15a\x0C\xC8W\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x8B\x85\x03\x01\x87R\x82Q\x80Qs\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x85R\x89\x01Q\x89\x85\x01\x89\x90R\x80Q\x89\x86\x01\x81\x90R\x90\x8A\x01\x90``\x81\x88\x1B\x87\x01\x81\x01\x91\x90\x87\x01\x90\x85[\x81\x81\x10\x15a\x0C\xB2W\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xA0\x89\x85\x03\x01\x83Ra\x0C\xA0\x84\x86Qa\x0BkV[\x94\x8E\x01\x94\x93P\x91\x8D\x01\x91`\x01\x01a\x0CfV[PPP\x97\x8A\x01\x97\x94PP\x91\x88\x01\x91`\x01\x01a\x0B\xF6V[P\x91\x9A\x99PPPPPPPPPPV[`\0\x81Q\x80\x84R` \x80\x85\x01\x94P` \x84\x01`\0[\x83\x81\x10\x15a\r+W\x81Q\x7F\xFF\xFF\xFF\xFF\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x16\x87R\x95\x82\x01\x95\x90\x82\x01\x90`\x01\x01a\x0C\xEDV[P\x94\x95\x94PPPPPV[`\0` \x80\x83\x01\x81\x84R\x80\x85Q\x80\x83R`@\x92P`@\x86\x01\x91P`@\x81`\x05\x1B\x87\x01\x01\x84\x88\x01`\0[\x83\x81\x10\x15a\r\xCDW\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x89\x84\x03\x01\x85R\x81Q\x80Q\x87\x85Ra\r\xA1\x88\x86\x01\x82a\x0BkV[\x91\x89\x01Q\x85\x83\x03\x86\x8B\x01R\x91\x90Pa\r\xB9\x81\x83a\x0C\xD8V[\x96\x89\x01\x96\x94PPP\x90\x86\x01\x90`\x01\x01a\r_V[P\x90\x98\x97PPPPPPPPV[`\0` \x80\x83\x01` \x84R\x80\x85Q\x80\x83R`@\x86\x01\x91P`@\x81`\x05\x1B\x87\x01\x01\x92P` \x87\x01`\0[\x82\x81\x10\x15a\x0EPW\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x88\x86\x03\x01\x84Ra\x0E>\x85\x83Qa\x0BkV[\x94P\x92\x85\x01\x92\x90\x85\x01\x90`\x01\x01a\x0E\x04V[P\x92\x97\x96PPPPPPPV[`\0` \x80\x83\x01\x81\x84R\x80\x85Q\x80\x83R`@\x92P`@\x86\x01\x91P`@\x81`\x05\x1B\x87\x01\x01\x84\x88\x01`\0[\x83\x81\x10\x15a\r\xCDW\x88\x83\x03\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x01\x85R\x81Q\x80Qs\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x84R\x87\x01Q\x87\x84\x01\x87\x90Ra\x0E\xE6\x87\x85\x01\x82a\x0C\xD8V[\x95\x88\x01\x95\x93PP\x90\x86\x01\x90`\x01\x01a\x0E\x86V[`\x01\x81\x81\x1C\x90\x82\x16\x80a\x0F\rW`\x7F\x82\x16\x91P[` \x82\x10\x81\x03a\x0FFW\x7FNH{q\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0`\0R`\"`\x04R`$`\0\xFD[P\x91\x90PV[`\0` \x82\x84\x03\x12\x15a\x0F^W`\0\x80\xFD[PQ\x91\x90PV\xFE\xA2dipfsX\"\x12 &\xD99\xE7\xD9\xDDA\xD8x\xBF\x01\xC5\xCA\xB2\x06\x88\xFE\xD65c|l\xA1Ruz\xD4\xEB\xEC]\xC7mdsolcC\0\x08\x18\x003",
+        b"`\x80`@R4\x80\x15a\0\x0FW_\x80\xFD[P`\x046\x10a\0\xE5W_5`\xE0\x1C\x80c\x85\"l\x81\x11a\0\x88W\x80c\xB5P\x8A\xA9\x11a\0cW\x80c\xB5P\x8A\xA9\x14a\x01\xCBW\x80c\xBAAO\xA6\x14a\x01\xD3W\x80c\xE2\x0C\x9Fq\x14a\x01\xEBW\x80c\xFAv&\xD4\x14a\x01\xF3W_\x80\xFD[\x80c\x85\"l\x81\x14a\x01\x99W\x80c\x91j\x17\xC6\x14a\x01\xAEW\x80c\xB0FO\xDC\x14a\x01\xC3W_\x80\xFD[\x80c>^<#\x11a\0\xC3W\x80c>^<#\x14a\x01MW\x80c?r\x86\xF4\x14a\x01UW\x80cd\xD4\xC8\x19\x14a\x01]W\x80cf\xD9\xA9\xA0\x14a\x01\x84W_\x80\xFD[\x80c\x04b,.\x14a\0\xE9W\x80c\x1E\xD7\x83\x1C\x14a\x01#W\x80c*\xDE8\x80\x14a\x018W[_\x80\xFD[a\x01\x10\x7F\x9A\xC9\x97An\x8F\xF9\xD2\xFFk\xEB\xEBqI\xF6\\\xDA\xE5\xE3.+\x90D\x0BVk\xB3\x04@A\xD3j\x81V[`@Q\x90\x81R` \x01[`@Q\x80\x91\x03\x90\xF3[a\x01+a\x02\0V[`@Qa\x01\x1A\x91\x90a\n\xDCV[a\x01@a\x02mV[`@Qa\x01\x1A\x91\x90a\x0B\x96V[a\x01+a\x03\xB6V[a\x01+a\x04!V[a\x01\x10\x7F\x8C\xAD\x95h{\xA8,,\xE5\x0Et\xF7\xB7Td^Q\x17\xC3\xA5\xBE\xC8\x15\x1C\x07&\xD5\x85y\x80\xA8f\x81V[a\x01\x8Ca\x04\x8CV[`@Qa\x01\x1A\x91\x90a\x0C\xF8V[a\x01\xA1a\x06\x05V[`@Qa\x01\x1A\x91\x90a\r\x9BV[a\x01\xB6a\x06\xD0V[`@Qa\x01\x1A\x91\x90a\x0E\x1BV[a\x01\xB6a\x07\xD3V[a\x01\xA1a\x08\xD6V[a\x01\xDBa\t\xA1V[`@Q\x90\x15\x15\x81R` \x01a\x01\x1AV[a\x01+a\nqV[`\x1FTa\x01\xDB\x90`\xFF\x16\x81V[```\x16\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02cW` \x02\x82\x01\x91\x90_R` _ \x90[\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x028W[PPPPP\x90P\x90V[```\x1E\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01_\x90[\x82\x82\x10\x15a\x03\xADW_\x84\x81R` \x80\x82 `@\x80Q\x80\x82\x01\x82R`\x02\x87\x02\x90\x92\x01\x80Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R`\x01\x81\x01\x80T\x83Q\x81\x87\x02\x81\x01\x87\x01\x90\x94R\x80\x84R\x93\x95\x91\x94\x86\x81\x01\x94\x91\x92\x90\x84\x01[\x82\x82\x10\x15a\x03\x96W\x83\x82\x90_R` _ \x01\x80Ta\x03\x0B\x90a\x0E\xB5V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\x037\x90a\x0E\xB5V[\x80\x15a\x03\x82W\x80`\x1F\x10a\x03YWa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\x03\x82V[\x82\x01\x91\x90_R` _ \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\x03eW\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01\x90`\x01\x01\x90a\x02\xEEV[PPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x02\x90V[PPPP\x90P\x90V[```\x18\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02cW` \x02\x82\x01\x91\x90_R` _ \x90\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x028WPPPPP\x90P\x90V[```\x17\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02cW` \x02\x82\x01\x91\x90_R` _ \x90\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x028WPPPPP\x90P\x90V[```\x1B\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01_\x90[\x82\x82\x10\x15a\x03\xADW\x83\x82\x90_R` _ \x90`\x02\x02\x01`@Q\x80`@\x01`@R\x90\x81_\x82\x01\x80Ta\x04\xDF\x90a\x0E\xB5V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\x05\x0B\x90a\x0E\xB5V[\x80\x15a\x05VW\x80`\x1F\x10a\x05-Wa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\x05VV[\x82\x01\x91\x90_R` _ \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\x059W\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01`\x01\x82\x01\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x05\xEDW` \x02\x82\x01\x91\x90_R` _ \x90_\x90[\x82\x82\x90T\x90a\x01\0\n\x90\x04`\xE0\x1B{\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x16\x81R` \x01\x90`\x04\x01\x90` \x82`\x03\x01\x04\x92\x83\x01\x92`\x01\x03\x82\x02\x91P\x80\x84\x11a\x05\x9AW\x90P[PPPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x04\xAFV[```\x1A\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01_\x90[\x82\x82\x10\x15a\x03\xADW\x83\x82\x90_R` _ \x01\x80Ta\x06E\x90a\x0E\xB5V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\x06q\x90a\x0E\xB5V[\x80\x15a\x06\xBCW\x80`\x1F\x10a\x06\x93Wa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\x06\xBCV[\x82\x01\x91\x90_R` _ \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\x06\x9FW\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01\x90`\x01\x01\x90a\x06(V[```\x1D\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01_\x90[\x82\x82\x10\x15a\x03\xADW_\x84\x81R` \x90\x81\x90 `@\x80Q\x80\x82\x01\x82R`\x02\x86\x02\x90\x92\x01\x80Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R`\x01\x81\x01\x80T\x83Q\x81\x87\x02\x81\x01\x87\x01\x90\x94R\x80\x84R\x93\x94\x91\x93\x85\x83\x01\x93\x92\x83\x01\x82\x82\x80\x15a\x07\xBBW` \x02\x82\x01\x91\x90_R` _ \x90_\x90[\x82\x82\x90T\x90a\x01\0\n\x90\x04`\xE0\x1B{\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x16\x81R` \x01\x90`\x04\x01\x90` \x82`\x03\x01\x04\x92\x83\x01\x92`\x01\x03\x82\x02\x91P\x80\x84\x11a\x07hW\x90P[PPPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x06\xF3V[```\x1C\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01_\x90[\x82\x82\x10\x15a\x03\xADW_\x84\x81R` \x90\x81\x90 `@\x80Q\x80\x82\x01\x82R`\x02\x86\x02\x90\x92\x01\x80Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R`\x01\x81\x01\x80T\x83Q\x81\x87\x02\x81\x01\x87\x01\x90\x94R\x80\x84R\x93\x94\x91\x93\x85\x83\x01\x93\x92\x83\x01\x82\x82\x80\x15a\x08\xBEW` \x02\x82\x01\x91\x90_R` _ \x90_\x90[\x82\x82\x90T\x90a\x01\0\n\x90\x04`\xE0\x1B{\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x16\x81R` \x01\x90`\x04\x01\x90` \x82`\x03\x01\x04\x92\x83\x01\x92`\x01\x03\x82\x02\x91P\x80\x84\x11a\x08kW\x90P[PPPPP\x81RPP\x81R` \x01\x90`\x01\x01\x90a\x07\xF6V[```\x19\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01_\x90[\x82\x82\x10\x15a\x03\xADW\x83\x82\x90_R` _ \x01\x80Ta\t\x16\x90a\x0E\xB5V[\x80`\x1F\x01` \x80\x91\x04\x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80Ta\tB\x90a\x0E\xB5V[\x80\x15a\t\x8DW\x80`\x1F\x10a\tdWa\x01\0\x80\x83T\x04\x02\x83R\x91` \x01\x91a\t\x8DV[\x82\x01\x91\x90_R` _ \x90[\x81T\x81R\x90`\x01\x01\x90` \x01\x80\x83\x11a\tpW\x82\x90\x03`\x1F\x16\x82\x01\x91[PPPPP\x81R` \x01\x90`\x01\x01\x90a\x08\xF9V[`\x08T_\x90`\xFF\x16\x15a\t\xB8WP`\x08T`\xFF\x16\x90V[`@Q\x7Ff\x7F\x9Dp\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x81Rsq\tp\x9E\xCF\xA9\x1A\x80bo\xF3\x98\x9Dh\xF6\x7F[\x1D\xD1-`\x04\x82\x01\x81\x90R\x7Ffailed\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0`$\x83\x01R_\x91cf\x7F\x9Dp\x90`D\x01` `@Q\x80\x83\x03\x81\x86Z\xFA\x15\x80\x15a\nFW=_\x80>=_\xFD[PPPP`@Q=`\x1F\x19`\x1F\x82\x01\x16\x82\x01\x80`@RP\x81\x01\x90a\nj\x91\x90a\x0F\x06V[\x14\x15\x90P\x90V[```\x15\x80T\x80` \x02` \x01`@Q\x90\x81\x01`@R\x80\x92\x91\x90\x81\x81R` \x01\x82\x80T\x80\x15a\x02cW` \x02\x82\x01\x91\x90_R` _ \x90\x81Ts\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x81R`\x01\x90\x91\x01\x90` \x01\x80\x83\x11a\x028WPPPPP\x90P\x90V[` \x80\x82R\x82Q\x82\x82\x01\x81\x90R_\x91\x90\x84\x82\x01\x90`@\x85\x01\x90\x84[\x81\x81\x10\x15a\x0B)W\x83Qs\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x83R\x92\x84\x01\x92\x91\x84\x01\x91`\x01\x01a\n\xF7V[P\x90\x96\x95PPPPPPV[_\x81Q\x80\x84R_[\x81\x81\x10\x15a\x0BYW` \x81\x85\x01\x81\x01Q\x86\x83\x01\x82\x01R\x01a\x0B=V[P_` \x82\x86\x01\x01R` \x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xE0`\x1F\x83\x01\x16\x85\x01\x01\x91PP\x92\x91PPV[` \x80\x82R\x82Q\x82\x82\x01\x81\x90R_\x91\x90`@\x90\x81\x85\x01\x90`\x05\x81\x81\x1B\x87\x01\x84\x01\x88\x86\x01\x87[\x84\x81\x10\x15a\x0C\x8DW\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x8A\x84\x03\x01\x86R\x81Q\x80Qs\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x84R\x88\x01Q\x88\x84\x01\x88\x90R\x80Q\x88\x85\x01\x81\x90R\x90\x89\x01\x90``\x81\x87\x1B\x86\x01\x81\x01\x91\x90\x86\x01\x90_[\x81\x81\x10\x15a\x0CwW\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xA0\x88\x85\x03\x01\x83Ra\x0Ce\x84\x86Qa\x0B5V[\x94\x8D\x01\x94\x93P\x91\x8C\x01\x91`\x01\x01a\x0C+V[PPP\x96\x89\x01\x96\x93PP\x90\x87\x01\x90`\x01\x01a\x0B\xBBV[P\x90\x99\x98PPPPPPPPPV[_\x81Q\x80\x84R` \x80\x85\x01\x94P` \x84\x01_[\x83\x81\x10\x15a\x0C\xEDW\x81Q\x7F\xFF\xFF\xFF\xFF\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x16\x87R\x95\x82\x01\x95\x90\x82\x01\x90`\x01\x01a\x0C\xAFV[P\x94\x95\x94PPPPPV[_` \x80\x83\x01\x81\x84R\x80\x85Q\x80\x83R`@\x92P`@\x86\x01\x91P`@\x81`\x05\x1B\x87\x01\x01\x84\x88\x01_[\x83\x81\x10\x15a\r\x8DW\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x89\x84\x03\x01\x85R\x81Q\x80Q\x87\x85Ra\ra\x88\x86\x01\x82a\x0B5V[\x91\x89\x01Q\x85\x83\x03\x86\x8B\x01R\x91\x90Pa\ry\x81\x83a\x0C\x9CV[\x96\x89\x01\x96\x94PPP\x90\x86\x01\x90`\x01\x01a\r\x1FV[P\x90\x98\x97PPPPPPPPV[_` \x80\x83\x01` \x84R\x80\x85Q\x80\x83R`@\x86\x01\x91P`@\x81`\x05\x1B\x87\x01\x01\x92P` \x87\x01_[\x82\x81\x10\x15a\x0E\x0EW\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x88\x86\x03\x01\x84Ra\r\xFC\x85\x83Qa\x0B5V[\x94P\x92\x85\x01\x92\x90\x85\x01\x90`\x01\x01a\r\xC2V[P\x92\x97\x96PPPPPPPV[_` \x80\x83\x01\x81\x84R\x80\x85Q\x80\x83R`@\x92P`@\x86\x01\x91P`@\x81`\x05\x1B\x87\x01\x01\x84\x88\x01_[\x83\x81\x10\x15a\r\x8DW\x88\x83\x03\x7F\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xC0\x01\x85R\x81Q\x80Qs\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x16\x84R\x87\x01Q\x87\x84\x01\x87\x90Ra\x0E\xA2\x87\x85\x01\x82a\x0C\x9CV[\x95\x88\x01\x95\x93PP\x90\x86\x01\x90`\x01\x01a\x0EBV[`\x01\x81\x81\x1C\x90\x82\x16\x80a\x0E\xC9W`\x7F\x82\x16\x91P[` \x82\x10\x81\x03a\x0F\0W\x7FNH{q\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0_R`\"`\x04R`$_\xFD[P\x91\x90PV[_` \x82\x84\x03\x12\x15a\x0F\x16W_\x80\xFD[PQ\x91\x90PV\xFE\xA2dipfsX\"\x12 \xB7-\x19\x9C\xE0\xCE\xD8S_\x12njB\xA5\xF6\xC2\x0B\xB9\xB63x\x7FM\x080\xEC\xB8I\x95\xDC\xA7\xA0dsolcC\0\x08\x18\x003",
     );
-    /**```solidity
-struct FuzzArtifactSelector { string artifact; bytes4[] selectors; }
-```*/
-    #[allow(non_camel_case_types, non_snake_case)]
-    #[derive(Clone)]
-    pub struct FuzzArtifactSelector {
-        pub artifact: alloy::sol_types::private::String,
-        pub selectors: alloy::sol_types::private::Vec<
-            alloy::sol_types::private::FixedBytes<4>,
-        >,
-    }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
-    const _: () = {
-        use alloy::sol_types as alloy_sol_types;
-        #[doc(hidden)]
-        type UnderlyingSolTuple<'a> = (
-            alloy::sol_types::sol_data::String,
-            alloy::sol_types::sol_data::Array<alloy::sol_types::sol_data::FixedBytes<4>>,
-        );
-        #[doc(hidden)]
-        type UnderlyingRustTuple<'a> = (
-            alloy::sol_types::private::String,
-            alloy::sol_types::private::Vec<alloy::sol_types::private::FixedBytes<4>>,
-        );
-        #[cfg(test)]
-        #[allow(dead_code, unreachable_patterns)]
-        fn _type_assertion(
-            _t: alloy_sol_types::private::AssertTypeEq<UnderlyingRustTuple>,
-        ) {
-            match _t {
-                alloy_sol_types::private::AssertTypeEq::<
-                    <UnderlyingSolTuple as alloy_sol_types::SolType>::RustType,
-                >(_) => {}
-            }
-        }
-        #[automatically_derived]
-        #[doc(hidden)]
-        impl ::core::convert::From<FuzzArtifactSelector> for UnderlyingRustTuple<'_> {
-            fn from(value: FuzzArtifactSelector) -> Self {
-                (value.artifact, value.selectors)
-            }
-        }
-        #[automatically_derived]
-        #[doc(hidden)]
-        impl ::core::convert::From<UnderlyingRustTuple<'_>> for FuzzArtifactSelector {
-            fn from(tuple: UnderlyingRustTuple<'_>) -> Self {
-                Self {
-                    artifact: tuple.0,
-                    selectors: tuple.1,
-                }
-            }
-        }
-        #[automatically_derived]
-        impl alloy_sol_types::SolValue for FuzzArtifactSelector {
-            type SolType = Self;
-        }
-        #[automatically_derived]
-        impl alloy_sol_types::private::SolTypeValue<Self> for FuzzArtifactSelector {
-            #[inline]
-            fn stv_to_tokens(&self) -> <Self as alloy_sol_types::SolType>::Token<'_> {
-                (
-                    <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::tokenize(
-                        &self.artifact,
-                    ),
-                    <alloy::sol_types::sol_data::Array<
-                        alloy::sol_types::sol_data::FixedBytes<4>,
-                    > as alloy_sol_types::SolType>::tokenize(&self.selectors),
-                )
-            }
-            #[inline]
-            fn stv_abi_encoded_size(&self) -> usize {
-                if let Some(size) = <Self as alloy_sol_types::SolType>::ENCODED_SIZE {
-                    return size;
-                }
-                let tuple = <UnderlyingRustTuple<
-                    '_,
-                > as ::core::convert::From<Self>>::from(self.clone());
-                <UnderlyingSolTuple<
-                    '_,
-                > as alloy_sol_types::SolType>::abi_encoded_size(&tuple)
-            }
-            #[inline]
-            fn stv_eip712_data_word(&self) -> alloy_sol_types::Word {
-                <Self as alloy_sol_types::SolStruct>::eip712_hash_struct(self)
-            }
-            #[inline]
-            fn stv_abi_encode_packed_to(
-                &self,
-                out: &mut alloy_sol_types::private::Vec<u8>,
-            ) {
-                let tuple = <UnderlyingRustTuple<
-                    '_,
-                > as ::core::convert::From<Self>>::from(self.clone());
-                <UnderlyingSolTuple<
-                    '_,
-                > as alloy_sol_types::SolType>::abi_encode_packed_to(&tuple, out)
-            }
-            #[inline]
-            fn stv_abi_packed_encoded_size(&self) -> usize {
-                if let Some(size) = <Self as alloy_sol_types::SolType>::PACKED_ENCODED_SIZE {
-                    return size;
-                }
-                let tuple = <UnderlyingRustTuple<
-                    '_,
-                > as ::core::convert::From<Self>>::from(self.clone());
-                <UnderlyingSolTuple<
-                    '_,
-                > as alloy_sol_types::SolType>::abi_packed_encoded_size(&tuple)
-            }
-        }
-        #[automatically_derived]
-        impl alloy_sol_types::SolType for FuzzArtifactSelector {
-            type RustType = Self;
-            type Token<'a> = <UnderlyingSolTuple<
-                'a,
-            > as alloy_sol_types::SolType>::Token<'a>;
-            const SOL_NAME: &'static str = <Self as alloy_sol_types::SolStruct>::NAME;
-            const ENCODED_SIZE: Option<usize> = <UnderlyingSolTuple<
-                '_,
-            > as alloy_sol_types::SolType>::ENCODED_SIZE;
-            const PACKED_ENCODED_SIZE: Option<usize> = <UnderlyingSolTuple<
-                '_,
-            > as alloy_sol_types::SolType>::PACKED_ENCODED_SIZE;
-            #[inline]
-            fn valid_token(token: &Self::Token<'_>) -> bool {
-                <UnderlyingSolTuple<'_> as alloy_sol_types::SolType>::valid_token(token)
-            }
-            #[inline]
-            fn detokenize(token: Self::Token<'_>) -> Self::RustType {
-                let tuple = <UnderlyingSolTuple<
-                    '_,
-                > as alloy_sol_types::SolType>::detokenize(token);
-                <Self as ::core::convert::From<UnderlyingRustTuple<'_>>>::from(tuple)
-            }
-        }
-        #[automatically_derived]
-        impl alloy_sol_types::SolStruct for FuzzArtifactSelector {
-            const NAME: &'static str = "FuzzArtifactSelector";
-            #[inline]
-            fn eip712_root_type() -> alloy_sol_types::private::Cow<'static, str> {
-                alloy_sol_types::private::Cow::Borrowed(
-                    "FuzzArtifactSelector(string artifact,bytes4[] selectors)",
-                )
-            }
-            #[inline]
-            fn eip712_components() -> alloy_sol_types::private::Vec<
-                alloy_sol_types::private::Cow<'static, str>,
-            > {
-                alloy_sol_types::private::Vec::new()
-            }
-            #[inline]
-            fn eip712_encode_type() -> alloy_sol_types::private::Cow<'static, str> {
-                <Self as alloy_sol_types::SolStruct>::eip712_root_type()
-            }
-            #[inline]
-            fn eip712_encode_data(&self) -> alloy_sol_types::private::Vec<u8> {
-                [
-                    <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::eip712_data_word(
-                            &self.artifact,
-                        )
-                        .0,
-                    <alloy::sol_types::sol_data::Array<
-                        alloy::sol_types::sol_data::FixedBytes<4>,
-                    > as alloy_sol_types::SolType>::eip712_data_word(&self.selectors)
-                        .0,
-                ]
-                    .concat()
-            }
-        }
-        #[automatically_derived]
-        impl alloy_sol_types::EventTopic for FuzzArtifactSelector {
-            #[inline]
-            fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::String as alloy_sol_types::EventTopic>::topic_preimage_length(
-                        &rust.artifact,
-                    )
-                    + <alloy::sol_types::sol_data::Array<
-                        alloy::sol_types::sol_data::FixedBytes<4>,
-                    > as alloy_sol_types::EventTopic>::topic_preimage_length(
-                        &rust.selectors,
-                    )
-            }
-            #[inline]
-            fn encode_topic_preimage(
-                rust: &Self::RustType,
-                out: &mut alloy_sol_types::private::Vec<u8>,
-            ) {
-                out.reserve(
-                    <Self as alloy_sol_types::EventTopic>::topic_preimage_length(rust),
-                );
-                <alloy::sol_types::sol_data::String as alloy_sol_types::EventTopic>::encode_topic_preimage(
-                    &rust.artifact,
-                    out,
-                );
-                <alloy::sol_types::sol_data::Array<
-                    alloy::sol_types::sol_data::FixedBytes<4>,
-                > as alloy_sol_types::EventTopic>::encode_topic_preimage(
-                    &rust.selectors,
-                    out,
-                );
-            }
-            #[inline]
-            fn encode_topic(
-                rust: &Self::RustType,
-            ) -> alloy_sol_types::abi::token::WordToken {
-                let mut out = alloy_sol_types::private::Vec::new();
-                <Self as alloy_sol_types::EventTopic>::encode_topic_preimage(
-                    rust,
-                    &mut out,
-                );
-                alloy_sol_types::abi::token::WordToken(
-                    alloy_sol_types::private::keccak256(out),
-                )
-            }
-        }
-    };
-    /**```solidity
-struct FuzzInterface { address addr; string[] artifacts; }
-```*/
-    #[allow(non_camel_case_types, non_snake_case)]
-    #[derive(Clone)]
-    pub struct FuzzInterface {
-        pub addr: alloy::sol_types::private::Address,
-        pub artifacts: alloy::sol_types::private::Vec<alloy::sol_types::private::String>,
-    }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
-    const _: () = {
-        use alloy::sol_types as alloy_sol_types;
-        #[doc(hidden)]
-        type UnderlyingSolTuple<'a> = (
-            alloy::sol_types::sol_data::Address,
-            alloy::sol_types::sol_data::Array<alloy::sol_types::sol_data::String>,
-        );
-        #[doc(hidden)]
-        type UnderlyingRustTuple<'a> = (
-            alloy::sol_types::private::Address,
-            alloy::sol_types::private::Vec<alloy::sol_types::private::String>,
-        );
-        #[cfg(test)]
-        #[allow(dead_code, unreachable_patterns)]
-        fn _type_assertion(
-            _t: alloy_sol_types::private::AssertTypeEq<UnderlyingRustTuple>,
-        ) {
-            match _t {
-                alloy_sol_types::private::AssertTypeEq::<
-                    <UnderlyingSolTuple as alloy_sol_types::SolType>::RustType,
-                >(_) => {}
-            }
-        }
-        #[automatically_derived]
-        #[doc(hidden)]
-        impl ::core::convert::From<FuzzInterface> for UnderlyingRustTuple<'_> {
-            fn from(value: FuzzInterface) -> Self {
-                (value.addr, value.artifacts)
-            }
-        }
-        #[automatically_derived]
-        #[doc(hidden)]
-        impl ::core::convert::From<UnderlyingRustTuple<'_>> for FuzzInterface {
-            fn from(tuple: UnderlyingRustTuple<'_>) -> Self {
-                Self {
-                    addr: tuple.0,
-                    artifacts: tuple.1,
-                }
-            }
-        }
-        #[automatically_derived]
-        impl alloy_sol_types::SolValue for FuzzInterface {
-            type SolType = Self;
-        }
-        #[automatically_derived]
-        impl alloy_sol_types::private::SolTypeValue<Self> for FuzzInterface {
-            #[inline]
-            fn stv_to_tokens(&self) -> <Self as alloy_sol_types::SolType>::Token<'_> {
-                (
-                    <alloy::sol_types::sol_data::Address as alloy_sol_types::SolType>::tokenize(
-                        &self.addr,
-                    ),
-                    <alloy::sol_types::sol_data::Array<
-                        alloy::sol_types::sol_data::String,
-                    > as alloy_sol_types::SolType>::tokenize(&self.artifacts),
-                )
-            }
-            #[inline]
-            fn stv_abi_encoded_size(&self) -> usize {
-                if let Some(size) = <Self as alloy_sol_types::SolType>::ENCODED_SIZE {
-                    return size;
-                }
-                let tuple = <UnderlyingRustTuple<
-                    '_,
-                > as ::core::convert::From<Self>>::from(self.clone());
-                <UnderlyingSolTuple<
-                    '_,
-                > as alloy_sol_types::SolType>::abi_encoded_size(&tuple)
-            }
-            #[inline]
-            fn stv_eip712_data_word(&self) -> alloy_sol_types::Word {
-                <Self as alloy_sol_types::SolStruct>::eip712_hash_struct(self)
-            }
-            #[inline]
-            fn stv_abi_encode_packed_to(
-                &self,
-                out: &mut alloy_sol_types::private::Vec<u8>,
-            ) {
-                let tuple = <UnderlyingRustTuple<
-                    '_,
-                > as ::core::convert::From<Self>>::from(self.clone());
-                <UnderlyingSolTuple<
-                    '_,
-                > as alloy_sol_types::SolType>::abi_encode_packed_to(&tuple, out)
-            }
-            #[inline]
-            fn stv_abi_packed_encoded_size(&self) -> usize {
-                if let Some(size) = <Self as alloy_sol_types::SolType>::PACKED_ENCODED_SIZE {
-                    return size;
-                }
-                let tuple = <UnderlyingRustTuple<
-                    '_,
-                > as ::core::convert::From<Self>>::from(self.clone());
-                <UnderlyingSolTuple<
-                    '_,
-                > as alloy_sol_types::SolType>::abi_packed_encoded_size(&tuple)
-            }
-        }
-        #[automatically_derived]
-        impl alloy_sol_types::SolType for FuzzInterface {
-            type RustType = Self;
-            type Token<'a> = <UnderlyingSolTuple<
-                'a,
-            > as alloy_sol_types::SolType>::Token<'a>;
-            const SOL_NAME: &'static str = <Self as alloy_sol_types::SolStruct>::NAME;
-            const ENCODED_SIZE: Option<usize> = <UnderlyingSolTuple<
-                '_,
-            > as alloy_sol_types::SolType>::ENCODED_SIZE;
-            const PACKED_ENCODED_SIZE: Option<usize> = <UnderlyingSolTuple<
-                '_,
-            > as alloy_sol_types::SolType>::PACKED_ENCODED_SIZE;
-            #[inline]
-            fn valid_token(token: &Self::Token<'_>) -> bool {
-                <UnderlyingSolTuple<'_> as alloy_sol_types::SolType>::valid_token(token)
-            }
-            #[inline]
-            fn detokenize(token: Self::Token<'_>) -> Self::RustType {
-                let tuple = <UnderlyingSolTuple<
-                    '_,
-                > as alloy_sol_types::SolType>::detokenize(token);
-                <Self as ::core::convert::From<UnderlyingRustTuple<'_>>>::from(tuple)
-            }
-        }
-        #[automatically_derived]
-        impl alloy_sol_types::SolStruct for FuzzInterface {
-            const NAME: &'static str = "FuzzInterface";
-            #[inline]
-            fn eip712_root_type() -> alloy_sol_types::private::Cow<'static, str> {
-                alloy_sol_types::private::Cow::Borrowed(
-                    "FuzzInterface(address addr,string[] artifacts)",
-                )
-            }
-            #[inline]
-            fn eip712_components() -> alloy_sol_types::private::Vec<
-                alloy_sol_types::private::Cow<'static, str>,
-            > {
-                alloy_sol_types::private::Vec::new()
-            }
-            #[inline]
-            fn eip712_encode_type() -> alloy_sol_types::private::Cow<'static, str> {
-                <Self as alloy_sol_types::SolStruct>::eip712_root_type()
-            }
-            #[inline]
-            fn eip712_encode_data(&self) -> alloy_sol_types::private::Vec<u8> {
-                [
-                    <alloy::sol_types::sol_data::Address as alloy_sol_types::SolType>::eip712_data_word(
-                            &self.addr,
-                        )
-                        .0,
-                    <alloy::sol_types::sol_data::Array<
-                        alloy::sol_types::sol_data::String,
-                    > as alloy_sol_types::SolType>::eip712_data_word(&self.artifacts)
-                        .0,
-                ]
-                    .concat()
-            }
-        }
-        #[automatically_derived]
-        impl alloy_sol_types::EventTopic for FuzzInterface {
-            #[inline]
-            fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::Address as alloy_sol_types::EventTopic>::topic_preimage_length(
-                        &rust.addr,
-                    )
-                    + <alloy::sol_types::sol_data::Array<
-                        alloy::sol_types::sol_data::String,
-                    > as alloy_sol_types::EventTopic>::topic_preimage_length(
-                        &rust.artifacts,
-                    )
-            }
-            #[inline]
-            fn encode_topic_preimage(
-                rust: &Self::RustType,
-                out: &mut alloy_sol_types::private::Vec<u8>,
-            ) {
-                out.reserve(
-                    <Self as alloy_sol_types::EventTopic>::topic_preimage_length(rust),
-                );
-                <alloy::sol_types::sol_data::Address as alloy_sol_types::EventTopic>::encode_topic_preimage(
-                    &rust.addr,
-                    out,
-                );
-                <alloy::sol_types::sol_data::Array<
-                    alloy::sol_types::sol_data::String,
-                > as alloy_sol_types::EventTopic>::encode_topic_preimage(
-                    &rust.artifacts,
-                    out,
-                );
-            }
-            #[inline]
-            fn encode_topic(
-                rust: &Self::RustType,
-            ) -> alloy_sol_types::abi::token::WordToken {
-                let mut out = alloy_sol_types::private::Vec::new();
-                <Self as alloy_sol_types::EventTopic>::encode_topic_preimage(
-                    rust,
-                    &mut out,
-                );
-                alloy_sol_types::abi::token::WordToken(
-                    alloy_sol_types::private::keccak256(out),
-                )
-            }
-        }
-    };
-    /**```solidity
-struct FuzzSelector { address addr; bytes4[] selectors; }
-```*/
-    #[allow(non_camel_case_types, non_snake_case)]
-    #[derive(Clone)]
-    pub struct FuzzSelector {
-        pub addr: alloy::sol_types::private::Address,
-        pub selectors: alloy::sol_types::private::Vec<
-            alloy::sol_types::private::FixedBytes<4>,
-        >,
-    }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
-    const _: () = {
-        use alloy::sol_types as alloy_sol_types;
-        #[doc(hidden)]
-        type UnderlyingSolTuple<'a> = (
-            alloy::sol_types::sol_data::Address,
-            alloy::sol_types::sol_data::Array<alloy::sol_types::sol_data::FixedBytes<4>>,
-        );
-        #[doc(hidden)]
-        type UnderlyingRustTuple<'a> = (
-            alloy::sol_types::private::Address,
-            alloy::sol_types::private::Vec<alloy::sol_types::private::FixedBytes<4>>,
-        );
-        #[cfg(test)]
-        #[allow(dead_code, unreachable_patterns)]
-        fn _type_assertion(
-            _t: alloy_sol_types::private::AssertTypeEq<UnderlyingRustTuple>,
-        ) {
-            match _t {
-                alloy_sol_types::private::AssertTypeEq::<
-                    <UnderlyingSolTuple as alloy_sol_types::SolType>::RustType,
-                >(_) => {}
-            }
-        }
-        #[automatically_derived]
-        #[doc(hidden)]
-        impl ::core::convert::From<FuzzSelector> for UnderlyingRustTuple<'_> {
-            fn from(value: FuzzSelector) -> Self {
-                (value.addr, value.selectors)
-            }
-        }
-        #[automatically_derived]
-        #[doc(hidden)]
-        impl ::core::convert::From<UnderlyingRustTuple<'_>> for FuzzSelector {
-            fn from(tuple: UnderlyingRustTuple<'_>) -> Self {
-                Self {
-                    addr: tuple.0,
-                    selectors: tuple.1,
-                }
-            }
-        }
-        #[automatically_derived]
-        impl alloy_sol_types::SolValue for FuzzSelector {
-            type SolType = Self;
-        }
-        #[automatically_derived]
-        impl alloy_sol_types::private::SolTypeValue<Self> for FuzzSelector {
-            #[inline]
-            fn stv_to_tokens(&self) -> <Self as alloy_sol_types::SolType>::Token<'_> {
-                (
-                    <alloy::sol_types::sol_data::Address as alloy_sol_types::SolType>::tokenize(
-                        &self.addr,
-                    ),
-                    <alloy::sol_types::sol_data::Array<
-                        alloy::sol_types::sol_data::FixedBytes<4>,
-                    > as alloy_sol_types::SolType>::tokenize(&self.selectors),
-                )
-            }
-            #[inline]
-            fn stv_abi_encoded_size(&self) -> usize {
-                if let Some(size) = <Self as alloy_sol_types::SolType>::ENCODED_SIZE {
-                    return size;
-                }
-                let tuple = <UnderlyingRustTuple<
-                    '_,
-                > as ::core::convert::From<Self>>::from(self.clone());
-                <UnderlyingSolTuple<
-                    '_,
-                > as alloy_sol_types::SolType>::abi_encoded_size(&tuple)
-            }
-            #[inline]
-            fn stv_eip712_data_word(&self) -> alloy_sol_types::Word {
-                <Self as alloy_sol_types::SolStruct>::eip712_hash_struct(self)
-            }
-            #[inline]
-            fn stv_abi_encode_packed_to(
-                &self,
-                out: &mut alloy_sol_types::private::Vec<u8>,
-            ) {
-                let tuple = <UnderlyingRustTuple<
-                    '_,
-                > as ::core::convert::From<Self>>::from(self.clone());
-                <UnderlyingSolTuple<
-                    '_,
-                > as alloy_sol_types::SolType>::abi_encode_packed_to(&tuple, out)
-            }
-            #[inline]
-            fn stv_abi_packed_encoded_size(&self) -> usize {
-                if let Some(size) = <Self as alloy_sol_types::SolType>::PACKED_ENCODED_SIZE {
-                    return size;
-                }
-                let tuple = <UnderlyingRustTuple<
-                    '_,
-                > as ::core::convert::From<Self>>::from(self.clone());
-                <UnderlyingSolTuple<
-                    '_,
-                > as alloy_sol_types::SolType>::abi_packed_encoded_size(&tuple)
-            }
-        }
-        #[automatically_derived]
-        impl alloy_sol_types::SolType for FuzzSelector {
-            type RustType = Self;
-            type Token<'a> = <UnderlyingSolTuple<
-                'a,
-            > as alloy_sol_types::SolType>::Token<'a>;
-            const SOL_NAME: &'static str = <Self as alloy_sol_types::SolStruct>::NAME;
-            const ENCODED_SIZE: Option<usize> = <UnderlyingSolTuple<
-                '_,
-            > as alloy_sol_types::SolType>::ENCODED_SIZE;
-            const PACKED_ENCODED_SIZE: Option<usize> = <UnderlyingSolTuple<
-                '_,
-            > as alloy_sol_types::SolType>::PACKED_ENCODED_SIZE;
-            #[inline]
-            fn valid_token(token: &Self::Token<'_>) -> bool {
-                <UnderlyingSolTuple<'_> as alloy_sol_types::SolType>::valid_token(token)
-            }
-            #[inline]
-            fn detokenize(token: Self::Token<'_>) -> Self::RustType {
-                let tuple = <UnderlyingSolTuple<
-                    '_,
-                > as alloy_sol_types::SolType>::detokenize(token);
-                <Self as ::core::convert::From<UnderlyingRustTuple<'_>>>::from(tuple)
-            }
-        }
-        #[automatically_derived]
-        impl alloy_sol_types::SolStruct for FuzzSelector {
-            const NAME: &'static str = "FuzzSelector";
-            #[inline]
-            fn eip712_root_type() -> alloy_sol_types::private::Cow<'static, str> {
-                alloy_sol_types::private::Cow::Borrowed(
-                    "FuzzSelector(address addr,bytes4[] selectors)",
-                )
-            }
-            #[inline]
-            fn eip712_components() -> alloy_sol_types::private::Vec<
-                alloy_sol_types::private::Cow<'static, str>,
-            > {
-                alloy_sol_types::private::Vec::new()
-            }
-            #[inline]
-            fn eip712_encode_type() -> alloy_sol_types::private::Cow<'static, str> {
-                <Self as alloy_sol_types::SolStruct>::eip712_root_type()
-            }
-            #[inline]
-            fn eip712_encode_data(&self) -> alloy_sol_types::private::Vec<u8> {
-                [
-                    <alloy::sol_types::sol_data::Address as alloy_sol_types::SolType>::eip712_data_word(
-                            &self.addr,
-                        )
-                        .0,
-                    <alloy::sol_types::sol_data::Array<
-                        alloy::sol_types::sol_data::FixedBytes<4>,
-                    > as alloy_sol_types::SolType>::eip712_data_word(&self.selectors)
-                        .0,
-                ]
-                    .concat()
-            }
-        }
-        #[automatically_derived]
-        impl alloy_sol_types::EventTopic for FuzzSelector {
-            #[inline]
-            fn topic_preimage_length(rust: &Self::RustType) -> usize {
-                0usize
-                    + <alloy::sol_types::sol_data::Address as alloy_sol_types::EventTopic>::topic_preimage_length(
-                        &rust.addr,
-                    )
-                    + <alloy::sol_types::sol_data::Array<
-                        alloy::sol_types::sol_data::FixedBytes<4>,
-                    > as alloy_sol_types::EventTopic>::topic_preimage_length(
-                        &rust.selectors,
-                    )
-            }
-            #[inline]
-            fn encode_topic_preimage(
-                rust: &Self::RustType,
-                out: &mut alloy_sol_types::private::Vec<u8>,
-            ) {
-                out.reserve(
-                    <Self as alloy_sol_types::EventTopic>::topic_preimage_length(rust),
-                );
-                <alloy::sol_types::sol_data::Address as alloy_sol_types::EventTopic>::encode_topic_preimage(
-                    &rust.addr,
-                    out,
-                );
-                <alloy::sol_types::sol_data::Array<
-                    alloy::sol_types::sol_data::FixedBytes<4>,
-                > as alloy_sol_types::EventTopic>::encode_topic_preimage(
-                    &rust.selectors,
-                    out,
-                );
-            }
-            #[inline]
-            fn encode_topic(
-                rust: &Self::RustType,
-            ) -> alloy_sol_types::abi::token::WordToken {
-                let mut out = alloy_sol_types::private::Vec::new();
-                <Self as alloy_sol_types::EventTopic>::encode_topic_preimage(
-                    rust,
-                    &mut out,
-                );
-                alloy_sol_types::abi::token::WordToken(
-                    alloy_sol_types::private::keccak256(out),
-                )
-            }
-        }
-    };
     /**Event with signature `log(string)` and selector `0x41304facd9323d75b11bcdd609cb38effffdb05710f7caf0e9b16c6d9d709f50`.
 ```solidity
 event log(string);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log {
         #[allow(missing_docs)]
         pub _0: alloy::sol_types::private::String,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -1393,6 +1580,21 @@ event log(string);
                 Self { _0: data.0 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::tokenize(
@@ -1439,13 +1641,23 @@ event log(string);
 ```solidity
 event log_address(address);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_address {
         #[allow(missing_docs)]
         pub _0: alloy::sol_types::private::Address,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -1500,6 +1712,21 @@ event log_address(address);
                 Self { _0: data.0 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::Address as alloy_sol_types::SolType>::tokenize(
@@ -1546,13 +1773,25 @@ event log_address(address);
 ```solidity
 event log_array(uint256[] val);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_array_0 {
         #[allow(missing_docs)]
-        pub val: alloy::sol_types::private::Vec<alloy::sol_types::private::U256>,
+        pub val: alloy::sol_types::private::Vec<
+            alloy::sol_types::private::primitives::aliases::U256,
+        >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -1609,6 +1848,21 @@ event log_array(uint256[] val);
                 Self { val: data.0 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::Array<
@@ -1655,13 +1909,25 @@ event log_array(uint256[] val);
 ```solidity
 event log_array(int256[] val);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_array_1 {
         #[allow(missing_docs)]
-        pub val: alloy::sol_types::private::Vec<alloy::sol_types::private::I256>,
+        pub val: alloy::sol_types::private::Vec<
+            alloy::sol_types::private::primitives::aliases::I256,
+        >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -1718,6 +1984,21 @@ event log_array(int256[] val);
                 Self { val: data.0 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::Array<
@@ -1764,13 +2045,23 @@ event log_array(int256[] val);
 ```solidity
 event log_array(address[] val);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_array_2 {
         #[allow(missing_docs)]
         pub val: alloy::sol_types::private::Vec<alloy::sol_types::private::Address>,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -1827,6 +2118,21 @@ event log_array(address[] val);
                 Self { val: data.0 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::Array<
@@ -1873,13 +2179,23 @@ event log_array(address[] val);
 ```solidity
 event log_bytes(bytes);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_bytes {
         #[allow(missing_docs)]
         pub _0: alloy::sol_types::private::Bytes,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -1934,6 +2250,21 @@ event log_bytes(bytes);
                 Self { _0: data.0 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::Bytes as alloy_sol_types::SolType>::tokenize(
@@ -1980,13 +2311,23 @@ event log_bytes(bytes);
 ```solidity
 event log_bytes32(bytes32);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_bytes32 {
         #[allow(missing_docs)]
         pub _0: alloy::sol_types::private::FixedBytes<32>,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -2041,6 +2382,21 @@ event log_bytes32(bytes32);
                 Self { _0: data.0 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::FixedBytes<
@@ -2087,13 +2443,23 @@ event log_bytes32(bytes32);
 ```solidity
 event log_int(int256);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_int {
         #[allow(missing_docs)]
-        pub _0: alloy::sol_types::private::I256,
+        pub _0: alloy::sol_types::private::primitives::aliases::I256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -2148,6 +2514,21 @@ event log_int(int256);
                 Self { _0: data.0 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::Int<
@@ -2194,7 +2575,12 @@ event log_int(int256);
 ```solidity
 event log_named_address(string key, address val);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_named_address {
         #[allow(missing_docs)]
@@ -2202,7 +2588,12 @@ event log_named_address(string key, address val);
         #[allow(missing_docs)]
         pub val: alloy::sol_types::private::Address,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -2260,6 +2651,21 @@ event log_named_address(string key, address val);
                 Self { key: data.0, val: data.1 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::tokenize(
@@ -2309,15 +2715,27 @@ event log_named_address(string key, address val);
 ```solidity
 event log_named_array(string key, uint256[] val);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_named_array_0 {
         #[allow(missing_docs)]
         pub key: alloy::sol_types::private::String,
         #[allow(missing_docs)]
-        pub val: alloy::sol_types::private::Vec<alloy::sol_types::private::U256>,
+        pub val: alloy::sol_types::private::Vec<
+            alloy::sol_types::private::primitives::aliases::U256,
+        >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -2375,6 +2793,21 @@ event log_named_array(string key, uint256[] val);
                 Self { key: data.0, val: data.1 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::tokenize(
@@ -2424,15 +2857,27 @@ event log_named_array(string key, uint256[] val);
 ```solidity
 event log_named_array(string key, int256[] val);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_named_array_1 {
         #[allow(missing_docs)]
         pub key: alloy::sol_types::private::String,
         #[allow(missing_docs)]
-        pub val: alloy::sol_types::private::Vec<alloy::sol_types::private::I256>,
+        pub val: alloy::sol_types::private::Vec<
+            alloy::sol_types::private::primitives::aliases::I256,
+        >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -2490,6 +2935,21 @@ event log_named_array(string key, int256[] val);
                 Self { key: data.0, val: data.1 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::tokenize(
@@ -2539,7 +2999,12 @@ event log_named_array(string key, int256[] val);
 ```solidity
 event log_named_array(string key, address[] val);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_named_array_2 {
         #[allow(missing_docs)]
@@ -2547,7 +3012,12 @@ event log_named_array(string key, address[] val);
         #[allow(missing_docs)]
         pub val: alloy::sol_types::private::Vec<alloy::sol_types::private::Address>,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -2605,6 +3075,21 @@ event log_named_array(string key, address[] val);
                 Self { key: data.0, val: data.1 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::tokenize(
@@ -2654,7 +3139,12 @@ event log_named_array(string key, address[] val);
 ```solidity
 event log_named_bytes(string key, bytes val);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_named_bytes {
         #[allow(missing_docs)]
@@ -2662,7 +3152,12 @@ event log_named_bytes(string key, bytes val);
         #[allow(missing_docs)]
         pub val: alloy::sol_types::private::Bytes,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -2720,6 +3215,21 @@ event log_named_bytes(string key, bytes val);
                 Self { key: data.0, val: data.1 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::tokenize(
@@ -2769,7 +3279,12 @@ event log_named_bytes(string key, bytes val);
 ```solidity
 event log_named_bytes32(string key, bytes32 val);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_named_bytes32 {
         #[allow(missing_docs)]
@@ -2777,7 +3292,12 @@ event log_named_bytes32(string key, bytes32 val);
         #[allow(missing_docs)]
         pub val: alloy::sol_types::private::FixedBytes<32>,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -2835,6 +3355,21 @@ event log_named_bytes32(string key, bytes32 val);
                 Self { key: data.0, val: data.1 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::tokenize(
@@ -2884,17 +3419,27 @@ event log_named_bytes32(string key, bytes32 val);
 ```solidity
 event log_named_decimal_int(string key, int256 val, uint256 decimals);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_named_decimal_int {
         #[allow(missing_docs)]
         pub key: alloy::sol_types::private::String,
         #[allow(missing_docs)]
-        pub val: alloy::sol_types::private::I256,
+        pub val: alloy::sol_types::private::primitives::aliases::I256,
         #[allow(missing_docs)]
-        pub decimals: alloy::sol_types::private::U256,
+        pub decimals: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -2957,6 +3502,21 @@ event log_named_decimal_int(string key, int256 val, uint256 decimals);
                 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::tokenize(
@@ -3009,17 +3569,27 @@ event log_named_decimal_int(string key, int256 val, uint256 decimals);
 ```solidity
 event log_named_decimal_uint(string key, uint256 val, uint256 decimals);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_named_decimal_uint {
         #[allow(missing_docs)]
         pub key: alloy::sol_types::private::String,
         #[allow(missing_docs)]
-        pub val: alloy::sol_types::private::U256,
+        pub val: alloy::sol_types::private::primitives::aliases::U256,
         #[allow(missing_docs)]
-        pub decimals: alloy::sol_types::private::U256,
+        pub decimals: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -3082,6 +3652,21 @@ event log_named_decimal_uint(string key, uint256 val, uint256 decimals);
                 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::tokenize(
@@ -3134,15 +3719,25 @@ event log_named_decimal_uint(string key, uint256 val, uint256 decimals);
 ```solidity
 event log_named_int(string key, int256 val);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_named_int {
         #[allow(missing_docs)]
         pub key: alloy::sol_types::private::String,
         #[allow(missing_docs)]
-        pub val: alloy::sol_types::private::I256,
+        pub val: alloy::sol_types::private::primitives::aliases::I256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -3200,6 +3795,21 @@ event log_named_int(string key, int256 val);
                 Self { key: data.0, val: data.1 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::tokenize(
@@ -3249,7 +3859,12 @@ event log_named_int(string key, int256 val);
 ```solidity
 event log_named_string(string key, string val);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_named_string {
         #[allow(missing_docs)]
@@ -3257,7 +3872,12 @@ event log_named_string(string key, string val);
         #[allow(missing_docs)]
         pub val: alloy::sol_types::private::String,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -3315,6 +3935,21 @@ event log_named_string(string key, string val);
                 Self { key: data.0, val: data.1 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::tokenize(
@@ -3364,15 +3999,25 @@ event log_named_string(string key, string val);
 ```solidity
 event log_named_uint(string key, uint256 val);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_named_uint {
         #[allow(missing_docs)]
         pub key: alloy::sol_types::private::String,
         #[allow(missing_docs)]
-        pub val: alloy::sol_types::private::U256,
+        pub val: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -3430,6 +4075,21 @@ event log_named_uint(string key, uint256 val);
                 Self { key: data.0, val: data.1 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::tokenize(
@@ -3479,13 +4139,23 @@ event log_named_uint(string key, uint256 val);
 ```solidity
 event log_string(string);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_string {
         #[allow(missing_docs)]
         pub _0: alloy::sol_types::private::String,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -3540,6 +4210,21 @@ event log_string(string);
                 Self { _0: data.0 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::String as alloy_sol_types::SolType>::tokenize(
@@ -3586,13 +4271,23 @@ event log_string(string);
 ```solidity
 event log_uint(uint256);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct log_uint {
         #[allow(missing_docs)]
-        pub _0: alloy::sol_types::private::U256,
+        pub _0: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -3647,6 +4342,21 @@ event log_uint(uint256);
                 Self { _0: data.0 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::Uint<
@@ -3693,13 +4403,23 @@ event log_uint(uint256);
 ```solidity
 event logs(bytes);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct logs {
         #[allow(missing_docs)]
         pub _0: alloy::sol_types::private::Bytes,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -3754,6 +4474,21 @@ event logs(bytes);
                 Self { _0: data.0 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::Bytes as alloy_sol_types::SolType>::tokenize(
@@ -3800,16 +4535,22 @@ event logs(bytes);
 ```solidity
 function IS_TEST() external view returns (bool);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct IS_TESTCall {}
     ///Container type for the return parameters of the [`IS_TEST()`](IS_TESTCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct IS_TESTReturn {
+        #[allow(missing_docs)]
         pub _0: bool,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -3913,16 +4654,22 @@ function IS_TEST() external view returns (bool);
 ```solidity
 function NAME_HASH() external view returns (bytes32);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct NAME_HASHCall {}
     ///Container type for the return parameters of the [`NAME_HASH()`](NAME_HASHCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct NAME_HASHReturn {
+        #[allow(missing_docs)]
         pub _0: alloy::sol_types::private::FixedBytes<32>,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -4026,16 +4773,22 @@ function NAME_HASH() external view returns (bytes32);
 ```solidity
 function TYPE_HASH() external view returns (bytes32);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct TYPE_HASHCall {}
     ///Container type for the return parameters of the [`TYPE_HASH()`](TYPE_HASHCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct TYPE_HASHReturn {
+        #[allow(missing_docs)]
         pub _0: alloy::sol_types::private::FixedBytes<32>,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -4139,18 +4892,24 @@ function TYPE_HASH() external view returns (bytes32);
 ```solidity
 function excludeArtifacts() external view returns (string[] memory excludedArtifacts_);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct excludeArtifactsCall {}
     ///Container type for the return parameters of the [`excludeArtifacts()`](excludeArtifactsCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct excludeArtifactsReturn {
+        #[allow(missing_docs)]
         pub excludedArtifacts_: alloy::sol_types::private::Vec<
             alloy::sol_types::private::String,
         >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -4266,18 +5025,24 @@ function excludeArtifacts() external view returns (string[] memory excludedArtif
 ```solidity
 function excludeContracts() external view returns (address[] memory excludedContracts_);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct excludeContractsCall {}
     ///Container type for the return parameters of the [`excludeContracts()`](excludeContractsCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct excludeContractsReturn {
+        #[allow(missing_docs)]
         pub excludedContracts_: alloy::sol_types::private::Vec<
             alloy::sol_types::private::Address,
         >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -4391,20 +5156,26 @@ function excludeContracts() external view returns (address[] memory excludedCont
     };
     /**Function with signature `excludeSelectors()` and selector `0xb0464fdc`.
 ```solidity
-function excludeSelectors() external view returns (FuzzSelector[] memory excludedSelectors_);
+function excludeSelectors() external view returns (StdInvariant.FuzzSelector[] memory excludedSelectors_);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct excludeSelectorsCall {}
     ///Container type for the return parameters of the [`excludeSelectors()`](excludeSelectorsCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct excludeSelectorsReturn {
+        #[allow(missing_docs)]
         pub excludedSelectors_: alloy::sol_types::private::Vec<
-            <FuzzSelector as alloy::sol_types::SolType>::RustType,
+            <StdInvariant::FuzzSelector as alloy::sol_types::SolType>::RustType,
         >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -4443,12 +5214,12 @@ function excludeSelectors() external view returns (FuzzSelector[] memory exclude
         {
             #[doc(hidden)]
             type UnderlyingSolTuple<'a> = (
-                alloy::sol_types::sol_data::Array<FuzzSelector>,
+                alloy::sol_types::sol_data::Array<StdInvariant::FuzzSelector>,
             );
             #[doc(hidden)]
             type UnderlyingRustTuple<'a> = (
                 alloy::sol_types::private::Vec<
-                    <FuzzSelector as alloy::sol_types::SolType>::RustType,
+                    <StdInvariant::FuzzSelector as alloy::sol_types::SolType>::RustType,
                 >,
             );
             #[cfg(test)]
@@ -4488,7 +5259,9 @@ function excludeSelectors() external view returns (FuzzSelector[] memory exclude
                 'a,
             > as alloy_sol_types::SolType>::Token<'a>;
             type Return = excludeSelectorsReturn;
-            type ReturnTuple<'a> = (alloy::sol_types::sol_data::Array<FuzzSelector>,);
+            type ReturnTuple<'a> = (
+                alloy::sol_types::sol_data::Array<StdInvariant::FuzzSelector>,
+            );
             type ReturnToken<'a> = <Self::ReturnTuple<
                 'a,
             > as alloy_sol_types::SolType>::Token<'a>;
@@ -4520,18 +5293,24 @@ function excludeSelectors() external view returns (FuzzSelector[] memory exclude
 ```solidity
 function excludeSenders() external view returns (address[] memory excludedSenders_);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct excludeSendersCall {}
     ///Container type for the return parameters of the [`excludeSenders()`](excludeSendersCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct excludeSendersReturn {
+        #[allow(missing_docs)]
         pub excludedSenders_: alloy::sol_types::private::Vec<
             alloy::sol_types::private::Address,
         >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -4643,16 +5422,22 @@ function excludeSenders() external view returns (address[] memory excludedSender
 ```solidity
 function failed() external view returns (bool);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct failedCall {}
     ///Container type for the return parameters of the [`failed()`](failedCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct failedReturn {
+        #[allow(missing_docs)]
         pub _0: bool,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -4754,20 +5539,26 @@ function failed() external view returns (bool);
     };
     /**Function with signature `targetArtifactSelectors()` and selector `0x66d9a9a0`.
 ```solidity
-function targetArtifactSelectors() external view returns (FuzzArtifactSelector[] memory targetedArtifactSelectors_);
+function targetArtifactSelectors() external view returns (StdInvariant.FuzzArtifactSelector[] memory targetedArtifactSelectors_);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct targetArtifactSelectorsCall {}
     ///Container type for the return parameters of the [`targetArtifactSelectors()`](targetArtifactSelectorsCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct targetArtifactSelectorsReturn {
+        #[allow(missing_docs)]
         pub targetedArtifactSelectors_: alloy::sol_types::private::Vec<
-            <FuzzArtifactSelector as alloy::sol_types::SolType>::RustType,
+            <StdInvariant::FuzzArtifactSelector as alloy::sol_types::SolType>::RustType,
         >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -4806,12 +5597,12 @@ function targetArtifactSelectors() external view returns (FuzzArtifactSelector[]
         {
             #[doc(hidden)]
             type UnderlyingSolTuple<'a> = (
-                alloy::sol_types::sol_data::Array<FuzzArtifactSelector>,
+                alloy::sol_types::sol_data::Array<StdInvariant::FuzzArtifactSelector>,
             );
             #[doc(hidden)]
             type UnderlyingRustTuple<'a> = (
                 alloy::sol_types::private::Vec<
-                    <FuzzArtifactSelector as alloy::sol_types::SolType>::RustType,
+                    <StdInvariant::FuzzArtifactSelector as alloy::sol_types::SolType>::RustType,
                 >,
             );
             #[cfg(test)]
@@ -4852,7 +5643,7 @@ function targetArtifactSelectors() external view returns (FuzzArtifactSelector[]
             > as alloy_sol_types::SolType>::Token<'a>;
             type Return = targetArtifactSelectorsReturn;
             type ReturnTuple<'a> = (
-                alloy::sol_types::sol_data::Array<FuzzArtifactSelector>,
+                alloy::sol_types::sol_data::Array<StdInvariant::FuzzArtifactSelector>,
             );
             type ReturnToken<'a> = <Self::ReturnTuple<
                 'a,
@@ -4885,18 +5676,24 @@ function targetArtifactSelectors() external view returns (FuzzArtifactSelector[]
 ```solidity
 function targetArtifacts() external view returns (string[] memory targetedArtifacts_);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct targetArtifactsCall {}
     ///Container type for the return parameters of the [`targetArtifacts()`](targetArtifactsCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct targetArtifactsReturn {
+        #[allow(missing_docs)]
         pub targetedArtifacts_: alloy::sol_types::private::Vec<
             alloy::sol_types::private::String,
         >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -5010,18 +5807,24 @@ function targetArtifacts() external view returns (string[] memory targetedArtifa
 ```solidity
 function targetContracts() external view returns (address[] memory targetedContracts_);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct targetContractsCall {}
     ///Container type for the return parameters of the [`targetContracts()`](targetContractsCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct targetContractsReturn {
+        #[allow(missing_docs)]
         pub targetedContracts_: alloy::sol_types::private::Vec<
             alloy::sol_types::private::Address,
         >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -5133,20 +5936,26 @@ function targetContracts() external view returns (address[] memory targetedContr
     };
     /**Function with signature `targetInterfaces()` and selector `0x2ade3880`.
 ```solidity
-function targetInterfaces() external view returns (FuzzInterface[] memory targetedInterfaces_);
+function targetInterfaces() external view returns (StdInvariant.FuzzInterface[] memory targetedInterfaces_);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct targetInterfacesCall {}
     ///Container type for the return parameters of the [`targetInterfaces()`](targetInterfacesCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct targetInterfacesReturn {
+        #[allow(missing_docs)]
         pub targetedInterfaces_: alloy::sol_types::private::Vec<
-            <FuzzInterface as alloy::sol_types::SolType>::RustType,
+            <StdInvariant::FuzzInterface as alloy::sol_types::SolType>::RustType,
         >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -5185,12 +5994,12 @@ function targetInterfaces() external view returns (FuzzInterface[] memory target
         {
             #[doc(hidden)]
             type UnderlyingSolTuple<'a> = (
-                alloy::sol_types::sol_data::Array<FuzzInterface>,
+                alloy::sol_types::sol_data::Array<StdInvariant::FuzzInterface>,
             );
             #[doc(hidden)]
             type UnderlyingRustTuple<'a> = (
                 alloy::sol_types::private::Vec<
-                    <FuzzInterface as alloy::sol_types::SolType>::RustType,
+                    <StdInvariant::FuzzInterface as alloy::sol_types::SolType>::RustType,
                 >,
             );
             #[cfg(test)]
@@ -5230,7 +6039,9 @@ function targetInterfaces() external view returns (FuzzInterface[] memory target
                 'a,
             > as alloy_sol_types::SolType>::Token<'a>;
             type Return = targetInterfacesReturn;
-            type ReturnTuple<'a> = (alloy::sol_types::sol_data::Array<FuzzInterface>,);
+            type ReturnTuple<'a> = (
+                alloy::sol_types::sol_data::Array<StdInvariant::FuzzInterface>,
+            );
             type ReturnToken<'a> = <Self::ReturnTuple<
                 'a,
             > as alloy_sol_types::SolType>::Token<'a>;
@@ -5260,20 +6071,26 @@ function targetInterfaces() external view returns (FuzzInterface[] memory target
     };
     /**Function with signature `targetSelectors()` and selector `0x916a17c6`.
 ```solidity
-function targetSelectors() external view returns (FuzzSelector[] memory targetedSelectors_);
+function targetSelectors() external view returns (StdInvariant.FuzzSelector[] memory targetedSelectors_);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct targetSelectorsCall {}
     ///Container type for the return parameters of the [`targetSelectors()`](targetSelectorsCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct targetSelectorsReturn {
+        #[allow(missing_docs)]
         pub targetedSelectors_: alloy::sol_types::private::Vec<
-            <FuzzSelector as alloy::sol_types::SolType>::RustType,
+            <StdInvariant::FuzzSelector as alloy::sol_types::SolType>::RustType,
         >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -5310,12 +6127,12 @@ function targetSelectors() external view returns (FuzzSelector[] memory targeted
         {
             #[doc(hidden)]
             type UnderlyingSolTuple<'a> = (
-                alloy::sol_types::sol_data::Array<FuzzSelector>,
+                alloy::sol_types::sol_data::Array<StdInvariant::FuzzSelector>,
             );
             #[doc(hidden)]
             type UnderlyingRustTuple<'a> = (
                 alloy::sol_types::private::Vec<
-                    <FuzzSelector as alloy::sol_types::SolType>::RustType,
+                    <StdInvariant::FuzzSelector as alloy::sol_types::SolType>::RustType,
                 >,
             );
             #[cfg(test)]
@@ -5355,7 +6172,9 @@ function targetSelectors() external view returns (FuzzSelector[] memory targeted
                 'a,
             > as alloy_sol_types::SolType>::Token<'a>;
             type Return = targetSelectorsReturn;
-            type ReturnTuple<'a> = (alloy::sol_types::sol_data::Array<FuzzSelector>,);
+            type ReturnTuple<'a> = (
+                alloy::sol_types::sol_data::Array<StdInvariant::FuzzSelector>,
+            );
             type ReturnToken<'a> = <Self::ReturnTuple<
                 'a,
             > as alloy_sol_types::SolType>::Token<'a>;
@@ -5387,18 +6206,24 @@ function targetSelectors() external view returns (FuzzSelector[] memory targeted
 ```solidity
 function targetSenders() external view returns (address[] memory targetedSenders_);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct targetSendersCall {}
     ///Container type for the return parameters of the [`targetSenders()`](targetSendersCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct targetSendersReturn {
+        #[allow(missing_docs)]
         pub targetedSenders_: alloy::sol_types::private::Vec<
             alloy::sol_types::private::Address,
         >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -5506,19 +6331,33 @@ function targetSenders() external view returns (address[] memory targetedSenders
     };
     ///Container for all the [`PermitSignature`](self) function calls.
     pub enum PermitSignatureCalls {
+        #[allow(missing_docs)]
         IS_TEST(IS_TESTCall),
+        #[allow(missing_docs)]
         NAME_HASH(NAME_HASHCall),
+        #[allow(missing_docs)]
         TYPE_HASH(TYPE_HASHCall),
+        #[allow(missing_docs)]
         excludeArtifacts(excludeArtifactsCall),
+        #[allow(missing_docs)]
         excludeContracts(excludeContractsCall),
+        #[allow(missing_docs)]
         excludeSelectors(excludeSelectorsCall),
+        #[allow(missing_docs)]
         excludeSenders(excludeSendersCall),
+        #[allow(missing_docs)]
         failed(failedCall),
+        #[allow(missing_docs)]
         targetArtifactSelectors(targetArtifactSelectorsCall),
+        #[allow(missing_docs)]
         targetArtifacts(targetArtifactsCall),
+        #[allow(missing_docs)]
         targetContracts(targetContractsCall),
+        #[allow(missing_docs)]
         targetInterfaces(targetInterfacesCall),
+        #[allow(missing_docs)]
         targetSelectors(targetSelectorsCall),
+        #[allow(missing_docs)]
         targetSenders(targetSendersCall),
     }
     #[automatically_derived]
@@ -5603,7 +6442,7 @@ function targetSenders() external view returns (address[] memory targetedSenders
             Self::SELECTORS.binary_search(&selector).is_ok()
         }
         #[inline]
-        #[allow(unsafe_code, non_snake_case)]
+        #[allow(non_snake_case)]
         fn abi_decode_raw(
             selector: [u8; 4],
             data: &[u8],
@@ -5804,7 +6643,7 @@ function targetSenders() external view returns (address[] memory targetedSenders
                     ),
                 );
             };
-            (unsafe { DECODE_SHIMS.get_unchecked(idx) })(data, validate)
+            DECODE_SHIMS[idx](data, validate)
         }
         #[inline]
         fn abi_encoded_size(&self) -> usize {
@@ -5959,27 +6798,49 @@ function targetSenders() external view returns (address[] memory targetedSenders
     }
     ///Container for all the [`PermitSignature`](self) events.
     pub enum PermitSignatureEvents {
+        #[allow(missing_docs)]
         log(log),
+        #[allow(missing_docs)]
         log_address(log_address),
+        #[allow(missing_docs)]
         log_array_0(log_array_0),
+        #[allow(missing_docs)]
         log_array_1(log_array_1),
+        #[allow(missing_docs)]
         log_array_2(log_array_2),
+        #[allow(missing_docs)]
         log_bytes(log_bytes),
+        #[allow(missing_docs)]
         log_bytes32(log_bytes32),
+        #[allow(missing_docs)]
         log_int(log_int),
+        #[allow(missing_docs)]
         log_named_address(log_named_address),
+        #[allow(missing_docs)]
         log_named_array_0(log_named_array_0),
+        #[allow(missing_docs)]
         log_named_array_1(log_named_array_1),
+        #[allow(missing_docs)]
         log_named_array_2(log_named_array_2),
+        #[allow(missing_docs)]
         log_named_bytes(log_named_bytes),
+        #[allow(missing_docs)]
         log_named_bytes32(log_named_bytes32),
+        #[allow(missing_docs)]
         log_named_decimal_int(log_named_decimal_int),
+        #[allow(missing_docs)]
         log_named_decimal_uint(log_named_decimal_uint),
+        #[allow(missing_docs)]
         log_named_int(log_named_int),
+        #[allow(missing_docs)]
         log_named_string(log_named_string),
+        #[allow(missing_docs)]
         log_named_uint(log_named_uint),
+        #[allow(missing_docs)]
         log_string(log_string),
+        #[allow(missing_docs)]
         log_uint(log_uint),
+        #[allow(missing_docs)]
         logs(logs),
     }
     #[automatically_derived]

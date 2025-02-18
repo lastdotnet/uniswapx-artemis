@@ -9,29 +9,35 @@ interface SignedMath {}
 ```json
 []
 ```*/
-#[allow(non_camel_case_types, non_snake_case, clippy::style)]
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
 pub mod SignedMath {
     use super::*;
     use alloy::sol_types as alloy_sol_types;
     /// The creation / init bytecode of the contract.
     ///
     /// ```text
-    ///0x60566037600b82828239805160001a607314602a57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea26469706673582212201441d1165b23759ac59e4907b34f456bb4d6f8e1dfd7898d647c820c9e40796b64736f6c63430008180033
+    ///0x60556032600b8282823980515f1a607314602657634e487b7160e01b5f525f60045260245ffd5b305f52607381538281f3fe730000000000000000000000000000000000000000301460806040525f80fdfea26469706673582212206ac34247505793e6a35803f13c38089d045d64a836bf25d6c09c217bd7daaaf664736f6c63430008180033
     /// ```
     #[rustfmt::skip]
     #[allow(clippy::all)]
     pub static BYTECODE: alloy_sol_types::private::Bytes = alloy_sol_types::private::Bytes::from_static(
-        b"`V`7`\x0B\x82\x82\x829\x80Q`\0\x1A`s\x14`*WcNH{q`\xE0\x1B`\0R`\0`\x04R`$`\0\xFD[0`\0R`s\x81S\x82\x81\xF3\xFEs\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R`\0\x80\xFD\xFE\xA2dipfsX\"\x12 \x14A\xD1\x16[#u\x9A\xC5\x9EI\x07\xB3OEk\xB4\xD6\xF8\xE1\xDF\xD7\x89\x8Dd|\x82\x0C\x9E@ykdsolcC\0\x08\x18\x003",
+        b"`U`2`\x0B\x82\x82\x829\x80Q_\x1A`s\x14`&WcNH{q`\xE0\x1B_R_`\x04R`$_\xFD[0_R`s\x81S\x82\x81\xF3\xFEs\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R_\x80\xFD\xFE\xA2dipfsX\"\x12 j\xC3BGPW\x93\xE6\xA3X\x03\xF1<8\x08\x9D\x04]d\xA86\xBF%\xD6\xC0\x9C!{\xD7\xDA\xAA\xF6dsolcC\0\x08\x18\x003",
     );
     /// The runtime bytecode of the contract, as deployed on the network.
     ///
     /// ```text
-    ///0x73000000000000000000000000000000000000000030146080604052600080fdfea26469706673582212201441d1165b23759ac59e4907b34f456bb4d6f8e1dfd7898d647c820c9e40796b64736f6c63430008180033
+    ///0x730000000000000000000000000000000000000000301460806040525f80fdfea26469706673582212206ac34247505793e6a35803f13c38089d045d64a836bf25d6c09c217bd7daaaf664736f6c63430008180033
     /// ```
     #[rustfmt::skip]
     #[allow(clippy::all)]
     pub static DEPLOYED_BYTECODE: alloy_sol_types::private::Bytes = alloy_sol_types::private::Bytes::from_static(
-        b"s\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R`\0\x80\xFD\xFE\xA2dipfsX\"\x12 \x14A\xD1\x16[#u\x9A\xC5\x9EI\x07\xB3OEk\xB4\xD6\xF8\xE1\xDF\xD7\x89\x8Dd|\x82\x0C\x9E@ykdsolcC\0\x08\x18\x003",
+        b"s\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R_\x80\xFD\xFE\xA2dipfsX\"\x12 j\xC3BGPW\x93\xE6\xA3X\x03\xF1<8\x08\x9D\x04]d\xA86\xBF%\xD6\xC0\x9C!{\xD7\xDA\xAA\xF6dsolcC\0\x08\x18\x003",
     );
     use alloy::contract as alloy_contract;
     /**Creates a new wrapper around an on-chain [`SignedMath`](self) contract instance.

@@ -43,7 +43,13 @@ interface ReactorEvents {
   }
 ]
 ```*/
-#[allow(non_camel_case_types, non_snake_case, clippy::style)]
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
 pub mod ReactorEvents {
     use super::*;
     use alloy::sol_types as alloy_sol_types;
@@ -71,7 +77,12 @@ pub mod ReactorEvents {
 ```solidity
 event Fill(bytes32 indexed orderHash, address indexed filler, address indexed swapper, uint256 nonce);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct Fill {
         #[allow(missing_docs)]
@@ -81,9 +92,14 @@ event Fill(bytes32 indexed orderHash, address indexed filler, address indexed sw
         #[allow(missing_docs)]
         pub swapper: alloy::sol_types::private::Address,
         #[allow(missing_docs)]
-        pub nonce: alloy::sol_types::private::U256,
+        pub nonce: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -148,6 +164,21 @@ event Fill(bytes32 indexed orderHash, address indexed filler, address indexed sw
                 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::Uint<
@@ -206,6 +237,7 @@ event Fill(bytes32 indexed orderHash, address indexed filler, address indexed sw
     };
     ///Container for all the [`ReactorEvents`](self) events.
     pub enum ReactorEventsEvents {
+        #[allow(missing_docs)]
         Fill(Fill),
     }
     #[automatically_derived]

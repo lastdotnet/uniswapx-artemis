@@ -25,44 +25,56 @@ interface DeployPermit2 {
   }
 ]
 ```*/
-#[allow(non_camel_case_types, non_snake_case, clippy::style)]
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
 pub mod DeployPermit2 {
     use super::*;
     use alloy::sol_types as alloy_sol_types;
     /// The creation / init bytecode of the contract.
     ///
     /// ```text
-    ///0x6080604052600c805462ff00ff191662010001179055348015602057600080fd5b5060898061002f6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063f8ccbf4714602d575b600080fd5b600c54603f9062010000900460ff1681565b604051901515815260200160405180910390f3fea26469706673582212201fa3ed5120b21127aba2b1f96d9dd54f597a23165c1f545aca256ea08b4bb91464736f6c63430008180033
+    ///0x6080604052600c805462ff00ff191662010001179055348015601f575f80fd5b5060868061002c5f395ff3fe6080604052348015600e575f80fd5b50600436106026575f3560e01c8063f8ccbf4714602a575b5f80fd5b600c54603c9062010000900460ff1681565b604051901515815260200160405180910390f3fea2646970667358221220d72ad5621fba108cd35d5eeabab84c4f47824b891b0fda38c8164013fc5fc64464736f6c63430008180033
     /// ```
     #[rustfmt::skip]
     #[allow(clippy::all)]
     pub static BYTECODE: alloy_sol_types::private::Bytes = alloy_sol_types::private::Bytes::from_static(
-        b"`\x80`@R`\x0C\x80Tb\xFF\0\xFF\x19\x16b\x01\0\x01\x17\x90U4\x80\x15` W`\0\x80\xFD[P`\x89\x80a\0/`\09`\0\xF3\xFE`\x80`@R4\x80\x15`\x0FW`\0\x80\xFD[P`\x046\x10`(W`\x005`\xE0\x1C\x80c\xF8\xCC\xBFG\x14`-W[`\0\x80\xFD[`\x0CT`?\x90b\x01\0\0\x90\x04`\xFF\x16\x81V[`@Q\x90\x15\x15\x81R` \x01`@Q\x80\x91\x03\x90\xF3\xFE\xA2dipfsX\"\x12 \x1F\xA3\xEDQ \xB2\x11'\xAB\xA2\xB1\xF9m\x9D\xD5OYz#\x16\\\x1FTZ\xCA%n\xA0\x8BK\xB9\x14dsolcC\0\x08\x18\x003",
+        b"`\x80`@R`\x0C\x80Tb\xFF\0\xFF\x19\x16b\x01\0\x01\x17\x90U4\x80\x15`\x1FW_\x80\xFD[P`\x86\x80a\0,_9_\xF3\xFE`\x80`@R4\x80\x15`\x0EW_\x80\xFD[P`\x046\x10`&W_5`\xE0\x1C\x80c\xF8\xCC\xBFG\x14`*W[_\x80\xFD[`\x0CT`<\x90b\x01\0\0\x90\x04`\xFF\x16\x81V[`@Q\x90\x15\x15\x81R` \x01`@Q\x80\x91\x03\x90\xF3\xFE\xA2dipfsX\"\x12 \xD7*\xD5b\x1F\xBA\x10\x8C\xD3]^\xEA\xBA\xB8LOG\x82K\x89\x1B\x0F\xDA8\xC8\x16@\x13\xFC_\xC6DdsolcC\0\x08\x18\x003",
     );
     /// The runtime bytecode of the contract, as deployed on the network.
     ///
     /// ```text
-    ///0x6080604052348015600f57600080fd5b506004361060285760003560e01c8063f8ccbf4714602d575b600080fd5b600c54603f9062010000900460ff1681565b604051901515815260200160405180910390f3fea26469706673582212201fa3ed5120b21127aba2b1f96d9dd54f597a23165c1f545aca256ea08b4bb91464736f6c63430008180033
+    ///0x6080604052348015600e575f80fd5b50600436106026575f3560e01c8063f8ccbf4714602a575b5f80fd5b600c54603c9062010000900460ff1681565b604051901515815260200160405180910390f3fea2646970667358221220d72ad5621fba108cd35d5eeabab84c4f47824b891b0fda38c8164013fc5fc64464736f6c63430008180033
     /// ```
     #[rustfmt::skip]
     #[allow(clippy::all)]
     pub static DEPLOYED_BYTECODE: alloy_sol_types::private::Bytes = alloy_sol_types::private::Bytes::from_static(
-        b"`\x80`@R4\x80\x15`\x0FW`\0\x80\xFD[P`\x046\x10`(W`\x005`\xE0\x1C\x80c\xF8\xCC\xBFG\x14`-W[`\0\x80\xFD[`\x0CT`?\x90b\x01\0\0\x90\x04`\xFF\x16\x81V[`@Q\x90\x15\x15\x81R` \x01`@Q\x80\x91\x03\x90\xF3\xFE\xA2dipfsX\"\x12 \x1F\xA3\xEDQ \xB2\x11'\xAB\xA2\xB1\xF9m\x9D\xD5OYz#\x16\\\x1FTZ\xCA%n\xA0\x8BK\xB9\x14dsolcC\0\x08\x18\x003",
+        b"`\x80`@R4\x80\x15`\x0EW_\x80\xFD[P`\x046\x10`&W_5`\xE0\x1C\x80c\xF8\xCC\xBFG\x14`*W[_\x80\xFD[`\x0CT`<\x90b\x01\0\0\x90\x04`\xFF\x16\x81V[`@Q\x90\x15\x15\x81R` \x01`@Q\x80\x91\x03\x90\xF3\xFE\xA2dipfsX\"\x12 \xD7*\xD5b\x1F\xBA\x10\x8C\xD3]^\xEA\xBA\xB8LOG\x82K\x89\x1B\x0F\xDA8\xC8\x16@\x13\xFC_\xC6DdsolcC\0\x08\x18\x003",
     );
     /**Function with signature `IS_SCRIPT()` and selector `0xf8ccbf47`.
 ```solidity
 function IS_SCRIPT() external view returns (bool);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct IS_SCRIPTCall {}
     ///Container type for the return parameters of the [`IS_SCRIPT()`](IS_SCRIPTCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct IS_SCRIPTReturn {
+        #[allow(missing_docs)]
         pub _0: bool,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -164,6 +176,7 @@ function IS_SCRIPT() external view returns (bool);
     };
     ///Container for all the [`DeployPermit2`](self) function calls.
     pub enum DeployPermit2Calls {
+        #[allow(missing_docs)]
         IS_SCRIPT(IS_SCRIPTCall),
     }
     #[automatically_derived]
@@ -198,7 +211,7 @@ function IS_SCRIPT() external view returns (bool);
             Self::SELECTORS.binary_search(&selector).is_ok()
         }
         #[inline]
-        #[allow(unsafe_code, non_snake_case)]
+        #[allow(non_snake_case)]
         fn abi_decode_raw(
             selector: [u8; 4],
             data: &[u8],
@@ -230,7 +243,7 @@ function IS_SCRIPT() external view returns (bool);
                     ),
                 );
             };
-            (unsafe { DECODE_SHIMS.get_unchecked(idx) })(data, validate)
+            DECODE_SHIMS[idx](data, validate)
         }
         #[inline]
         fn abi_encoded_size(&self) -> usize {

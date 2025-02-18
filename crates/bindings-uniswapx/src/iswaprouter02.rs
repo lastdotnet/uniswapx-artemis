@@ -214,7 +214,13 @@ interface ISwapRouter02 {
   }
 ]
 ```*/
-#[allow(non_camel_case_types, non_snake_case, clippy::style)]
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
 pub mod ISwapRouter02 {
     use super::*;
     use alloy::sol_types as alloy_sol_types;
@@ -241,15 +247,24 @@ pub mod ISwapRouter02 {
     /**```solidity
 struct ExactInputParams { bytes path; address recipient; uint256 amountIn; uint256 amountOutMinimum; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct ExactInputParams {
+        #[allow(missing_docs)]
         pub path: alloy::sol_types::private::Bytes,
+        #[allow(missing_docs)]
         pub recipient: alloy::sol_types::private::Address,
-        pub amountIn: alloy::sol_types::private::U256,
-        pub amountOutMinimum: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub amountIn: alloy::sol_types::private::primitives::aliases::U256,
+        #[allow(missing_docs)]
+        pub amountOutMinimum: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -263,8 +278,8 @@ struct ExactInputParams { bytes path; address recipient; uint256 amountIn; uint2
         type UnderlyingRustTuple<'a> = (
             alloy::sol_types::private::Bytes,
             alloy::sol_types::private::Address,
-            alloy::sol_types::private::U256,
-            alloy::sol_types::private::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
         );
         #[cfg(test)]
         #[allow(dead_code, unreachable_patterns)]
@@ -498,22 +513,30 @@ struct ExactInputParams { bytes path; address recipient; uint256 amountIn; uint2
     /**```solidity
 struct ExactInputSingleParams { address tokenIn; address tokenOut; uint24 fee; address recipient; uint256 amountIn; uint256 amountOutMinimum; uint160 sqrtPriceLimitX96; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct ExactInputSingleParams {
+        #[allow(missing_docs)]
         pub tokenIn: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub tokenOut: alloy::sol_types::private::Address,
-        pub fee: <alloy::sol_types::sol_data::Uint<
-            24,
-        > as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
+        pub fee: alloy::sol_types::private::primitives::aliases::U24,
+        #[allow(missing_docs)]
         pub recipient: alloy::sol_types::private::Address,
-        pub amountIn: alloy::sol_types::private::U256,
-        pub amountOutMinimum: alloy::sol_types::private::U256,
-        pub sqrtPriceLimitX96: <alloy::sol_types::sol_data::Uint<
-            160,
-        > as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
+        pub amountIn: alloy::sol_types::private::primitives::aliases::U256,
+        #[allow(missing_docs)]
+        pub amountOutMinimum: alloy::sol_types::private::primitives::aliases::U256,
+        #[allow(missing_docs)]
+        pub sqrtPriceLimitX96: alloy::sol_types::private::primitives::aliases::U160,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -530,15 +553,11 @@ struct ExactInputSingleParams { address tokenIn; address tokenOut; uint24 fee; a
         type UnderlyingRustTuple<'a> = (
             alloy::sol_types::private::Address,
             alloy::sol_types::private::Address,
-            <alloy::sol_types::sol_data::Uint<
-                24,
-            > as alloy::sol_types::SolType>::RustType,
+            alloy::sol_types::private::primitives::aliases::U24,
             alloy::sol_types::private::Address,
-            alloy::sol_types::private::U256,
-            alloy::sol_types::private::U256,
-            <alloy::sol_types::sol_data::Uint<
-                160,
-            > as alloy::sol_types::SolType>::RustType,
+            alloy::sol_types::private::primitives::aliases::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
+            alloy::sol_types::private::primitives::aliases::U160,
         );
         #[cfg(test)]
         #[allow(dead_code, unreachable_patterns)]
@@ -831,16 +850,22 @@ struct ExactInputSingleParams { address tokenIn; address tokenOut; uint24 fee; a
 ```solidity
 function WETH9() external view returns (address);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct WETH9Call {}
     ///Container type for the return parameters of the [`WETH9()`](WETH9Call) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct WETH9Return {
+        #[allow(missing_docs)]
         pub _0: alloy::sol_types::private::Address,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -944,18 +969,25 @@ function WETH9() external view returns (address);
 ```solidity
 function exactInput(ExactInputParams memory params) external payable returns (uint256 amountOut);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct exactInputCall {
+        #[allow(missing_docs)]
         pub params: <ExactInputParams as alloy::sol_types::SolType>::RustType,
     }
     ///Container type for the return parameters of the [`exactInput((bytes,address,uint256,uint256))`](exactInputCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct exactInputReturn {
-        pub amountOut: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub amountOut: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -995,7 +1027,9 @@ function exactInput(ExactInputParams memory params) external payable returns (ui
             #[doc(hidden)]
             type UnderlyingSolTuple<'a> = (alloy::sol_types::sol_data::Uint<256>,);
             #[doc(hidden)]
-            type UnderlyingRustTuple<'a> = (alloy::sol_types::private::U256,);
+            type UnderlyingRustTuple<'a> = (
+                alloy::sol_types::private::primitives::aliases::U256,
+            );
             #[cfg(test)]
             #[allow(dead_code, unreachable_patterns)]
             fn _type_assertion(
@@ -1061,18 +1095,25 @@ function exactInput(ExactInputParams memory params) external payable returns (ui
 ```solidity
 function exactInputSingle(ExactInputSingleParams memory params) external payable returns (uint256 amountOut);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct exactInputSingleCall {
+        #[allow(missing_docs)]
         pub params: <ExactInputSingleParams as alloy::sol_types::SolType>::RustType,
     }
     ///Container type for the return parameters of the [`exactInputSingle((address,address,uint24,address,uint256,uint256,uint160))`](exactInputSingleCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct exactInputSingleReturn {
-        pub amountOut: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub amountOut: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -1114,7 +1155,9 @@ function exactInputSingle(ExactInputSingleParams memory params) external payable
             #[doc(hidden)]
             type UnderlyingSolTuple<'a> = (alloy::sol_types::sol_data::Uint<256>,);
             #[doc(hidden)]
-            type UnderlyingRustTuple<'a> = (alloy::sol_types::private::U256,);
+            type UnderlyingRustTuple<'a> = (
+                alloy::sol_types::private::primitives::aliases::U256,
+            );
             #[cfg(test)]
             #[allow(dead_code, unreachable_patterns)]
             fn _type_assertion(
@@ -1186,19 +1229,27 @@ function exactInputSingle(ExactInputSingleParams memory params) external payable
 ```solidity
 function multicall(uint256 deadline, bytes[] memory data) external payable returns (bytes[] memory results);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct multicallCall {
-        pub deadline: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub deadline: alloy::sol_types::private::primitives::aliases::U256,
+        #[allow(missing_docs)]
         pub data: alloy::sol_types::private::Vec<alloy::sol_types::private::Bytes>,
     }
     ///Container type for the return parameters of the [`multicall(uint256,bytes[])`](multicallCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct multicallReturn {
+        #[allow(missing_docs)]
         pub results: alloy::sol_types::private::Vec<alloy::sol_types::private::Bytes>,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -1209,7 +1260,7 @@ function multicall(uint256 deadline, bytes[] memory data) external payable retur
             );
             #[doc(hidden)]
             type UnderlyingRustTuple<'a> = (
-                alloy::sol_types::private::U256,
+                alloy::sol_types::private::primitives::aliases::U256,
                 alloy::sol_types::private::Vec<alloy::sol_types::private::Bytes>,
             );
             #[cfg(test)]
@@ -1327,21 +1378,31 @@ function multicall(uint256 deadline, bytes[] memory data) external payable retur
 ```solidity
 function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] memory path, address to) external payable returns (uint256 amountOut);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct swapExactTokensForTokensCall {
-        pub amountIn: alloy::sol_types::private::U256,
-        pub amountOutMin: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub amountIn: alloy::sol_types::private::primitives::aliases::U256,
+        #[allow(missing_docs)]
+        pub amountOutMin: alloy::sol_types::private::primitives::aliases::U256,
+        #[allow(missing_docs)]
         pub path: alloy::sol_types::private::Vec<alloy::sol_types::private::Address>,
+        #[allow(missing_docs)]
         pub to: alloy::sol_types::private::Address,
     }
     ///Container type for the return parameters of the [`swapExactTokensForTokens(uint256,uint256,address[],address)`](swapExactTokensForTokensCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct swapExactTokensForTokensReturn {
-        pub amountOut: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub amountOut: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -1354,8 +1415,8 @@ function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, addres
             );
             #[doc(hidden)]
             type UnderlyingRustTuple<'a> = (
-                alloy::sol_types::private::U256,
-                alloy::sol_types::private::U256,
+                alloy::sol_types::private::primitives::aliases::U256,
+                alloy::sol_types::private::primitives::aliases::U256,
                 alloy::sol_types::private::Vec<alloy::sol_types::private::Address>,
                 alloy::sol_types::private::Address,
             );
@@ -1396,7 +1457,9 @@ function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, addres
             #[doc(hidden)]
             type UnderlyingSolTuple<'a> = (alloy::sol_types::sol_data::Uint<256>,);
             #[doc(hidden)]
-            type UnderlyingRustTuple<'a> = (alloy::sol_types::private::U256,);
+            type UnderlyingRustTuple<'a> = (
+                alloy::sol_types::private::primitives::aliases::U256,
+            );
             #[cfg(test)]
             #[allow(dead_code, unreachable_patterns)]
             fn _type_assertion(
@@ -1482,23 +1545,31 @@ function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, addres
 ```solidity
 function unwrapWETH9(uint256 amountMinimum) external payable;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct unwrapWETH9Call {
-        pub amountMinimum: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub amountMinimum: alloy::sol_types::private::primitives::aliases::U256,
     }
     ///Container type for the return parameters of the [`unwrapWETH9(uint256)`](unwrapWETH9Call) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct unwrapWETH9Return {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
             #[doc(hidden)]
             type UnderlyingSolTuple<'a> = (alloy::sol_types::sol_data::Uint<256>,);
             #[doc(hidden)]
-            type UnderlyingRustTuple<'a> = (alloy::sol_types::private::U256,);
+            type UnderlyingRustTuple<'a> = (
+                alloy::sol_types::private::primitives::aliases::U256,
+            );
             #[cfg(test)]
             #[allow(dead_code, unreachable_patterns)]
             fn _type_assertion(
@@ -1597,11 +1668,17 @@ function unwrapWETH9(uint256 amountMinimum) external payable;
     };
     ///Container for all the [`ISwapRouter02`](self) function calls.
     pub enum ISwapRouter02Calls {
+        #[allow(missing_docs)]
         WETH9(WETH9Call),
+        #[allow(missing_docs)]
         exactInput(exactInputCall),
+        #[allow(missing_docs)]
         exactInputSingle(exactInputSingleCall),
+        #[allow(missing_docs)]
         multicall(multicallCall),
+        #[allow(missing_docs)]
         swapExactTokensForTokens(swapExactTokensForTokensCall),
+        #[allow(missing_docs)]
         unwrapWETH9(unwrapWETH9Call),
     }
     #[automatically_derived]
@@ -1656,7 +1733,7 @@ function unwrapWETH9(uint256 amountMinimum) external payable;
             Self::SELECTORS.binary_search(&selector).is_ok()
         }
         #[inline]
-        #[allow(unsafe_code, non_snake_case)]
+        #[allow(non_snake_case)]
         fn abi_decode_raw(
             selector: [u8; 4],
             data: &[u8],
@@ -1753,7 +1830,7 @@ function unwrapWETH9(uint256 amountMinimum) external payable;
                     ),
                 );
             };
-            (unsafe { DECODE_SHIMS.get_unchecked(idx) })(data, validate)
+            DECODE_SHIMS[idx](data, validate)
         }
         #[inline]
         fn abi_encoded_size(&self) -> usize {
@@ -2008,7 +2085,7 @@ the bytecode concatenated with the constructor's ABI-encoded arguments.*/
         ///Creates a new call builder for the [`multicall`] function.
         pub fn multicall(
             &self,
-            deadline: alloy::sol_types::private::U256,
+            deadline: alloy::sol_types::private::primitives::aliases::U256,
             data: alloy::sol_types::private::Vec<alloy::sol_types::private::Bytes>,
         ) -> alloy_contract::SolCallBuilder<T, &P, multicallCall, N> {
             self.call_builder(&multicallCall { deadline, data })
@@ -2016,8 +2093,8 @@ the bytecode concatenated with the constructor's ABI-encoded arguments.*/
         ///Creates a new call builder for the [`swapExactTokensForTokens`] function.
         pub fn swapExactTokensForTokens(
             &self,
-            amountIn: alloy::sol_types::private::U256,
-            amountOutMin: alloy::sol_types::private::U256,
+            amountIn: alloy::sol_types::private::primitives::aliases::U256,
+            amountOutMin: alloy::sol_types::private::primitives::aliases::U256,
             path: alloy::sol_types::private::Vec<alloy::sol_types::private::Address>,
             to: alloy::sol_types::private::Address,
         ) -> alloy_contract::SolCallBuilder<T, &P, swapExactTokensForTokensCall, N> {
@@ -2033,7 +2110,7 @@ the bytecode concatenated with the constructor's ABI-encoded arguments.*/
         ///Creates a new call builder for the [`unwrapWETH9`] function.
         pub fn unwrapWETH9(
             &self,
-            amountMinimum: alloy::sol_types::private::U256,
+            amountMinimum: alloy::sol_types::private::primitives::aliases::U256,
         ) -> alloy_contract::SolCallBuilder<T, &P, unwrapWETH9Call, N> {
             self.call_builder(&unwrapWETH9Call { amountMinimum })
         }

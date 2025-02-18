@@ -540,7 +540,13 @@ interface IAllowanceTransfer {
   }
 ]
 ```*/
-#[allow(non_camel_case_types, non_snake_case, clippy::style)]
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
 pub mod IAllowanceTransfer {
     use super::*;
     use alloy::sol_types as alloy_sol_types;
@@ -567,17 +573,24 @@ pub mod IAllowanceTransfer {
     /**```solidity
 struct AllowanceTransferDetails { address from; address to; uint160 amount; address token; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct AllowanceTransferDetails {
+        #[allow(missing_docs)]
         pub from: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub to: alloy::sol_types::private::Address,
-        pub amount: <alloy::sol_types::sol_data::Uint<
-            160,
-        > as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
+        pub amount: alloy::sol_types::private::primitives::aliases::U160,
+        #[allow(missing_docs)]
         pub token: alloy::sol_types::private::Address,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -591,9 +604,7 @@ struct AllowanceTransferDetails { address from; address to; uint160 amount; addr
         type UnderlyingRustTuple<'a> = (
             alloy::sol_types::private::Address,
             alloy::sol_types::private::Address,
-            <alloy::sol_types::sol_data::Uint<
-                160,
-            > as alloy::sol_types::SolType>::RustType,
+            alloy::sol_types::private::primitives::aliases::U160,
             alloy::sol_types::private::Address,
         );
         #[cfg(test)]
@@ -824,16 +835,24 @@ struct AllowanceTransferDetails { address from; address to; uint160 amount; addr
     /**```solidity
 struct PermitBatch { PermitDetails[] details; address spender; uint256 sigDeadline; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct PermitBatch {
+        #[allow(missing_docs)]
         pub details: alloy::sol_types::private::Vec<
             <PermitDetails as alloy::sol_types::SolType>::RustType,
         >,
+        #[allow(missing_docs)]
         pub spender: alloy::sol_types::private::Address,
-        pub sigDeadline: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub sigDeadline: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -848,7 +867,7 @@ struct PermitBatch { PermitDetails[] details; address spender; uint256 sigDeadli
                 <PermitDetails as alloy::sol_types::SolType>::RustType,
             >,
             alloy::sol_types::private::Address,
-            alloy::sol_types::private::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
         );
         #[cfg(test)]
         #[allow(dead_code, unreachable_patterns)]
@@ -1070,21 +1089,24 @@ struct PermitBatch { PermitDetails[] details; address spender; uint256 sigDeadli
     /**```solidity
 struct PermitDetails { address token; uint160 amount; uint48 expiration; uint48 nonce; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct PermitDetails {
+        #[allow(missing_docs)]
         pub token: alloy::sol_types::private::Address,
-        pub amount: <alloy::sol_types::sol_data::Uint<
-            160,
-        > as alloy::sol_types::SolType>::RustType,
-        pub expiration: <alloy::sol_types::sol_data::Uint<
-            48,
-        > as alloy::sol_types::SolType>::RustType,
-        pub nonce: <alloy::sol_types::sol_data::Uint<
-            48,
-        > as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
+        pub amount: alloy::sol_types::private::primitives::aliases::U160,
+        #[allow(missing_docs)]
+        pub expiration: alloy::sol_types::private::primitives::aliases::U48,
+        #[allow(missing_docs)]
+        pub nonce: alloy::sol_types::private::primitives::aliases::U48,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -1097,13 +1119,9 @@ struct PermitDetails { address token; uint160 amount; uint48 expiration; uint48 
         #[doc(hidden)]
         type UnderlyingRustTuple<'a> = (
             alloy::sol_types::private::Address,
-            <alloy::sol_types::sol_data::Uint<
-                160,
-            > as alloy::sol_types::SolType>::RustType,
-            <alloy::sol_types::sol_data::Uint<
-                48,
-            > as alloy::sol_types::SolType>::RustType,
-            <alloy::sol_types::sol_data::Uint<48> as alloy::sol_types::SolType>::RustType,
+            alloy::sol_types::private::primitives::aliases::U160,
+            alloy::sol_types::private::primitives::aliases::U48,
+            alloy::sol_types::private::primitives::aliases::U48,
         );
         #[cfg(test)]
         #[allow(dead_code, unreachable_patterns)]
@@ -1337,14 +1355,22 @@ struct PermitDetails { address token; uint160 amount; uint48 expiration; uint48 
     /**```solidity
 struct PermitSingle { PermitDetails details; address spender; uint256 sigDeadline; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct PermitSingle {
+        #[allow(missing_docs)]
         pub details: <PermitDetails as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
         pub spender: alloy::sol_types::private::Address,
-        pub sigDeadline: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub sigDeadline: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -1357,7 +1383,7 @@ struct PermitSingle { PermitDetails details; address spender; uint256 sigDeadlin
         type UnderlyingRustTuple<'a> = (
             <PermitDetails as alloy::sol_types::SolType>::RustType,
             alloy::sol_types::private::Address,
-            alloy::sol_types::private::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
         );
         #[cfg(test)]
         #[allow(dead_code, unreachable_patterns)]
@@ -1573,13 +1599,20 @@ struct PermitSingle { PermitDetails details; address spender; uint256 sigDeadlin
     /**```solidity
 struct TokenSpenderPair { address token; address spender; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct TokenSpenderPair {
+        #[allow(missing_docs)]
         pub token: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub spender: alloy::sol_types::private::Address,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -1785,18 +1818,26 @@ struct TokenSpenderPair { address token; address spender; }
 ```solidity
 error AllowanceExpired(uint256 deadline);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct AllowanceExpired {
-        pub deadline: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub deadline: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
         type UnderlyingSolTuple<'a> = (alloy::sol_types::sol_data::Uint<256>,);
         #[doc(hidden)]
-        type UnderlyingRustTuple<'a> = (alloy::sol_types::private::U256,);
+        type UnderlyingRustTuple<'a> = (
+            alloy::sol_types::private::primitives::aliases::U256,
+        );
         #[cfg(test)]
         #[allow(dead_code, unreachable_patterns)]
         fn _type_assertion(
@@ -1850,10 +1891,15 @@ error AllowanceExpired(uint256 deadline);
 ```solidity
 error ExcessiveInvalidation();
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct ExcessiveInvalidation {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -1909,18 +1955,26 @@ error ExcessiveInvalidation();
 ```solidity
 error InsufficientAllowance(uint256 amount);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct InsufficientAllowance {
-        pub amount: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub amount: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
         type UnderlyingSolTuple<'a> = (alloy::sol_types::sol_data::Uint<256>,);
         #[doc(hidden)]
-        type UnderlyingRustTuple<'a> = (alloy::sol_types::private::U256,);
+        type UnderlyingRustTuple<'a> = (
+            alloy::sol_types::private::primitives::aliases::U256,
+        );
         #[cfg(test)]
         #[allow(dead_code, unreachable_patterns)]
         fn _type_assertion(
@@ -1974,7 +2028,12 @@ error InsufficientAllowance(uint256 amount);
 ```solidity
 event Approval(address indexed owner, address indexed token, address indexed spender, uint160 amount, uint48 expiration);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct Approval {
         #[allow(missing_docs)]
@@ -1984,15 +2043,16 @@ event Approval(address indexed owner, address indexed token, address indexed spe
         #[allow(missing_docs)]
         pub spender: alloy::sol_types::private::Address,
         #[allow(missing_docs)]
-        pub amount: <alloy::sol_types::sol_data::Uint<
-            160,
-        > as alloy::sol_types::SolType>::RustType,
+        pub amount: alloy::sol_types::private::primitives::aliases::U160,
         #[allow(missing_docs)]
-        pub expiration: <alloy::sol_types::sol_data::Uint<
-            48,
-        > as alloy::sol_types::SolType>::RustType,
+        pub expiration: alloy::sol_types::private::primitives::aliases::U48,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -2061,6 +2121,21 @@ event Approval(address indexed owner, address indexed token, address indexed spe
                 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::Uint<
@@ -2124,7 +2199,12 @@ event Approval(address indexed owner, address indexed token, address indexed spe
 ```solidity
 event Lockdown(address indexed owner, address token, address spender);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct Lockdown {
         #[allow(missing_docs)]
@@ -2134,7 +2214,12 @@ event Lockdown(address indexed owner, address token, address spender);
         #[allow(missing_docs)]
         pub spender: alloy::sol_types::private::Address,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -2199,6 +2284,21 @@ event Lockdown(address indexed owner, address token, address spender);
                 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::Address as alloy_sol_types::SolType>::tokenize(
@@ -2251,7 +2351,12 @@ event Lockdown(address indexed owner, address token, address spender);
 ```solidity
 event NonceInvalidation(address indexed owner, address indexed token, address indexed spender, uint48 newNonce, uint48 oldNonce);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct NonceInvalidation {
         #[allow(missing_docs)]
@@ -2261,15 +2366,16 @@ event NonceInvalidation(address indexed owner, address indexed token, address in
         #[allow(missing_docs)]
         pub spender: alloy::sol_types::private::Address,
         #[allow(missing_docs)]
-        pub newNonce: <alloy::sol_types::sol_data::Uint<
-            48,
-        > as alloy::sol_types::SolType>::RustType,
+        pub newNonce: alloy::sol_types::private::primitives::aliases::U48,
         #[allow(missing_docs)]
-        pub oldNonce: <alloy::sol_types::sol_data::Uint<
-            48,
-        > as alloy::sol_types::SolType>::RustType,
+        pub oldNonce: alloy::sol_types::private::primitives::aliases::U48,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -2338,6 +2444,21 @@ event NonceInvalidation(address indexed owner, address indexed token, address in
                 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::Uint<
@@ -2401,7 +2522,12 @@ event NonceInvalidation(address indexed owner, address indexed token, address in
 ```solidity
 event Permit(address indexed owner, address indexed token, address indexed spender, uint160 amount, uint48 expiration, uint48 nonce);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct Permit {
         #[allow(missing_docs)]
@@ -2411,19 +2537,18 @@ event Permit(address indexed owner, address indexed token, address indexed spend
         #[allow(missing_docs)]
         pub spender: alloy::sol_types::private::Address,
         #[allow(missing_docs)]
-        pub amount: <alloy::sol_types::sol_data::Uint<
-            160,
-        > as alloy::sol_types::SolType>::RustType,
+        pub amount: alloy::sol_types::private::primitives::aliases::U160,
         #[allow(missing_docs)]
-        pub expiration: <alloy::sol_types::sol_data::Uint<
-            48,
-        > as alloy::sol_types::SolType>::RustType,
+        pub expiration: alloy::sol_types::private::primitives::aliases::U48,
         #[allow(missing_docs)]
-        pub nonce: <alloy::sol_types::sol_data::Uint<
-            48,
-        > as alloy::sol_types::SolType>::RustType,
+        pub nonce: alloy::sol_types::private::primitives::aliases::U48,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -2494,6 +2619,21 @@ event Permit(address indexed owner, address indexed token, address indexed spend
                 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::Uint<
@@ -2560,16 +2700,22 @@ event Permit(address indexed owner, address indexed token, address indexed spend
 ```solidity
 function DOMAIN_SEPARATOR() external view returns (bytes32);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct DOMAIN_SEPARATORCall {}
     ///Container type for the return parameters of the [`DOMAIN_SEPARATOR()`](DOMAIN_SEPARATORCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct DOMAIN_SEPARATORReturn {
+        #[allow(missing_docs)]
         pub _0: alloy::sol_types::private::FixedBytes<32>,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -2677,28 +2823,33 @@ function DOMAIN_SEPARATOR() external view returns (bytes32);
 ```solidity
 function allowance(address user, address token, address spender) external view returns (uint160 amount, uint48 expiration, uint48 nonce);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct allowanceCall {
+        #[allow(missing_docs)]
         pub user: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub token: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub spender: alloy::sol_types::private::Address,
     }
     ///Container type for the return parameters of the [`allowance(address,address,address)`](allowanceCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct allowanceReturn {
-        pub amount: <alloy::sol_types::sol_data::Uint<
-            160,
-        > as alloy::sol_types::SolType>::RustType,
-        pub expiration: <alloy::sol_types::sol_data::Uint<
-            48,
-        > as alloy::sol_types::SolType>::RustType,
-        pub nonce: <alloy::sol_types::sol_data::Uint<
-            48,
-        > as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
+        pub amount: alloy::sol_types::private::primitives::aliases::U160,
+        #[allow(missing_docs)]
+        pub expiration: alloy::sol_types::private::primitives::aliases::U48,
+        #[allow(missing_docs)]
+        pub nonce: alloy::sol_types::private::primitives::aliases::U48,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -2753,15 +2904,9 @@ function allowance(address user, address token, address spender) external view r
             );
             #[doc(hidden)]
             type UnderlyingRustTuple<'a> = (
-                <alloy::sol_types::sol_data::Uint<
-                    160,
-                > as alloy::sol_types::SolType>::RustType,
-                <alloy::sol_types::sol_data::Uint<
-                    48,
-                > as alloy::sol_types::SolType>::RustType,
-                <alloy::sol_types::sol_data::Uint<
-                    48,
-                > as alloy::sol_types::SolType>::RustType,
+                alloy::sol_types::private::primitives::aliases::U160,
+                alloy::sol_types::private::primitives::aliases::U48,
+                alloy::sol_types::private::primitives::aliases::U48,
             );
             #[cfg(test)]
             #[allow(dead_code, unreachable_patterns)]
@@ -2850,23 +2995,28 @@ function allowance(address user, address token, address spender) external view r
 ```solidity
 function approve(address token, address spender, uint160 amount, uint48 expiration) external;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct approveCall {
+        #[allow(missing_docs)]
         pub token: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub spender: alloy::sol_types::private::Address,
-        pub amount: <alloy::sol_types::sol_data::Uint<
-            160,
-        > as alloy::sol_types::SolType>::RustType,
-        pub expiration: <alloy::sol_types::sol_data::Uint<
-            48,
-        > as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
+        pub amount: alloy::sol_types::private::primitives::aliases::U160,
+        #[allow(missing_docs)]
+        pub expiration: alloy::sol_types::private::primitives::aliases::U48,
     }
     ///Container type for the return parameters of the [`approve(address,address,uint160,uint48)`](approveCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct approveReturn {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -2881,12 +3031,8 @@ function approve(address token, address spender, uint160 amount, uint48 expirati
             type UnderlyingRustTuple<'a> = (
                 alloy::sol_types::private::Address,
                 alloy::sol_types::private::Address,
-                <alloy::sol_types::sol_data::Uint<
-                    160,
-                > as alloy::sol_types::SolType>::RustType,
-                <alloy::sol_types::sol_data::Uint<
-                    48,
-                > as alloy::sol_types::SolType>::RustType,
+                alloy::sol_types::private::primitives::aliases::U160,
+                alloy::sol_types::private::primitives::aliases::U48,
             );
             #[cfg(test)]
             #[allow(dead_code, unreachable_patterns)]
@@ -3007,20 +3153,26 @@ function approve(address token, address spender, uint160 amount, uint48 expirati
 ```solidity
 function invalidateNonces(address token, address spender, uint48 newNonce) external;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct invalidateNoncesCall {
+        #[allow(missing_docs)]
         pub token: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub spender: alloy::sol_types::private::Address,
-        pub newNonce: <alloy::sol_types::sol_data::Uint<
-            48,
-        > as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
+        pub newNonce: alloy::sol_types::private::primitives::aliases::U48,
     }
     ///Container type for the return parameters of the [`invalidateNonces(address,address,uint48)`](invalidateNoncesCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct invalidateNoncesReturn {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -3034,9 +3186,7 @@ function invalidateNonces(address token, address spender, uint48 newNonce) exter
             type UnderlyingRustTuple<'a> = (
                 alloy::sol_types::private::Address,
                 alloy::sol_types::private::Address,
-                <alloy::sol_types::sol_data::Uint<
-                    48,
-                > as alloy::sol_types::SolType>::RustType,
+                alloy::sol_types::private::primitives::aliases::U48,
             );
             #[cfg(test)]
             #[allow(dead_code, unreachable_patterns)]
@@ -3156,18 +3306,24 @@ function invalidateNonces(address token, address spender, uint48 newNonce) exter
 ```solidity
 function lockdown(TokenSpenderPair[] memory approvals) external;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct lockdownCall {
+        #[allow(missing_docs)]
         pub approvals: alloy::sol_types::private::Vec<
             <TokenSpenderPair as alloy::sol_types::SolType>::RustType,
         >,
     }
     ///Container type for the return parameters of the [`lockdown((address,address)[])`](lockdownCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct lockdownReturn {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -3281,18 +3437,26 @@ function lockdown(TokenSpenderPair[] memory approvals) external;
 ```solidity
 function permit(address owner, PermitBatch memory permitBatch, bytes memory signature) external;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct permit_0Call {
+        #[allow(missing_docs)]
         pub owner: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub permitBatch: <PermitBatch as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
         pub signature: alloy::sol_types::private::Bytes,
     }
     ///Container type for the return parameters of the [`permit(address,((address,uint160,uint48,uint48)[],address,uint256),bytes)`](permit_0Call) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct permit_0Return {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -3422,18 +3586,26 @@ function permit(address owner, PermitBatch memory permitBatch, bytes memory sign
 ```solidity
 function permit(address owner, PermitSingle memory permitSingle, bytes memory signature) external;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct permit_1Call {
+        #[allow(missing_docs)]
         pub owner: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub permitSingle: <PermitSingle as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
         pub signature: alloy::sol_types::private::Bytes,
     }
     ///Container type for the return parameters of the [`permit(address,((address,uint160,uint48,uint48),address,uint256),bytes)`](permit_1Call) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct permit_1Return {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -3563,18 +3735,24 @@ function permit(address owner, PermitSingle memory permitSingle, bytes memory si
 ```solidity
 function transferFrom(AllowanceTransferDetails[] memory transferDetails) external;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct transferFrom_0Call {
+        #[allow(missing_docs)]
         pub transferDetails: alloy::sol_types::private::Vec<
             <AllowanceTransferDetails as alloy::sol_types::SolType>::RustType,
         >,
     }
     ///Container type for the return parameters of the [`transferFrom((address,address,uint160,address)[])`](transferFrom_0Call) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct transferFrom_0Return {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -3692,21 +3870,28 @@ function transferFrom(AllowanceTransferDetails[] memory transferDetails) externa
 ```solidity
 function transferFrom(address from, address to, uint160 amount, address token) external;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct transferFrom_1Call {
+        #[allow(missing_docs)]
         pub from: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub to: alloy::sol_types::private::Address,
-        pub amount: <alloy::sol_types::sol_data::Uint<
-            160,
-        > as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
+        pub amount: alloy::sol_types::private::primitives::aliases::U160,
+        #[allow(missing_docs)]
         pub token: alloy::sol_types::private::Address,
     }
     ///Container type for the return parameters of the [`transferFrom(address,address,uint160,address)`](transferFrom_1Call) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct transferFrom_1Return {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -3721,9 +3906,7 @@ function transferFrom(address from, address to, uint160 amount, address token) e
             type UnderlyingRustTuple<'a> = (
                 alloy::sol_types::private::Address,
                 alloy::sol_types::private::Address,
-                <alloy::sol_types::sol_data::Uint<
-                    160,
-                > as alloy::sol_types::SolType>::RustType,
+                alloy::sol_types::private::primitives::aliases::U160,
                 alloy::sol_types::private::Address,
             );
             #[cfg(test)]
@@ -3845,14 +4028,23 @@ function transferFrom(address from, address to, uint160 amount, address token) e
     };
     ///Container for all the [`IAllowanceTransfer`](self) function calls.
     pub enum IAllowanceTransferCalls {
+        #[allow(missing_docs)]
         DOMAIN_SEPARATOR(DOMAIN_SEPARATORCall),
+        #[allow(missing_docs)]
         allowance(allowanceCall),
+        #[allow(missing_docs)]
         approve(approveCall),
+        #[allow(missing_docs)]
         invalidateNonces(invalidateNoncesCall),
+        #[allow(missing_docs)]
         lockdown(lockdownCall),
+        #[allow(missing_docs)]
         permit_0(permit_0Call),
+        #[allow(missing_docs)]
         permit_1(permit_1Call),
+        #[allow(missing_docs)]
         transferFrom_0(transferFrom_0Call),
+        #[allow(missing_docs)]
         transferFrom_1(transferFrom_1Call),
     }
     #[automatically_derived]
@@ -3913,7 +4105,7 @@ function transferFrom(address from, address to, uint160 amount, address token) e
             Self::SELECTORS.binary_search(&selector).is_ok()
         }
         #[inline]
-        #[allow(unsafe_code, non_snake_case)]
+        #[allow(non_snake_case)]
         fn abi_decode_raw(
             selector: [u8; 4],
             data: &[u8],
@@ -4049,7 +4241,7 @@ function transferFrom(address from, address to, uint160 amount, address token) e
                     ),
                 );
             };
-            (unsafe { DECODE_SHIMS.get_unchecked(idx) })(data, validate)
+            DECODE_SHIMS[idx](data, validate)
         }
         #[inline]
         fn abi_encoded_size(&self) -> usize {
@@ -4150,8 +4342,11 @@ function transferFrom(address from, address to, uint160 amount, address token) e
     }
     ///Container for all the [`IAllowanceTransfer`](self) custom errors.
     pub enum IAllowanceTransferErrors {
+        #[allow(missing_docs)]
         AllowanceExpired(AllowanceExpired),
+        #[allow(missing_docs)]
         ExcessiveInvalidation(ExcessiveInvalidation),
+        #[allow(missing_docs)]
         InsufficientAllowance(InsufficientAllowance),
     }
     #[automatically_derived]
@@ -4196,7 +4391,7 @@ function transferFrom(address from, address to, uint160 amount, address token) e
             Self::SELECTORS.binary_search(&selector).is_ok()
         }
         #[inline]
-        #[allow(unsafe_code, non_snake_case)]
+        #[allow(non_snake_case)]
         fn abi_decode_raw(
             selector: [u8; 4],
             data: &[u8],
@@ -4254,7 +4449,7 @@ function transferFrom(address from, address to, uint160 amount, address token) e
                     ),
                 );
             };
-            (unsafe { DECODE_SHIMS.get_unchecked(idx) })(data, validate)
+            DECODE_SHIMS[idx](data, validate)
         }
         #[inline]
         fn abi_encoded_size(&self) -> usize {
@@ -4302,9 +4497,13 @@ function transferFrom(address from, address to, uint160 amount, address token) e
     }
     ///Container for all the [`IAllowanceTransfer`](self) events.
     pub enum IAllowanceTransferEvents {
+        #[allow(missing_docs)]
         Approval(Approval),
+        #[allow(missing_docs)]
         Lockdown(Lockdown),
+        #[allow(missing_docs)]
         NonceInvalidation(NonceInvalidation),
+        #[allow(missing_docs)]
         Permit(Permit),
     }
     #[automatically_derived]
@@ -4737,12 +4936,8 @@ the bytecode concatenated with the constructor's ABI-encoded arguments.*/
             &self,
             token: alloy::sol_types::private::Address,
             spender: alloy::sol_types::private::Address,
-            amount: <alloy::sol_types::sol_data::Uint<
-                160,
-            > as alloy::sol_types::SolType>::RustType,
-            expiration: <alloy::sol_types::sol_data::Uint<
-                48,
-            > as alloy::sol_types::SolType>::RustType,
+            amount: alloy::sol_types::private::primitives::aliases::U160,
+            expiration: alloy::sol_types::private::primitives::aliases::U48,
         ) -> alloy_contract::SolCallBuilder<T, &P, approveCall, N> {
             self.call_builder(
                 &approveCall {
@@ -4758,9 +4953,7 @@ the bytecode concatenated with the constructor's ABI-encoded arguments.*/
             &self,
             token: alloy::sol_types::private::Address,
             spender: alloy::sol_types::private::Address,
-            newNonce: <alloy::sol_types::sol_data::Uint<
-                48,
-            > as alloy::sol_types::SolType>::RustType,
+            newNonce: alloy::sol_types::private::primitives::aliases::U48,
         ) -> alloy_contract::SolCallBuilder<T, &P, invalidateNoncesCall, N> {
             self.call_builder(
                 &invalidateNoncesCall {
@@ -4827,9 +5020,7 @@ the bytecode concatenated with the constructor's ABI-encoded arguments.*/
             &self,
             from: alloy::sol_types::private::Address,
             to: alloy::sol_types::private::Address,
-            amount: <alloy::sol_types::sol_data::Uint<
-                160,
-            > as alloy::sol_types::SolType>::RustType,
+            amount: alloy::sol_types::private::primitives::aliases::U160,
             token: alloy::sol_types::private::Address,
         ) -> alloy_contract::SolCallBuilder<T, &P, transferFrom_1Call, N> {
             self.call_builder(

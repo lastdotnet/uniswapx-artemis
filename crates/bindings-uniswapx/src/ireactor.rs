@@ -130,7 +130,13 @@ interface IReactor {
   }
 ]
 ```*/
-#[allow(non_camel_case_types, non_snake_case, clippy::style)]
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
 pub mod IReactor {
     use super::*;
     use alloy::sol_types as alloy_sol_types;
@@ -157,13 +163,20 @@ pub mod IReactor {
     /**```solidity
 struct SignedOrder { bytes order; bytes sig; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct SignedOrder {
+        #[allow(missing_docs)]
         pub order: alloy::sol_types::private::Bytes,
+        #[allow(missing_docs)]
         pub sig: alloy::sol_types::private::Bytes,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -369,16 +382,22 @@ struct SignedOrder { bytes order; bytes sig; }
 ```solidity
 function execute(SignedOrder memory order) external payable;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct executeCall {
+        #[allow(missing_docs)]
         pub order: <SignedOrder as alloy::sol_types::SolType>::RustType,
     }
     ///Container type for the return parameters of the [`execute((bytes,bytes))`](executeCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct executeReturn {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -484,18 +503,24 @@ function execute(SignedOrder memory order) external payable;
 ```solidity
 function executeBatch(SignedOrder[] memory orders) external payable;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct executeBatchCall {
+        #[allow(missing_docs)]
         pub orders: alloy::sol_types::private::Vec<
             <SignedOrder as alloy::sol_types::SolType>::RustType,
         >,
     }
     ///Container type for the return parameters of the [`executeBatch((bytes,bytes)[])`](executeBatchCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct executeBatchReturn {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -609,19 +634,26 @@ function executeBatch(SignedOrder[] memory orders) external payable;
 ```solidity
 function executeBatchWithCallback(SignedOrder[] memory orders, bytes memory callbackData) external payable;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct executeBatchWithCallbackCall {
+        #[allow(missing_docs)]
         pub orders: alloy::sol_types::private::Vec<
             <SignedOrder as alloy::sol_types::SolType>::RustType,
         >,
+        #[allow(missing_docs)]
         pub callbackData: alloy::sol_types::private::Bytes,
     }
     ///Container type for the return parameters of the [`executeBatchWithCallback((bytes,bytes)[],bytes)`](executeBatchWithCallbackCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct executeBatchWithCallbackReturn {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -750,17 +782,24 @@ function executeBatchWithCallback(SignedOrder[] memory orders, bytes memory call
 ```solidity
 function executeWithCallback(SignedOrder memory order, bytes memory callbackData) external payable;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct executeWithCallbackCall {
+        #[allow(missing_docs)]
         pub order: <SignedOrder as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
         pub callbackData: alloy::sol_types::private::Bytes,
     }
     ///Container type for the return parameters of the [`executeWithCallback((bytes,bytes),bytes)`](executeWithCallbackCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct executeWithCallbackReturn {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -880,9 +919,13 @@ function executeWithCallback(SignedOrder memory order, bytes memory callbackData
     };
     ///Container for all the [`IReactor`](self) function calls.
     pub enum IReactorCalls {
+        #[allow(missing_docs)]
         execute(executeCall),
+        #[allow(missing_docs)]
         executeBatch(executeBatchCall),
+        #[allow(missing_docs)]
         executeBatchWithCallback(executeBatchWithCallbackCall),
+        #[allow(missing_docs)]
         executeWithCallback(executeWithCallbackCall),
     }
     #[automatically_derived]
@@ -929,7 +972,7 @@ function executeWithCallback(SignedOrder memory order, bytes memory callbackData
             Self::SELECTORS.binary_search(&selector).is_ok()
         }
         #[inline]
-        #[allow(unsafe_code, non_snake_case)]
+        #[allow(non_snake_case)]
         fn abi_decode_raw(
             selector: [u8; 4],
             data: &[u8],
@@ -1000,7 +1043,7 @@ function executeWithCallback(SignedOrder memory order, bytes memory callbackData
                     ),
                 );
             };
-            (unsafe { DECODE_SHIMS.get_unchecked(idx) })(data, validate)
+            DECODE_SHIMS[idx](data, validate)
         }
         #[inline]
         fn abi_encoded_size(&self) -> usize {

@@ -39,44 +39,56 @@ interface MockArbSys {
   }
 ]
 ```*/
-#[allow(non_camel_case_types, non_snake_case, clippy::style)]
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
 pub mod MockArbSys {
     use super::*;
     use alloy::sol_types as alloy_sol_types;
     /// The creation / init bytecode of the contract.
     ///
     /// ```text
-    ///0x6080604052348015600f57600080fd5b5060ac8061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c8063a3b1b31d146037578063a8c3c85014604c575b600080fd5b60005460405190815260200160405180910390f35b605c6057366004605e565b600055565b005b600060208284031215606f57600080fd5b503591905056fea2646970667358221220e7d3f10689d2e9fb5e8a938fb9383f27cf062835ed1bb59a79ed4ca9688817aa64736f6c63430008180033
+    ///0x6080604052348015600e575f80fd5b5060a58061001b5f395ff3fe6080604052348015600e575f80fd5b50600436106030575f3560e01c8063a3b1b31d146034578063a8c3c850146048575b5f80fd5b5f5460405190815260200160405180910390f35b605760533660046059565b5f55565b005b5f602082840312156068575f80fd5b503591905056fea26469706673582212208a41effee1e08aaaa090b78b77b97a9c5b717dba10a85f61b41078cf45d6425064736f6c63430008180033
     /// ```
     #[rustfmt::skip]
     #[allow(clippy::all)]
     pub static BYTECODE: alloy_sol_types::private::Bytes = alloy_sol_types::private::Bytes::from_static(
-        b"`\x80`@R4\x80\x15`\x0FW`\0\x80\xFD[P`\xAC\x80a\0\x1E`\09`\0\xF3\xFE`\x80`@R4\x80\x15`\x0FW`\0\x80\xFD[P`\x046\x10`2W`\x005`\xE0\x1C\x80c\xA3\xB1\xB3\x1D\x14`7W\x80c\xA8\xC3\xC8P\x14`LW[`\0\x80\xFD[`\0T`@Q\x90\x81R` \x01`@Q\x80\x91\x03\x90\xF3[`\\`W6`\x04`^V[`\0UV[\0[`\0` \x82\x84\x03\x12\x15`oW`\0\x80\xFD[P5\x91\x90PV\xFE\xA2dipfsX\"\x12 \xE7\xD3\xF1\x06\x89\xD2\xE9\xFB^\x8A\x93\x8F\xB98?'\xCF\x06(5\xED\x1B\xB5\x9Ay\xEDL\xA9h\x88\x17\xAAdsolcC\0\x08\x18\x003",
+        b"`\x80`@R4\x80\x15`\x0EW_\x80\xFD[P`\xA5\x80a\0\x1B_9_\xF3\xFE`\x80`@R4\x80\x15`\x0EW_\x80\xFD[P`\x046\x10`0W_5`\xE0\x1C\x80c\xA3\xB1\xB3\x1D\x14`4W\x80c\xA8\xC3\xC8P\x14`HW[_\x80\xFD[_T`@Q\x90\x81R` \x01`@Q\x80\x91\x03\x90\xF3[`W`S6`\x04`YV[_UV[\0[_` \x82\x84\x03\x12\x15`hW_\x80\xFD[P5\x91\x90PV\xFE\xA2dipfsX\"\x12 \x8AA\xEF\xFE\xE1\xE0\x8A\xAA\xA0\x90\xB7\x8Bw\xB9z\x9C[q}\xBA\x10\xA8_a\xB4\x10x\xCFE\xD6BPdsolcC\0\x08\x18\x003",
     );
     /// The runtime bytecode of the contract, as deployed on the network.
     ///
     /// ```text
-    ///0x6080604052348015600f57600080fd5b506004361060325760003560e01c8063a3b1b31d146037578063a8c3c85014604c575b600080fd5b60005460405190815260200160405180910390f35b605c6057366004605e565b600055565b005b600060208284031215606f57600080fd5b503591905056fea2646970667358221220e7d3f10689d2e9fb5e8a938fb9383f27cf062835ed1bb59a79ed4ca9688817aa64736f6c63430008180033
+    ///0x6080604052348015600e575f80fd5b50600436106030575f3560e01c8063a3b1b31d146034578063a8c3c850146048575b5f80fd5b5f5460405190815260200160405180910390f35b605760533660046059565b5f55565b005b5f602082840312156068575f80fd5b503591905056fea26469706673582212208a41effee1e08aaaa090b78b77b97a9c5b717dba10a85f61b41078cf45d6425064736f6c63430008180033
     /// ```
     #[rustfmt::skip]
     #[allow(clippy::all)]
     pub static DEPLOYED_BYTECODE: alloy_sol_types::private::Bytes = alloy_sol_types::private::Bytes::from_static(
-        b"`\x80`@R4\x80\x15`\x0FW`\0\x80\xFD[P`\x046\x10`2W`\x005`\xE0\x1C\x80c\xA3\xB1\xB3\x1D\x14`7W\x80c\xA8\xC3\xC8P\x14`LW[`\0\x80\xFD[`\0T`@Q\x90\x81R` \x01`@Q\x80\x91\x03\x90\xF3[`\\`W6`\x04`^V[`\0UV[\0[`\0` \x82\x84\x03\x12\x15`oW`\0\x80\xFD[P5\x91\x90PV\xFE\xA2dipfsX\"\x12 \xE7\xD3\xF1\x06\x89\xD2\xE9\xFB^\x8A\x93\x8F\xB98?'\xCF\x06(5\xED\x1B\xB5\x9Ay\xEDL\xA9h\x88\x17\xAAdsolcC\0\x08\x18\x003",
+        b"`\x80`@R4\x80\x15`\x0EW_\x80\xFD[P`\x046\x10`0W_5`\xE0\x1C\x80c\xA3\xB1\xB3\x1D\x14`4W\x80c\xA8\xC3\xC8P\x14`HW[_\x80\xFD[_T`@Q\x90\x81R` \x01`@Q\x80\x91\x03\x90\xF3[`W`S6`\x04`YV[_UV[\0[_` \x82\x84\x03\x12\x15`hW_\x80\xFD[P5\x91\x90PV\xFE\xA2dipfsX\"\x12 \x8AA\xEF\xFE\xE1\xE0\x8A\xAA\xA0\x90\xB7\x8Bw\xB9z\x9C[q}\xBA\x10\xA8_a\xB4\x10x\xCFE\xD6BPdsolcC\0\x08\x18\x003",
     );
     /**Function with signature `arbBlockNumber()` and selector `0xa3b1b31d`.
 ```solidity
 function arbBlockNumber() external view returns (uint256);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct arbBlockNumberCall {}
     ///Container type for the return parameters of the [`arbBlockNumber()`](arbBlockNumberCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct arbBlockNumberReturn {
-        pub _0: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub _0: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -114,7 +126,9 @@ function arbBlockNumber() external view returns (uint256);
             #[doc(hidden)]
             type UnderlyingSolTuple<'a> = (alloy::sol_types::sol_data::Uint<256>,);
             #[doc(hidden)]
-            type UnderlyingRustTuple<'a> = (alloy::sol_types::private::U256,);
+            type UnderlyingRustTuple<'a> = (
+                alloy::sol_types::private::primitives::aliases::U256,
+            );
             #[cfg(test)]
             #[allow(dead_code, unreachable_patterns)]
             fn _type_assertion(
@@ -182,23 +196,31 @@ function arbBlockNumber() external view returns (uint256);
 ```solidity
 function setBlockNumber(uint256 blockNumber) external;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct setBlockNumberCall {
-        pub blockNumber: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub blockNumber: alloy::sol_types::private::primitives::aliases::U256,
     }
     ///Container type for the return parameters of the [`setBlockNumber(uint256)`](setBlockNumberCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct setBlockNumberReturn {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
             #[doc(hidden)]
             type UnderlyingSolTuple<'a> = (alloy::sol_types::sol_data::Uint<256>,);
             #[doc(hidden)]
-            type UnderlyingRustTuple<'a> = (alloy::sol_types::private::U256,);
+            type UnderlyingRustTuple<'a> = (
+                alloy::sol_types::private::primitives::aliases::U256,
+            );
             #[cfg(test)]
             #[allow(dead_code, unreachable_patterns)]
             fn _type_assertion(
@@ -299,7 +321,9 @@ function setBlockNumber(uint256 blockNumber) external;
     };
     ///Container for all the [`MockArbSys`](self) function calls.
     pub enum MockArbSysCalls {
+        #[allow(missing_docs)]
         arbBlockNumber(arbBlockNumberCall),
+        #[allow(missing_docs)]
         setBlockNumber(setBlockNumberCall),
     }
     #[automatically_derived]
@@ -340,7 +364,7 @@ function setBlockNumber(uint256 blockNumber) external;
             Self::SELECTORS.binary_search(&selector).is_ok()
         }
         #[inline]
-        #[allow(unsafe_code, non_snake_case)]
+        #[allow(non_snake_case)]
         fn abi_decode_raw(
             selector: [u8; 4],
             data: &[u8],
@@ -385,7 +409,7 @@ function setBlockNumber(uint256 blockNumber) external;
                     ),
                 );
             };
-            (unsafe { DECODE_SHIMS.get_unchecked(idx) })(data, validate)
+            DECODE_SHIMS[idx](data, validate)
         }
         #[inline]
         fn abi_encoded_size(&self) -> usize {
@@ -593,7 +617,7 @@ the bytecode concatenated with the constructor's ABI-encoded arguments.*/
         ///Creates a new call builder for the [`setBlockNumber`] function.
         pub fn setBlockNumber(
             &self,
-            blockNumber: alloy::sol_types::private::U256,
+            blockNumber: alloy::sol_types::private::primitives::aliases::U256,
         ) -> alloy_contract::SolCallBuilder<T, &P, setBlockNumberCall, N> {
             self.call_builder(&setBlockNumberCall { blockNumber })
         }

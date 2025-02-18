@@ -17,38 +17,49 @@ interface ExclusivityLib {
   }
 ]
 ```*/
-#[allow(non_camel_case_types, non_snake_case, clippy::style)]
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
 pub mod ExclusivityLib {
     use super::*;
     use alloy::sol_types as alloy_sol_types;
     /// The creation / init bytecode of the contract.
     ///
     /// ```text
-    ///0x60566037600b82828239805160001a607314602a57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea264697066735822122073946f01b56f7f70e4df97a3519f93046e773674fd713ba2e06e47c92dbc3c1764736f6c63430008180033
+    ///0x60556032600b8282823980515f1a607314602657634e487b7160e01b5f525f60045260245ffd5b305f52607381538281f3fe730000000000000000000000000000000000000000301460806040525f80fdfea2646970667358221220e388ff0a8a8efaed4f7f052af1f0b2c72766f172c5a03c7e284280c25f35118b64736f6c63430008180033
     /// ```
     #[rustfmt::skip]
     #[allow(clippy::all)]
     pub static BYTECODE: alloy_sol_types::private::Bytes = alloy_sol_types::private::Bytes::from_static(
-        b"`V`7`\x0B\x82\x82\x829\x80Q`\0\x1A`s\x14`*WcNH{q`\xE0\x1B`\0R`\0`\x04R`$`\0\xFD[0`\0R`s\x81S\x82\x81\xF3\xFEs\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R`\0\x80\xFD\xFE\xA2dipfsX\"\x12 s\x94o\x01\xB5o\x7Fp\xE4\xDF\x97\xA3Q\x9F\x93\x04nw6t\xFDq;\xA2\xE0nG\xC9-\xBC<\x17dsolcC\0\x08\x18\x003",
+        b"`U`2`\x0B\x82\x82\x829\x80Q_\x1A`s\x14`&WcNH{q`\xE0\x1B_R_`\x04R`$_\xFD[0_R`s\x81S\x82\x81\xF3\xFEs\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R_\x80\xFD\xFE\xA2dipfsX\"\x12 \xE3\x88\xFF\n\x8A\x8E\xFA\xEDO\x7F\x05*\xF1\xF0\xB2\xC7'f\xF1r\xC5\xA0<~(B\x80\xC2_5\x11\x8BdsolcC\0\x08\x18\x003",
     );
     /// The runtime bytecode of the contract, as deployed on the network.
     ///
     /// ```text
-    ///0x73000000000000000000000000000000000000000030146080604052600080fdfea264697066735822122073946f01b56f7f70e4df97a3519f93046e773674fd713ba2e06e47c92dbc3c1764736f6c63430008180033
+    ///0x730000000000000000000000000000000000000000301460806040525f80fdfea2646970667358221220e388ff0a8a8efaed4f7f052af1f0b2c72766f172c5a03c7e284280c25f35118b64736f6c63430008180033
     /// ```
     #[rustfmt::skip]
     #[allow(clippy::all)]
     pub static DEPLOYED_BYTECODE: alloy_sol_types::private::Bytes = alloy_sol_types::private::Bytes::from_static(
-        b"s\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R`\0\x80\xFD\xFE\xA2dipfsX\"\x12 s\x94o\x01\xB5o\x7Fp\xE4\xDF\x97\xA3Q\x9F\x93\x04nw6t\xFDq;\xA2\xE0nG\xC9-\xBC<\x17dsolcC\0\x08\x18\x003",
+        b"s\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R_\x80\xFD\xFE\xA2dipfsX\"\x12 \xE3\x88\xFF\n\x8A\x8E\xFA\xEDO\x7F\x05*\xF1\xF0\xB2\xC7'f\xF1r\xC5\xA0<~(B\x80\xC2_5\x11\x8BdsolcC\0\x08\x18\x003",
     );
     /**Custom error with signature `NoExclusiveOverride()` and selector `0xb9ec1e96`.
 ```solidity
 error NoExclusiveOverride();
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct NoExclusiveOverride {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -102,6 +113,7 @@ error NoExclusiveOverride();
     };
     ///Container for all the [`ExclusivityLib`](self) custom errors.
     pub enum ExclusivityLibErrors {
+        #[allow(missing_docs)]
         NoExclusiveOverride(NoExclusiveOverride),
     }
     #[automatically_derived]
@@ -136,7 +148,7 @@ error NoExclusiveOverride();
             Self::SELECTORS.binary_search(&selector).is_ok()
         }
         #[inline]
-        #[allow(unsafe_code, non_snake_case)]
+        #[allow(non_snake_case)]
         fn abi_decode_raw(
             selector: [u8; 4],
             data: &[u8],
@@ -168,7 +180,7 @@ error NoExclusiveOverride();
                     ),
                 );
             };
-            (unsafe { DECODE_SHIMS.get_unchecked(idx) })(data, validate)
+            DECODE_SHIMS[idx](data, validate)
         }
         #[inline]
         fn abi_encoded_size(&self) -> usize {

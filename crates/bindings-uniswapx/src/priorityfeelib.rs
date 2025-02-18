@@ -9,29 +9,35 @@ interface PriorityFeeLib {}
 ```json
 []
 ```*/
-#[allow(non_camel_case_types, non_snake_case, clippy::style)]
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
 pub mod PriorityFeeLib {
     use super::*;
     use alloy::sol_types as alloy_sol_types;
     /// The creation / init bytecode of the contract.
     ///
     /// ```text
-    ///0x60566037600b82828239805160001a607314602a57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea2646970667358221220ba058eeaf1cdc2400fa891f5668a5338558285dc5917c84d1f1c1a1cd017802c64736f6c63430008180033
+    ///0x60556032600b8282823980515f1a607314602657634e487b7160e01b5f525f60045260245ffd5b305f52607381538281f3fe730000000000000000000000000000000000000000301460806040525f80fdfea26469706673582212200a7641feb258347841e9599caace1c550454d63b47de697d6a4a7122de2a0a6c64736f6c63430008180033
     /// ```
     #[rustfmt::skip]
     #[allow(clippy::all)]
     pub static BYTECODE: alloy_sol_types::private::Bytes = alloy_sol_types::private::Bytes::from_static(
-        b"`V`7`\x0B\x82\x82\x829\x80Q`\0\x1A`s\x14`*WcNH{q`\xE0\x1B`\0R`\0`\x04R`$`\0\xFD[0`\0R`s\x81S\x82\x81\xF3\xFEs\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R`\0\x80\xFD\xFE\xA2dipfsX\"\x12 \xBA\x05\x8E\xEA\xF1\xCD\xC2@\x0F\xA8\x91\xF5f\x8AS8U\x82\x85\xDCY\x17\xC8M\x1F\x1C\x1A\x1C\xD0\x17\x80,dsolcC\0\x08\x18\x003",
+        b"`U`2`\x0B\x82\x82\x829\x80Q_\x1A`s\x14`&WcNH{q`\xE0\x1B_R_`\x04R`$_\xFD[0_R`s\x81S\x82\x81\xF3\xFEs\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R_\x80\xFD\xFE\xA2dipfsX\"\x12 \nvA\xFE\xB2X4xA\xE9Y\x9C\xAA\xCE\x1CU\x04T\xD6;G\xDEi}jJq\"\xDE*\nldsolcC\0\x08\x18\x003",
     );
     /// The runtime bytecode of the contract, as deployed on the network.
     ///
     /// ```text
-    ///0x73000000000000000000000000000000000000000030146080604052600080fdfea2646970667358221220ba058eeaf1cdc2400fa891f5668a5338558285dc5917c84d1f1c1a1cd017802c64736f6c63430008180033
+    ///0x730000000000000000000000000000000000000000301460806040525f80fdfea26469706673582212200a7641feb258347841e9599caace1c550454d63b47de697d6a4a7122de2a0a6c64736f6c63430008180033
     /// ```
     #[rustfmt::skip]
     #[allow(clippy::all)]
     pub static DEPLOYED_BYTECODE: alloy_sol_types::private::Bytes = alloy_sol_types::private::Bytes::from_static(
-        b"s\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R`\0\x80\xFD\xFE\xA2dipfsX\"\x12 \xBA\x05\x8E\xEA\xF1\xCD\xC2@\x0F\xA8\x91\xF5f\x8AS8U\x82\x85\xDCY\x17\xC8M\x1F\x1C\x1A\x1C\xD0\x17\x80,dsolcC\0\x08\x18\x003",
+        b"s\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R_\x80\xFD\xFE\xA2dipfsX\"\x12 \nvA\xFE\xB2X4xA\xE9Y\x9C\xAA\xCE\x1CU\x04T\xD6;G\xDEi}jJq\"\xDE*\nldsolcC\0\x08\x18\x003",
     );
     use alloy::contract as alloy_contract;
     /**Creates a new wrapper around an on-chain [`PriorityFeeLib`](self) contract instance.

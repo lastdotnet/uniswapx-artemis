@@ -63,7 +63,13 @@ interface IERC5267 {
   }
 ]
 ```*/
-#[allow(non_camel_case_types, non_snake_case, clippy::style)]
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
 pub mod IERC5267 {
     use super::*;
     use alloy::sol_types as alloy_sol_types;
@@ -91,10 +97,20 @@ pub mod IERC5267 {
 ```solidity
 event EIP712DomainChanged();
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct EIP712DomainChanged {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -149,6 +165,21 @@ event EIP712DomainChanged();
                 Self {}
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 ()
             }
@@ -191,22 +222,36 @@ event EIP712DomainChanged();
 ```solidity
 function eip712Domain() external view returns (bytes1 fields, string memory name, string memory version, uint256 chainId, address verifyingContract, bytes32 salt, uint256[] memory extensions);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct eip712DomainCall {}
     ///Container type for the return parameters of the [`eip712Domain()`](eip712DomainCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct eip712DomainReturn {
+        #[allow(missing_docs)]
         pub fields: alloy::sol_types::private::FixedBytes<1>,
+        #[allow(missing_docs)]
         pub name: alloy::sol_types::private::String,
+        #[allow(missing_docs)]
         pub version: alloy::sol_types::private::String,
-        pub chainId: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub chainId: alloy::sol_types::private::primitives::aliases::U256,
+        #[allow(missing_docs)]
         pub verifyingContract: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub salt: alloy::sol_types::private::FixedBytes<32>,
-        pub extensions: alloy::sol_types::private::Vec<alloy::sol_types::private::U256>,
+        #[allow(missing_docs)]
+        pub extensions: alloy::sol_types::private::Vec<
+            alloy::sol_types::private::primitives::aliases::U256,
+        >,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -256,10 +301,12 @@ function eip712Domain() external view returns (bytes1 fields, string memory name
                 alloy::sol_types::private::FixedBytes<1>,
                 alloy::sol_types::private::String,
                 alloy::sol_types::private::String,
-                alloy::sol_types::private::U256,
+                alloy::sol_types::private::primitives::aliases::U256,
                 alloy::sol_types::private::Address,
                 alloy::sol_types::private::FixedBytes<32>,
-                alloy::sol_types::private::Vec<alloy::sol_types::private::U256>,
+                alloy::sol_types::private::Vec<
+                    alloy::sol_types::private::primitives::aliases::U256,
+                >,
             );
             #[cfg(test)]
             #[allow(dead_code, unreachable_patterns)]
@@ -348,6 +395,7 @@ function eip712Domain() external view returns (bytes1 fields, string memory name
     };
     ///Container for all the [`IERC5267`](self) function calls.
     pub enum IERC5267Calls {
+        #[allow(missing_docs)]
         eip712Domain(eip712DomainCall),
     }
     #[automatically_derived]
@@ -382,7 +430,7 @@ function eip712Domain() external view returns (bytes1 fields, string memory name
             Self::SELECTORS.binary_search(&selector).is_ok()
         }
         #[inline]
-        #[allow(unsafe_code, non_snake_case)]
+        #[allow(non_snake_case)]
         fn abi_decode_raw(
             selector: [u8; 4],
             data: &[u8],
@@ -414,7 +462,7 @@ function eip712Domain() external view returns (bytes1 fields, string memory name
                     ),
                 );
             };
-            (unsafe { DECODE_SHIMS.get_unchecked(idx) })(data, validate)
+            DECODE_SHIMS[idx](data, validate)
         }
         #[inline]
         fn abi_encoded_size(&self) -> usize {
@@ -440,6 +488,7 @@ function eip712Domain() external view returns (bytes1 fields, string memory name
     }
     ///Container for all the [`IERC5267`](self) events.
     pub enum IERC5267Events {
+        #[allow(missing_docs)]
         EIP712DomainChanged(EIP712DomainChanged),
     }
     #[automatically_derived]

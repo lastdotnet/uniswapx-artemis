@@ -161,7 +161,13 @@ interface ProtocolFees {
   }
 ]
 ```*/
-#[allow(non_camel_case_types, non_snake_case, clippy::style)]
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
 pub mod ProtocolFees {
     use super::*;
     use alloy::sol_types as alloy_sol_types;
@@ -189,12 +195,18 @@ pub mod ProtocolFees {
 ```solidity
 error DuplicateFeeOutput(address duplicateToken);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct DuplicateFeeOutput {
+        #[allow(missing_docs)]
         pub duplicateToken: alloy::sol_types::private::Address,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -254,14 +266,22 @@ error DuplicateFeeOutput(address duplicateToken);
 ```solidity
 error FeeTooLarge(address token, uint256 amount, address recipient);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct FeeTooLarge {
+        #[allow(missing_docs)]
         pub token: alloy::sol_types::private::Address,
-        pub amount: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub amount: alloy::sol_types::private::primitives::aliases::U256,
+        #[allow(missing_docs)]
         pub recipient: alloy::sol_types::private::Address,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -273,7 +293,7 @@ error FeeTooLarge(address token, uint256 amount, address recipient);
         #[doc(hidden)]
         type UnderlyingRustTuple<'a> = (
             alloy::sol_types::private::Address,
-            alloy::sol_types::private::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
             alloy::sol_types::private::Address,
         );
         #[cfg(test)]
@@ -339,10 +359,15 @@ error FeeTooLarge(address token, uint256 amount, address recipient);
 ```solidity
 error InputAndOutputFees();
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct InputAndOutputFees {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -398,12 +423,18 @@ error InputAndOutputFees();
 ```solidity
 error InvalidFeeToken(address feeToken);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct InvalidFeeToken {
+        #[allow(missing_docs)]
         pub feeToken: alloy::sol_types::private::Address,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -463,7 +494,12 @@ error InvalidFeeToken(address feeToken);
 ```solidity
 event OwnershipTransferred(address indexed user, address indexed newOwner);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct OwnershipTransferred {
         #[allow(missing_docs)]
@@ -471,7 +507,12 @@ event OwnershipTransferred(address indexed user, address indexed newOwner);
         #[allow(missing_docs)]
         pub newOwner: alloy::sol_types::private::Address,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -533,6 +574,21 @@ event OwnershipTransferred(address indexed user, address indexed newOwner);
                 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 ()
             }
@@ -581,7 +637,12 @@ event OwnershipTransferred(address indexed user, address indexed newOwner);
 ```solidity
 event ProtocolFeeControllerSet(address oldFeeController, address newFeeController);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct ProtocolFeeControllerSet {
         #[allow(missing_docs)]
@@ -589,7 +650,12 @@ event ProtocolFeeControllerSet(address oldFeeController, address newFeeControlle
         #[allow(missing_docs)]
         pub newFeeController: alloy::sol_types::private::Address,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -650,6 +716,21 @@ event ProtocolFeeControllerSet(address oldFeeController, address newFeeControlle
                 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::Address as alloy_sol_types::SolType>::tokenize(
@@ -701,16 +782,22 @@ event ProtocolFeeControllerSet(address oldFeeController, address newFeeControlle
 ```solidity
 function feeController() external view returns (address);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct feeControllerCall {}
     ///Container type for the return parameters of the [`feeController()`](feeControllerCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct feeControllerReturn {
+        #[allow(missing_docs)]
         pub _0: alloy::sol_types::private::Address,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -814,16 +901,22 @@ function feeController() external view returns (address);
 ```solidity
 function owner() external view returns (address);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct ownerCall {}
     ///Container type for the return parameters of the [`owner()`](ownerCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct ownerReturn {
+        #[allow(missing_docs)]
         pub _0: alloy::sol_types::private::Address,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -927,16 +1020,22 @@ function owner() external view returns (address);
 ```solidity
 function setProtocolFeeController(address _newFeeController) external;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct setProtocolFeeControllerCall {
+        #[allow(missing_docs)]
         pub _newFeeController: alloy::sol_types::private::Address,
     }
     ///Container type for the return parameters of the [`setProtocolFeeController(address)`](setProtocolFeeControllerCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct setProtocolFeeControllerReturn {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -1048,16 +1147,22 @@ function setProtocolFeeController(address _newFeeController) external;
 ```solidity
 function transferOwnership(address newOwner) external;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct transferOwnershipCall {
+        #[allow(missing_docs)]
         pub newOwner: alloy::sol_types::private::Address,
     }
     ///Container type for the return parameters of the [`transferOwnership(address)`](transferOwnershipCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct transferOwnershipReturn {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -1167,9 +1272,13 @@ function transferOwnership(address newOwner) external;
     };
     ///Container for all the [`ProtocolFees`](self) function calls.
     pub enum ProtocolFeesCalls {
+        #[allow(missing_docs)]
         feeController(feeControllerCall),
+        #[allow(missing_docs)]
         owner(ownerCall),
+        #[allow(missing_docs)]
         setProtocolFeeController(setProtocolFeeControllerCall),
+        #[allow(missing_docs)]
         transferOwnership(transferOwnershipCall),
     }
     #[automatically_derived]
@@ -1216,7 +1325,7 @@ function transferOwnership(address newOwner) external;
             Self::SELECTORS.binary_search(&selector).is_ok()
         }
         #[inline]
-        #[allow(unsafe_code, non_snake_case)]
+        #[allow(non_snake_case)]
         fn abi_decode_raw(
             selector: [u8; 4],
             data: &[u8],
@@ -1287,7 +1396,7 @@ function transferOwnership(address newOwner) external;
                     ),
                 );
             };
-            (unsafe { DECODE_SHIMS.get_unchecked(idx) })(data, validate)
+            DECODE_SHIMS[idx](data, validate)
         }
         #[inline]
         fn abi_encoded_size(&self) -> usize {
@@ -1341,9 +1450,13 @@ function transferOwnership(address newOwner) external;
     }
     ///Container for all the [`ProtocolFees`](self) custom errors.
     pub enum ProtocolFeesErrors {
+        #[allow(missing_docs)]
         DuplicateFeeOutput(DuplicateFeeOutput),
+        #[allow(missing_docs)]
         FeeTooLarge(FeeTooLarge),
+        #[allow(missing_docs)]
         InputAndOutputFees(InputAndOutputFees),
+        #[allow(missing_docs)]
         InvalidFeeToken(InvalidFeeToken),
     }
     #[automatically_derived]
@@ -1392,7 +1505,7 @@ function transferOwnership(address newOwner) external;
             Self::SELECTORS.binary_search(&selector).is_ok()
         }
         #[inline]
-        #[allow(unsafe_code, non_snake_case)]
+        #[allow(non_snake_case)]
         fn abi_decode_raw(
             selector: [u8; 4],
             data: &[u8],
@@ -1463,7 +1576,7 @@ function transferOwnership(address newOwner) external;
                     ),
                 );
             };
-            (unsafe { DECODE_SHIMS.get_unchecked(idx) })(data, validate)
+            DECODE_SHIMS[idx](data, validate)
         }
         #[inline]
         fn abi_encoded_size(&self) -> usize {
@@ -1520,7 +1633,9 @@ function transferOwnership(address newOwner) external;
     }
     ///Container for all the [`ProtocolFees`](self) events.
     pub enum ProtocolFeesEvents {
+        #[allow(missing_docs)]
         OwnershipTransferred(OwnershipTransferred),
+        #[allow(missing_docs)]
         ProtocolFeeControllerSet(ProtocolFeeControllerSet),
     }
     #[automatically_derived]

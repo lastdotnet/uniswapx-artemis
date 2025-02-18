@@ -434,7 +434,13 @@ interface ISignatureTransfer {
   }
 ]
 ```*/
-#[allow(non_camel_case_types, non_snake_case, clippy::style)]
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
 pub mod ISignatureTransfer {
     use super::*;
     use alloy::sol_types as alloy_sol_types;
@@ -461,16 +467,24 @@ pub mod ISignatureTransfer {
     /**```solidity
 struct PermitBatchTransferFrom { TokenPermissions[] permitted; uint256 nonce; uint256 deadline; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct PermitBatchTransferFrom {
+        #[allow(missing_docs)]
         pub permitted: alloy::sol_types::private::Vec<
             <TokenPermissions as alloy::sol_types::SolType>::RustType,
         >,
-        pub nonce: alloy::sol_types::private::U256,
-        pub deadline: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub nonce: alloy::sol_types::private::primitives::aliases::U256,
+        #[allow(missing_docs)]
+        pub deadline: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -484,8 +498,8 @@ struct PermitBatchTransferFrom { TokenPermissions[] permitted; uint256 nonce; ui
             alloy::sol_types::private::Vec<
                 <TokenPermissions as alloy::sol_types::SolType>::RustType,
             >,
-            alloy::sol_types::private::U256,
-            alloy::sol_types::private::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
         );
         #[cfg(test)]
         #[allow(dead_code, unreachable_patterns)]
@@ -709,14 +723,22 @@ struct PermitBatchTransferFrom { TokenPermissions[] permitted; uint256 nonce; ui
     /**```solidity
 struct PermitTransferFrom { TokenPermissions permitted; uint256 nonce; uint256 deadline; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct PermitTransferFrom {
+        #[allow(missing_docs)]
         pub permitted: <TokenPermissions as alloy::sol_types::SolType>::RustType,
-        pub nonce: alloy::sol_types::private::U256,
-        pub deadline: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub nonce: alloy::sol_types::private::primitives::aliases::U256,
+        #[allow(missing_docs)]
+        pub deadline: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -728,8 +750,8 @@ struct PermitTransferFrom { TokenPermissions permitted; uint256 nonce; uint256 d
         #[doc(hidden)]
         type UnderlyingRustTuple<'a> = (
             <TokenPermissions as alloy::sol_types::SolType>::RustType,
-            alloy::sol_types::private::U256,
-            alloy::sol_types::private::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
         );
         #[cfg(test)]
         #[allow(dead_code, unreachable_patterns)]
@@ -949,13 +971,20 @@ struct PermitTransferFrom { TokenPermissions permitted; uint256 nonce; uint256 d
     /**```solidity
 struct SignatureTransferDetails { address to; uint256 requestedAmount; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct SignatureTransferDetails {
+        #[allow(missing_docs)]
         pub to: alloy::sol_types::private::Address,
-        pub requestedAmount: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub requestedAmount: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -966,7 +995,7 @@ struct SignatureTransferDetails { address to; uint256 requestedAmount; }
         #[doc(hidden)]
         type UnderlyingRustTuple<'a> = (
             alloy::sol_types::private::Address,
-            alloy::sol_types::private::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
         );
         #[cfg(test)]
         #[allow(dead_code, unreachable_patterns)]
@@ -1168,13 +1197,20 @@ struct SignatureTransferDetails { address to; uint256 requestedAmount; }
     /**```solidity
 struct TokenPermissions { address token; uint256 amount; }
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct TokenPermissions {
+        #[allow(missing_docs)]
         pub token: alloy::sol_types::private::Address,
-        pub amount: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub amount: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -1185,7 +1221,7 @@ struct TokenPermissions { address token; uint256 amount; }
         #[doc(hidden)]
         type UnderlyingRustTuple<'a> = (
             alloy::sol_types::private::Address,
-            alloy::sol_types::private::U256,
+            alloy::sol_types::private::primitives::aliases::U256,
         );
         #[cfg(test)]
         #[allow(dead_code, unreachable_patterns)]
@@ -1384,18 +1420,26 @@ struct TokenPermissions { address token; uint256 amount; }
 ```solidity
 error InvalidAmount(uint256 maxAmount);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct InvalidAmount {
-        pub maxAmount: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub maxAmount: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
         type UnderlyingSolTuple<'a> = (alloy::sol_types::sol_data::Uint<256>,);
         #[doc(hidden)]
-        type UnderlyingRustTuple<'a> = (alloy::sol_types::private::U256,);
+        type UnderlyingRustTuple<'a> = (
+            alloy::sol_types::private::primitives::aliases::U256,
+        );
         #[cfg(test)]
         #[allow(dead_code, unreachable_patterns)]
         fn _type_assertion(
@@ -1449,10 +1493,15 @@ error InvalidAmount(uint256 maxAmount);
 ```solidity
 error LengthMismatch();
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct LengthMismatch {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[doc(hidden)]
@@ -1508,17 +1557,27 @@ error LengthMismatch();
 ```solidity
 event UnorderedNonceInvalidation(address indexed owner, uint256 word, uint256 mask);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     #[derive(Clone)]
     pub struct UnorderedNonceInvalidation {
         #[allow(missing_docs)]
         pub owner: alloy::sol_types::private::Address,
         #[allow(missing_docs)]
-        pub word: alloy::sol_types::private::U256,
+        pub word: alloy::sol_types::private::primitives::aliases::U256,
         #[allow(missing_docs)]
-        pub mask: alloy::sol_types::private::U256,
+        pub mask: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         #[automatically_derived]
@@ -1583,6 +1642,21 @@ event UnorderedNonceInvalidation(address indexed owner, uint256 word, uint256 ma
                 }
             }
             #[inline]
+            fn check_signature(
+                topics: &<Self::TopicList as alloy_sol_types::SolType>::RustType,
+            ) -> alloy_sol_types::Result<()> {
+                if topics.0 != Self::SIGNATURE_HASH {
+                    return Err(
+                        alloy_sol_types::Error::invalid_event_signature_hash(
+                            Self::SIGNATURE,
+                            topics.0,
+                            Self::SIGNATURE_HASH,
+                        ),
+                    );
+                }
+                Ok(())
+            }
+            #[inline]
             fn tokenize_body(&self) -> Self::DataToken<'_> {
                 (
                     <alloy::sol_types::sol_data::Uint<
@@ -1637,16 +1711,22 @@ event UnorderedNonceInvalidation(address indexed owner, uint256 word, uint256 ma
 ```solidity
 function DOMAIN_SEPARATOR() external view returns (bytes32);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct DOMAIN_SEPARATORCall {}
     ///Container type for the return parameters of the [`DOMAIN_SEPARATOR()`](DOMAIN_SEPARATORCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct DOMAIN_SEPARATORReturn {
+        #[allow(missing_docs)]
         pub _0: alloy::sol_types::private::FixedBytes<32>,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -1754,17 +1834,24 @@ function DOMAIN_SEPARATOR() external view returns (bytes32);
 ```solidity
 function invalidateUnorderedNonces(uint256 wordPos, uint256 mask) external;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct invalidateUnorderedNoncesCall {
-        pub wordPos: alloy::sol_types::private::U256,
-        pub mask: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub wordPos: alloy::sol_types::private::primitives::aliases::U256,
+        #[allow(missing_docs)]
+        pub mask: alloy::sol_types::private::primitives::aliases::U256,
     }
     ///Container type for the return parameters of the [`invalidateUnorderedNonces(uint256,uint256)`](invalidateUnorderedNoncesCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct invalidateUnorderedNoncesReturn {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -1775,8 +1862,8 @@ function invalidateUnorderedNonces(uint256 wordPos, uint256 mask) external;
             );
             #[doc(hidden)]
             type UnderlyingRustTuple<'a> = (
-                alloy::sol_types::private::U256,
-                alloy::sol_types::private::U256,
+                alloy::sol_types::private::primitives::aliases::U256,
+                alloy::sol_types::private::primitives::aliases::U256,
             );
             #[cfg(test)]
             #[allow(dead_code, unreachable_patterns)]
@@ -1891,19 +1978,27 @@ function invalidateUnorderedNonces(uint256 wordPos, uint256 mask) external;
 ```solidity
 function nonceBitmap(address, uint256) external view returns (uint256);
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct nonceBitmapCall {
+        #[allow(missing_docs)]
         pub _0: alloy::sol_types::private::Address,
-        pub _1: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub _1: alloy::sol_types::private::primitives::aliases::U256,
     }
     ///Container type for the return parameters of the [`nonceBitmap(address,uint256)`](nonceBitmapCall) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct nonceBitmapReturn {
-        pub _0: alloy::sol_types::private::U256,
+        #[allow(missing_docs)]
+        pub _0: alloy::sol_types::private::primitives::aliases::U256,
     }
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -1915,7 +2010,7 @@ function nonceBitmap(address, uint256) external view returns (uint256);
             #[doc(hidden)]
             type UnderlyingRustTuple<'a> = (
                 alloy::sol_types::private::Address,
-                alloy::sol_types::private::U256,
+                alloy::sol_types::private::primitives::aliases::U256,
             );
             #[cfg(test)]
             #[allow(dead_code, unreachable_patterns)]
@@ -1947,7 +2042,9 @@ function nonceBitmap(address, uint256) external view returns (uint256);
             #[doc(hidden)]
             type UnderlyingSolTuple<'a> = (alloy::sol_types::sol_data::Uint<256>,);
             #[doc(hidden)]
-            type UnderlyingRustTuple<'a> = (alloy::sol_types::private::U256,);
+            type UnderlyingRustTuple<'a> = (
+                alloy::sol_types::private::primitives::aliases::U256,
+            );
             #[cfg(test)]
             #[allow(dead_code, unreachable_patterns)]
             fn _type_assertion(
@@ -2023,19 +2120,28 @@ function nonceBitmap(address, uint256) external view returns (uint256);
 ```solidity
 function permitTransferFrom(PermitTransferFrom memory permit, SignatureTransferDetails memory transferDetails, address owner, bytes memory signature) external;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct permitTransferFrom_0Call {
+        #[allow(missing_docs)]
         pub permit: <PermitTransferFrom as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
         pub transferDetails: <SignatureTransferDetails as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
         pub owner: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub signature: alloy::sol_types::private::Bytes,
     }
     ///Container type for the return parameters of the [`permitTransferFrom(((address,uint256),uint256,uint256),(address,uint256),address,bytes)`](permitTransferFrom_0Call) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct permitTransferFrom_0Return {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -2176,21 +2282,30 @@ function permitTransferFrom(PermitTransferFrom memory permit, SignatureTransferD
 ```solidity
 function permitTransferFrom(PermitBatchTransferFrom memory permit, SignatureTransferDetails[] memory transferDetails, address owner, bytes memory signature) external;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct permitTransferFrom_1Call {
+        #[allow(missing_docs)]
         pub permit: <PermitBatchTransferFrom as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
         pub transferDetails: alloy::sol_types::private::Vec<
             <SignatureTransferDetails as alloy::sol_types::SolType>::RustType,
         >,
+        #[allow(missing_docs)]
         pub owner: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub signature: alloy::sol_types::private::Bytes,
     }
     ///Container type for the return parameters of the [`permitTransferFrom(((address,uint256)[],uint256,uint256),(address,uint256)[],address,bytes)`](permitTransferFrom_1Call) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct permitTransferFrom_1Return {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -2333,21 +2448,32 @@ function permitTransferFrom(PermitBatchTransferFrom memory permit, SignatureTran
 ```solidity
 function permitWitnessTransferFrom(PermitTransferFrom memory permit, SignatureTransferDetails memory transferDetails, address owner, bytes32 witness, string memory witnessTypeString, bytes memory signature) external;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct permitWitnessTransferFrom_0Call {
+        #[allow(missing_docs)]
         pub permit: <PermitTransferFrom as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
         pub transferDetails: <SignatureTransferDetails as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
         pub owner: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub witness: alloy::sol_types::private::FixedBytes<32>,
+        #[allow(missing_docs)]
         pub witnessTypeString: alloy::sol_types::private::String,
+        #[allow(missing_docs)]
         pub signature: alloy::sol_types::private::Bytes,
     }
     ///Container type for the return parameters of the [`permitWitnessTransferFrom(((address,uint256),uint256,uint256),(address,uint256),address,bytes32,string,bytes)`](permitWitnessTransferFrom_0Call) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct permitWitnessTransferFrom_0Return {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -2509,23 +2635,34 @@ function permitWitnessTransferFrom(PermitTransferFrom memory permit, SignatureTr
 ```solidity
 function permitWitnessTransferFrom(PermitBatchTransferFrom memory permit, SignatureTransferDetails[] memory transferDetails, address owner, bytes32 witness, string memory witnessTypeString, bytes memory signature) external;
 ```*/
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct permitWitnessTransferFrom_1Call {
+        #[allow(missing_docs)]
         pub permit: <PermitBatchTransferFrom as alloy::sol_types::SolType>::RustType,
+        #[allow(missing_docs)]
         pub transferDetails: alloy::sol_types::private::Vec<
             <SignatureTransferDetails as alloy::sol_types::SolType>::RustType,
         >,
+        #[allow(missing_docs)]
         pub owner: alloy::sol_types::private::Address,
+        #[allow(missing_docs)]
         pub witness: alloy::sol_types::private::FixedBytes<32>,
+        #[allow(missing_docs)]
         pub witnessTypeString: alloy::sol_types::private::String,
+        #[allow(missing_docs)]
         pub signature: alloy::sol_types::private::Bytes,
     }
     ///Container type for the return parameters of the [`permitWitnessTransferFrom(((address,uint256)[],uint256,uint256),(address,uint256)[],address,bytes32,string,bytes)`](permitWitnessTransferFrom_1Call) function.
-    #[allow(non_camel_case_types, non_snake_case)]
+    #[allow(non_camel_case_types, non_snake_case, clippy::pub_underscore_fields)]
     #[derive(Clone)]
     pub struct permitWitnessTransferFrom_1Return {}
-    #[allow(non_camel_case_types, non_snake_case, clippy::style)]
+    #[allow(
+        non_camel_case_types,
+        non_snake_case,
+        clippy::pub_underscore_fields,
+        clippy::style
+    )]
     const _: () = {
         use alloy::sol_types as alloy_sol_types;
         {
@@ -2687,12 +2824,19 @@ function permitWitnessTransferFrom(PermitBatchTransferFrom memory permit, Signat
     };
     ///Container for all the [`ISignatureTransfer`](self) function calls.
     pub enum ISignatureTransferCalls {
+        #[allow(missing_docs)]
         DOMAIN_SEPARATOR(DOMAIN_SEPARATORCall),
+        #[allow(missing_docs)]
         invalidateUnorderedNonces(invalidateUnorderedNoncesCall),
+        #[allow(missing_docs)]
         nonceBitmap(nonceBitmapCall),
+        #[allow(missing_docs)]
         permitTransferFrom_0(permitTransferFrom_0Call),
+        #[allow(missing_docs)]
         permitTransferFrom_1(permitTransferFrom_1Call),
+        #[allow(missing_docs)]
         permitWitnessTransferFrom_0(permitWitnessTransferFrom_0Call),
+        #[allow(missing_docs)]
         permitWitnessTransferFrom_1(permitWitnessTransferFrom_1Call),
     }
     #[automatically_derived]
@@ -2753,7 +2897,7 @@ function permitWitnessTransferFrom(PermitBatchTransferFrom memory permit, Signat
             Self::SELECTORS.binary_search(&selector).is_ok()
         }
         #[inline]
-        #[allow(unsafe_code, non_snake_case)]
+        #[allow(non_snake_case)]
         fn abi_decode_raw(
             selector: [u8; 4],
             data: &[u8],
@@ -2863,7 +3007,7 @@ function permitWitnessTransferFrom(PermitBatchTransferFrom memory permit, Signat
                     ),
                 );
             };
-            (unsafe { DECODE_SHIMS.get_unchecked(idx) })(data, validate)
+            DECODE_SHIMS[idx](data, validate)
         }
         #[inline]
         fn abi_encoded_size(&self) -> usize {
@@ -2955,7 +3099,9 @@ function permitWitnessTransferFrom(PermitBatchTransferFrom memory permit, Signat
     }
     ///Container for all the [`ISignatureTransfer`](self) custom errors.
     pub enum ISignatureTransferErrors {
+        #[allow(missing_docs)]
         InvalidAmount(InvalidAmount),
+        #[allow(missing_docs)]
         LengthMismatch(LengthMismatch),
     }
     #[automatically_derived]
@@ -2996,7 +3142,7 @@ function permitWitnessTransferFrom(PermitBatchTransferFrom memory permit, Signat
             Self::SELECTORS.binary_search(&selector).is_ok()
         }
         #[inline]
-        #[allow(unsafe_code, non_snake_case)]
+        #[allow(non_snake_case)]
         fn abi_decode_raw(
             selector: [u8; 4],
             data: &[u8],
@@ -3041,7 +3187,7 @@ function permitWitnessTransferFrom(PermitBatchTransferFrom memory permit, Signat
                     ),
                 );
             };
-            (unsafe { DECODE_SHIMS.get_unchecked(idx) })(data, validate)
+            DECODE_SHIMS[idx](data, validate)
         }
         #[inline]
         fn abi_encoded_size(&self) -> usize {
@@ -3076,6 +3222,7 @@ function permitWitnessTransferFrom(PermitBatchTransferFrom memory permit, Signat
     }
     ///Container for all the [`ISignatureTransfer`](self) events.
     pub enum ISignatureTransferEvents {
+        #[allow(missing_docs)]
         UnorderedNonceInvalidation(UnorderedNonceInvalidation),
     }
     #[automatically_derived]
@@ -3347,8 +3494,8 @@ the bytecode concatenated with the constructor's ABI-encoded arguments.*/
         ///Creates a new call builder for the [`invalidateUnorderedNonces`] function.
         pub fn invalidateUnorderedNonces(
             &self,
-            wordPos: alloy::sol_types::private::U256,
-            mask: alloy::sol_types::private::U256,
+            wordPos: alloy::sol_types::private::primitives::aliases::U256,
+            mask: alloy::sol_types::private::primitives::aliases::U256,
         ) -> alloy_contract::SolCallBuilder<T, &P, invalidateUnorderedNoncesCall, N> {
             self.call_builder(
                 &invalidateUnorderedNoncesCall {
@@ -3361,7 +3508,7 @@ the bytecode concatenated with the constructor's ABI-encoded arguments.*/
         pub fn nonceBitmap(
             &self,
             _0: alloy::sol_types::private::Address,
-            _1: alloy::sol_types::private::U256,
+            _1: alloy::sol_types::private::primitives::aliases::U256,
         ) -> alloy_contract::SolCallBuilder<T, &P, nonceBitmapCall, N> {
             self.call_builder(&nonceBitmapCall { _0, _1 })
         }

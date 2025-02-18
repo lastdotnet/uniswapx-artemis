@@ -9,29 +9,35 @@ interface OutputsBuilder {}
 ```json
 []
 ```*/
-#[allow(non_camel_case_types, non_snake_case, clippy::style)]
+#[allow(
+    non_camel_case_types,
+    non_snake_case,
+    clippy::pub_underscore_fields,
+    clippy::style,
+    clippy::empty_structs_with_brackets
+)]
 pub mod OutputsBuilder {
     use super::*;
     use alloy::sol_types as alloy_sol_types;
     /// The creation / init bytecode of the contract.
     ///
     /// ```text
-    ///0x60566037600b82828239805160001a607314602a57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea26469706673582212209a87c0565c863cfc5baf5b06beda674f87bd15d0faa52848f82fad617d1e231e64736f6c63430008180033
+    ///0x60556032600b8282823980515f1a607314602657634e487b7160e01b5f525f60045260245ffd5b305f52607381538281f3fe730000000000000000000000000000000000000000301460806040525f80fdfea2646970667358221220f54900623695ea6ba0cb1228fddccbb9869ef559e1a6ad20f83fcfa0299ed07164736f6c63430008180033
     /// ```
     #[rustfmt::skip]
     #[allow(clippy::all)]
     pub static BYTECODE: alloy_sol_types::private::Bytes = alloy_sol_types::private::Bytes::from_static(
-        b"`V`7`\x0B\x82\x82\x829\x80Q`\0\x1A`s\x14`*WcNH{q`\xE0\x1B`\0R`\0`\x04R`$`\0\xFD[0`\0R`s\x81S\x82\x81\xF3\xFEs\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R`\0\x80\xFD\xFE\xA2dipfsX\"\x12 \x9A\x87\xC0V\\\x86<\xFC[\xAF[\x06\xBE\xDAgO\x87\xBD\x15\xD0\xFA\xA5(H\xF8/\xADa}\x1E#\x1EdsolcC\0\x08\x18\x003",
+        b"`U`2`\x0B\x82\x82\x829\x80Q_\x1A`s\x14`&WcNH{q`\xE0\x1B_R_`\x04R`$_\xFD[0_R`s\x81S\x82\x81\xF3\xFEs\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R_\x80\xFD\xFE\xA2dipfsX\"\x12 \xF5I\0b6\x95\xEAk\xA0\xCB\x12(\xFD\xDC\xCB\xB9\x86\x9E\xF5Y\xE1\xA6\xAD \xF8?\xCF\xA0)\x9E\xD0qdsolcC\0\x08\x18\x003",
     );
     /// The runtime bytecode of the contract, as deployed on the network.
     ///
     /// ```text
-    ///0x73000000000000000000000000000000000000000030146080604052600080fdfea26469706673582212209a87c0565c863cfc5baf5b06beda674f87bd15d0faa52848f82fad617d1e231e64736f6c63430008180033
+    ///0x730000000000000000000000000000000000000000301460806040525f80fdfea2646970667358221220f54900623695ea6ba0cb1228fddccbb9869ef559e1a6ad20f83fcfa0299ed07164736f6c63430008180033
     /// ```
     #[rustfmt::skip]
     #[allow(clippy::all)]
     pub static DEPLOYED_BYTECODE: alloy_sol_types::private::Bytes = alloy_sol_types::private::Bytes::from_static(
-        b"s\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R`\0\x80\xFD\xFE\xA2dipfsX\"\x12 \x9A\x87\xC0V\\\x86<\xFC[\xAF[\x06\xBE\xDAgO\x87\xBD\x15\xD0\xFA\xA5(H\xF8/\xADa}\x1E#\x1EdsolcC\0\x08\x18\x003",
+        b"s\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x000\x14`\x80`@R_\x80\xFD\xFE\xA2dipfsX\"\x12 \xF5I\0b6\x95\xEAk\xA0\xCB\x12(\xFD\xDC\xCB\xB9\x86\x9E\xF5Y\xE1\xA6\xAD \xF8?\xCF\xA0)\x9E\xD0qdsolcC\0\x08\x18\x003",
     );
     use alloy::contract as alloy_contract;
     /**Creates a new wrapper around an on-chain [`OutputsBuilder`](self) contract instance.
