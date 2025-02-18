@@ -194,9 +194,9 @@ impl UniswapXRouteCollector {
             amount: params.amount,
             recipient: params.recipient,
             slippage_tolerance: SLIPPAGE_TOLERANCE.to_string(),
-            enable_universal_router: false,
+            enable_universal_router: true,
             deadline: DEADLINE,
-            protocols: "v2,v3,mixed".to_string(),
+            protocols: "v2,v3,v4,mixed".to_string(),
         };
 
         let query_string = serde_qs::to_string(&query).unwrap();

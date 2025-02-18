@@ -25,10 +25,10 @@ use artemis_core::types::Strategy;
 use async_trait::async_trait;
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use bindings_uniswapx::basereactor::BaseReactor::SignedOrder;
+use std::error::Error;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::{collections::HashMap, fmt::Debug};
-use std::error::Error;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{error, info, warn};
 use uniswapx_rs::order::{Order, OrderResolution, V2DutchOrder};
@@ -161,12 +161,10 @@ impl UniswapXUniswapFill {
                 amount_out_required,
                 profit
             );
-            let signed_orders = self
-                .get_signed_orders(orders.clone())
-                .unwrap_or_else(|e| {
-                    error!("Error getting signed orders: {}", e);
-                    vec![]
-                });
+            let signed_orders = self.get_signed_orders(orders.clone()).unwrap_or_else(|e| {
+                error!("Error getting signed orders: {}", e);
+                vec![]
+            });
 
             let fill_tx_request = self
                 .build_fill(

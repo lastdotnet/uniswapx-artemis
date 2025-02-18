@@ -260,11 +260,9 @@ impl UniswapXDutchV3Fill {
             self.processing_orders.len(),
             self.done_orders.len()
         );
-        self.handle_fills()
-            .await
-            .unwrap_or_else(|e| {
-                error!("Error handling fills: {}", e);
-            });
+        self.handle_fills().await.unwrap_or_else(|e| {
+            error!("Error handling fills: {}", e);
+        });
         self.update_open_orders();
         self.prune_done_orders();
 

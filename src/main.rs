@@ -113,8 +113,11 @@ async fn main() -> Result<()> {
     // Set up ethers provider.
     let chain_id = args.chain_id;
     let provider = DynProvider::<AnyNetwork>::new(
-            ProviderBuilder::new().network::<AnyNetwork>().on_ws(WsConnect::new(args.wss.as_str())).await?
-        );
+        ProviderBuilder::new()
+            .network::<AnyNetwork>()
+            .on_ws(WsConnect::new(args.wss.as_str()))
+            .await?,
+    );
 
     let mut key_store = Arc::new(KeyStore::new());
 
@@ -145,7 +148,7 @@ async fn main() -> Result<()> {
         }
     } else {
         let pk = args.private_key.clone().unwrap();
-        let wallet: PrivateKeySigner = pk.parse().expect("can not parse private key"); 
+        let wallet: PrivateKeySigner = pk.parse().expect("can not parse private key");
         let address = wallet.address();
         Arc::make_mut(&mut key_store)
             .add_key(hex::encode(address), pk)
