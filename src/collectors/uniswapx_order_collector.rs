@@ -112,7 +112,7 @@ impl Collector<UniswapXOrder> for UniswapXOrderCollector {
 
         // stream that polls the UniswapX API every 5 seconds
         let stream = IntervalStream::new(tokio::time::interval(Duration::from_millis(
-            POLL_INTERVAL_MS
+            POLL_INTERVAL_MS,
         )))
         .then(move |_| {
             let url = url.clone();

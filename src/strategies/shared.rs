@@ -53,12 +53,7 @@ pub trait UniswapXStrategy {
         let token_out = Address::from_str(&request.token_out)?;
 
         let permit2_approval = self
-            .get_tokens_to_approve(
-                client.clone(),
-                token_in,
-                executor_address,
-                PERMIT2_ADDRESS,
-            )
+            .get_tokens_to_approve(client.clone(), token_in, executor_address, PERMIT2_ADDRESS)
             .await?;
 
         let reactor_approval = self

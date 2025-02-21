@@ -3,8 +3,11 @@ use tracing::{info, warn};
 
 use alloy::{
     eips::{BlockId, BlockNumberOrTag},
-    network::{AnyNetwork, EthereumWallet, NetworkWallet, ReceiptResponse, TransactionBuilder, TxSignerSync},
-    primitives::{Address, utils::format_units, U256},
+    network::{
+        AnyNetwork, EthereumWallet, NetworkWallet, ReceiptResponse, TransactionBuilder,
+        TxSignerSync,
+    },
+    primitives::{utils::format_units, Address, U256},
     providers::{DynProvider, Provider},
     rpc::types::TransactionReceipt,
     serde::WithOtherFields,
@@ -93,14 +96,14 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
         )
         .expect("Failed to parse chain ID");
 
-        let wallet = 
-        EthereumWallet::from(private_key
-            .as_str()
-            .parse::<PrivateKeySigner>()
-            .unwrap()
-            .with_chain_id(Some(chain_id)));
+        let wallet = EthereumWallet::from(
+            private_key
+                .as_str()
+                .parse::<PrivateKeySigner>()
+                .unwrap()
+                .with_chain_id(Some(chain_id)),
+        );
         let address = Address::from_str(&public_address).unwrap();
-
 
         action.execution.tx.set_from(address);
 
@@ -111,7 +114,11 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
             _ => BlockId::Number(BlockNumberOrTag::Latest),
         };
 
-        info!("{} - target_block: {}", order_hash, target_block.as_u64().unwrap());
+        info!(
+            "{} - target_block: {}",
+            order_hash,
+            target_block.as_u64().unwrap()
+        );
 
         // estimate_gas always fails because of target block being a future block
         /*
@@ -256,9 +263,7 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
         tx_request.set_nonce(nonce);
         info!("{} - Executing tx from {:?}", order_hash, address);
         let tx = tx_request.build(&wallet).await?;
-        let result = sender_client
-            .send_tx_envelope(tx)
-            .await;
+        let result = sender_client.send_tx_envelope(tx).await;
 
         //let metric_future = build_metric_future(
         //    self.cloudwatch_client.clone(),
