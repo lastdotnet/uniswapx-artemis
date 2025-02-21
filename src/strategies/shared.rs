@@ -1,6 +1,5 @@
 use crate::collectors::uniswapx_route_collector::RoutedOrder;
 use alloy::{
-    dyn_abi::DynSolValue,
     hex,
     network::{AnyNetwork, TransactionBuilder},
     primitives::{Address, U256},
@@ -16,9 +15,10 @@ use bindings_uniswapx::{
     basereactor::BaseReactor::SignedOrder, erc20::ERC20,
     universalrouterexecutor::UniversalRouterExecutor,
 };
-use std::sync::Arc;
+use ethabi::{ethereum_types::H160, Token};
 use std::{
     str::FromStr,
+    sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -70,22 +70,11 @@ pub trait UniswapXStrategy {
 
         // abi encode as [tokens to approve to swap router 02, tokens to approve to reactor,  multicall data]
         //               [address[], address[], bytes[]]
-        let calldata = DynSolValue::Tuple(vec![
-            DynSolValue::Array(
-                permit2_approval
-                    .iter()
-                    .map(|a| DynSolValue::Address(a.clone()))
-                    .collect(),
-            ),
-            DynSolValue::Array(
-                reactor_approval
-                    .iter()
-                    .map(|a| DynSolValue::Address(a.clone()))
-                    .collect(),
-            ),
-            DynSolValue::Array(vec![DynSolValue::Bytes(encoded_execute_bytes)]),
+        let encoded_calldata = ethabi::encode(&[
+            Token::Array(permit2_approval),
+            Token::Array(reactor_approval),
+            Token::Bytes(encoded_execute_bytes),
         ]);
-        let encoded_calldata = calldata.abi_encode();
         let orders: Vec<UniversalRouterExecutor::SignedOrder> = signed_orders
             .into_iter()
             .map(|order| UniversalRouterExecutor::SignedOrder {
@@ -108,7 +97,7 @@ pub trait UniswapXStrategy {
         token: Address,
         from: &str,
         to: &str,
-    ) -> Result<Vec<Address>, anyhow::Error> {
+    ) -> Result<Vec<Token>, anyhow::Error> {
         if token == Address::ZERO {
             return Ok(vec![]);
         }
@@ -122,7 +111,7 @@ pub trait UniswapXStrategy {
             .await
             .expect("Failed to get allowance");
         if allowance._0 < U256::MAX / U256::from(2) {
-            Ok(vec![token])
+            Ok(vec![Token::Address(H160(token.0 .0))])
         } else {
             Ok(vec![])
         }

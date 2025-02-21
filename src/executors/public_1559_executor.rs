@@ -1,14 +1,14 @@
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 use tracing::{info, warn};
 
 use alloy::{
     eips::{BlockId, BlockNumberOrTag},
-    network::{AnyNetwork, ReceiptResponse, TransactionBuilder},
-    primitives::{utils::format_units, U256},
+    network::{AnyNetwork, EthereumWallet, NetworkWallet, ReceiptResponse, TransactionBuilder, TxSignerSync},
+    primitives::{Address, utils::format_units, U256},
     providers::{DynProvider, Provider},
     rpc::types::TransactionReceipt,
     serde::WithOtherFields,
-    signers::{local::PrivateKeySigner, Signer},
+    signers::{local::PrivateKeySigner, Signer, SignerSync},
 };
 use anyhow::{Context, Result};
 use artemis_core::types::Executor;
@@ -23,6 +23,8 @@ use crate::{
     shared::send_metric_with_order_hash,
     strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata},
 };
+
+const GAS_LIMIT: u64 = 1_000_000;
 
 /// An executor that sends transactions to the public mempool.
 pub struct Public1559Executor {
@@ -91,12 +93,14 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
         )
         .expect("Failed to parse chain ID");
 
-        let wallet: PrivateKeySigner = private_key
+        let wallet = 
+        EthereumWallet::from(private_key
             .as_str()
             .parse::<PrivateKeySigner>()
             .unwrap()
-            .with_chain_id(Some(chain_id));
-        let address = wallet.address();
+            .with_chain_id(Some(chain_id)));
+        let address = Address::from_str(&public_address).unwrap();
+
 
         action.execution.tx.set_from(address);
 
@@ -107,8 +111,10 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
             _ => BlockId::Number(BlockNumberOrTag::Latest),
         };
 
-        info!("{} - target_block: {:?}", order_hash, target_block);
+        info!("{} - target_block: {}", order_hash, target_block.as_u64().unwrap());
 
+        // estimate_gas always fails because of target block being a future block
+        /*
         let gas_usage_result = self
             .client
             .estimate_gas(&action.execution.tx)
@@ -151,19 +157,19 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
                                     }
                                     Err(anyhow::anyhow!("Order Past Deadline"))
                                 }
-                                _ => Ok(1_000_000),
+                                _ => Ok(GAS_LIMIT),
                             }
                         } else {
                             warn!("{} - Unexpected error data: {:?}", order_hash, serde_value);
-                            Ok(1_000_000)
+                            Ok(GAS_LIMIT)
                         }
                     } else {
                         warn!("{} - Failed to parse error data: {:?}", order_hash, err);
-                        Ok(1_000_000)
+                        Ok(GAS_LIMIT)
                     }
                 } else {
                     warn!("{} - Error estimating gas: {:?}", order_hash, err);
-                    Ok(1_000_000)
+                    Ok(GAS_LIMIT)
                 }
             });
 
@@ -183,8 +189,7 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
                 return Err(e);
             }
         };
-
-        action.execution.tx.set_gas_limit(gas_usage);
+        */
 
         let bid_priority_fee;
         let base_fee = self
@@ -208,38 +213,68 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
                 "{} - No bid priority fee, indicating quote < amount_out_required; skipping",
                 order_hash
             );
+            // Release the key before returning
+            match self.key_store.release_key(public_address.clone()).await {
+                Ok(_) => {
+                    info!("{} - Released key: {}", order_hash, public_address);
+                }
+                Err(release_err) => {
+                    warn!("{} - Failed to release key: {}", order_hash, release_err);
+                }
+            }
+            info!("{} - Quote < amount_out_required; skipping", order_hash);
             return Err(anyhow::anyhow!("Quote < amount_out_required"));
         }
 
         let mut tx_request = action.execution.tx.clone();
-        tx_request.set_gas_limit(gas_usage);
+        tx_request.set_gas_limit(GAS_LIMIT);
         tx_request.set_max_fee_per_gas(base_fee);
         tx_request.set_max_priority_fee_per_gas(bid_priority_fee.unwrap().to());
 
-        if tx_request.complete_1559().is_ok() {
-            info!("{} - built eip1559 tx", order_hash);
-        } else {
-            return Err(anyhow::anyhow!("Transaction is not EIP1559"));
-        }
-
         let sender_client = self.sender_client.clone();
 
+        // Retry up to 3 times to get the nonce.
+        let nonce = {
+            let mut attempts = 0;
+            loop {
+                match sender_client.get_transaction_count(address).await {
+                    Ok(nonce) => break nonce,
+                    Err(e) => {
+                        if attempts < 2 {
+                            attempts += 1;
+                        } else {
+                            return Err(anyhow::anyhow!(
+                                "{} - Failed to get nonce after 3 attempts: {}",
+                                order_hash,
+                                e
+                            ));
+                        }
+                    }
+                }
+            }
+        };
+        tx_request.set_nonce(nonce);
         info!("{} - Executing tx from {:?}", order_hash, address);
-        let metric_future = build_metric_future(
-            self.cloudwatch_client.clone(),
-            DimensionValue::PriorityExecutor,
-            CwMetrics::TxSubmitted(chain_id_u64),
-            1.0,
-        );
-        if let Some(metric_future) = metric_future {
-            // do not block current thread by awaiting in the background
-            send_metric_with_order_hash!(&order_hash, metric_future);
-        }
-        let result = sender_client.send_transaction(tx_request).await;
+        let tx = tx_request.build(&wallet).await?;
+        let result = sender_client
+            .send_tx_envelope(tx)
+            .await;
+
+        //let metric_future = build_metric_future(
+        //    self.cloudwatch_client.clone(),
+        //    DimensionValue::PriorityExecutor,
+        //    CwMetrics::TxSubmitted(chain_id_u64),
+        //    1.0,
+        //);
+        //if let Some(metric_future) = metric_future {
+        //    // do not block current thread by awaiting in the background
+        //    send_metric_with_order_hash!(&order_hash, metric_future);
+        //}
 
         // Block on pending transaction getting confirmations
         let (receipt, status) = match result {
             Ok(tx) => {
+                info!("{} - Waiting for confirmations", order_hash);
                 let receipt = tx
                     .with_required_confirmations(1)
                     .get_receipt()

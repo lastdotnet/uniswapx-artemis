@@ -237,7 +237,7 @@ impl UniswapXPriorityFill {
                     return vec![];
                 }
                 let order_data = OrderData {
-                    order: Order::PriorityOrder(order),
+                    order: Order::PriorityOrder(order.clone()),
                     hash: order_hash.clone(),
                     signature: event.signature.clone(),
                     resolved,
@@ -247,9 +247,10 @@ impl UniswapXPriorityFill {
                     .insert(order_hash.clone(), order_data.clone());
 
                 info!(
-                    "{} - Sending incoming order immediately for routing and execution at block {}",
+                    "{} - Sending incoming order immediately for routing and execution at block {}; target: {}",
                     order_hash,
-                    *self.last_block_number.read().await
+                    *self.last_block_number.read().await,
+                    order.cosignerData.auctionTargetBlock
                 );
                 let order_batch = self.get_order_batch(&order_data);
                 self.try_send_order_batch(order_batch, order_hash, order_data)
