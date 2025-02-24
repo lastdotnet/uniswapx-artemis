@@ -17,6 +17,7 @@ use alloy::{
     signers::local::PrivateKeySigner,
     transports::{impl_future, TransportResult},
 };
+use executors::protect_executor::ProtectExecutor;
 use executors::queued_executor::QueuedExecutor;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -270,7 +271,22 @@ async fn main() -> Result<()> {
         _ => None,
     });
 
+    let protect_executor = Box::new(ProtectExecutor::new(
+        provider.clone(),
+        provider.clone(),
+        key_store.clone(),
+        cloudwatch_client.clone(),
+    ));
+
+    let protect_executor = ExecutorMap::new(protect_executor, |action| match action {
+        Action::SubmitTx(tx) => Some(tx),
+        // No op for public transactions
+        _ => None,
+    });
+
+
     engine.add_executor(Box::new(queued_executor));
+    engine.add_executor(Box::new(protect_executor));
 
     // Start engine.
     match engine.run().await {
