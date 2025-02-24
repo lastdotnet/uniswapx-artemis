@@ -4,14 +4,13 @@ use tracing::{info, warn};
 use alloy::{
     eips::{BlockId, BlockNumberOrTag},
     network::{
-        AnyNetwork, EthereumWallet, NetworkWallet, ReceiptResponse, TransactionBuilder,
-        TxSignerSync,
+        AnyNetwork, EthereumWallet, ReceiptResponse, TransactionBuilder,
     },
     primitives::{utils::format_units, Address, U256},
     providers::{DynProvider, Provider},
     rpc::types::TransactionReceipt,
     serde::WithOtherFields,
-    signers::{local::PrivateKeySigner, Signer, SignerSync},
+    signers::{local::PrivateKeySigner, Signer},
 };
 use anyhow::{Context, Result};
 use artemis_core::types::Executor;
@@ -22,7 +21,6 @@ use crate::{
     aws_utils::cloudwatch_utils::{
         build_metric_future, receipt_status_to_metric, CwMetrics, DimensionValue,
     },
-    executors::reactor_error_code::ReactorErrorCode,
     shared::send_metric_with_order_hash,
     strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata},
 };
