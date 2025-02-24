@@ -1,4 +1,5 @@
 use anyhow::Result;
+use backoff::ExponentialBackoff;
 use clap::{ArgGroup, Parser};
 
 use artemis_core::engine::Engine;
@@ -8,16 +9,13 @@ use collectors::{
     block_collector::BlockCollector, uniswapx_order_collector::UniswapXOrderCollector,
     uniswapx_route_collector::UniswapXRouteCollector,
 };
-//use ethers::utils::hex;
-//use ethers::{
-//    providers::{Http, Provider},
-//    signers::{LocalWallet, Signer},
-//};
 use alloy::{
     hex,
     network::AnyNetwork,
     providers::{DynProvider, ProviderBuilder, WsConnect},
+    pubsub::{ConnectionHandle, PubSubConnect},
     signers::local::PrivateKeySigner,
+    transports::{impl_future, TransportResult},
 };
 use executors::queued_executor::QueuedExecutor;
 use std::collections::HashMap;
@@ -87,6 +85,27 @@ pub struct Args {
     /// chain id
     #[arg(long, required = true)]
     pub chain_id: u64,
+}
+
+/// Retrying websocket connection using exponential backoff
+#[derive(Clone, Debug)]
+pub struct RetryWsConnect(WsConnect);
+
+impl PubSubConnect for RetryWsConnect {
+    fn is_local(&self) -> bool {
+        self.0.is_local()
+    }
+
+    fn connect(&self) -> impl_future!(<Output = TransportResult<ConnectionHandle>>) {
+        self.0.connect()
+    }
+
+    async fn try_reconnect(&self) -> TransportResult<ConnectionHandle> {
+        backoff::future::retry(ExponentialBackoff::default(), || async {
+            Ok(self.0.try_reconnect().await?)
+        })
+        .await
+    }
 }
 
 #[tokio::main]

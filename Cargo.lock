@@ -4647,6 +4647,7 @@ dependencies = [
  "aws-config",
  "aws-sdk-cloudwatch",
  "aws-sdk-secretsmanager",
+ "backoff",
  "bindings-uniswapx",
  "clap",
  "crossbeam",
