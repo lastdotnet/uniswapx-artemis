@@ -11,6 +11,7 @@ use crate::{
         uniswapx_order_collector::UniswapXOrder,
         uniswapx_route_collector::{OrderBatchData, OrderData, RoutedOrder},
     },
+    shared::RouteInfo,
     strategies::types::SubmitTxToMempoolWithExecutionMetadata,
 };
 use alloy_primitives::Uint;
@@ -240,6 +241,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                     signature: event.signature.clone(),
                     resolved,
                     encoded_order: None,
+                    route: event.route.clone(),
                 };
                 self.processing_orders
                     .insert(order_hash.clone(), order_data.clone());
@@ -268,6 +270,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                         signature: event.signature.clone(),
                         resolved,
                         encoded_order: None,
+                        route: event.route.clone(),
                     },
                 );
             }
@@ -494,6 +497,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
         order: PriorityOrder,
         order_hash: String,
         signature: &str,
+        route: Option<RouteInfo>,
     ) -> Result<()> {
         let resolved = order.resolve(
             *self.last_block_number.read().await,
@@ -530,6 +534,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                     signature: signature.to_string(),
                     resolved: resolved_order,
                     encoded_order: None,
+                    route: route,
                 };
                 self.new_orders.remove(&order_hash);
                 self.processing_orders
@@ -579,6 +584,7 @@ impl<M: Middleware + 'static> UniswapXPriorityFill<M> {
                                 order.clone(),
                                 order_hash.clone(),
                                 &order_data.signature,
+                                order_data.route.clone(),
                             )
                             .await
                         {

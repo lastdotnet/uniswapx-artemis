@@ -2,10 +2,13 @@ use super::{
     shared::UniswapXStrategy,
     types::{Config, OrderStatus, TokenInTokenOut},
 };
-use crate::collectors::{
-    block_collector::NewBlock,
-    uniswapx_order_collector::UniswapXOrder,
-    uniswapx_route_collector::{OrderBatchData, OrderData, RoutedOrder},
+use crate::{
+    collectors::{
+        block_collector::NewBlock,
+        uniswapx_order_collector::UniswapXOrder,
+        uniswapx_route_collector::{OrderBatchData, OrderData, RoutedOrder},
+    },
+    shared::RouteInfo,
 };
 use alloy_primitives::Uint;
 use anyhow::Result;
@@ -140,7 +143,7 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
             inner: order,
             encoded_order: event.encoded_order.clone(),
         };
-        self.update_order_state(wrapper, &event.signature, &event.order_hash);
+        self.update_order_state(wrapper, &event.signature, &event.order_hash, event.route.as_ref());
         None
     }
 
@@ -368,6 +371,7 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
                         },
                         &order_data.signature,
                         &order_hash.to_string(),
+                        order_data.route.as_ref(),
                     );
                 }
                 _ => {
@@ -393,6 +397,7 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
         order: DutchV3OrderWrapper,
         signature: &str,
         order_hash: &String,
+        route: Option<&RouteInfo>,
     ) {
         let resolved = order
             .inner
@@ -424,6 +429,7 @@ impl<M: Middleware + 'static> UniswapXDutchV3Fill<M> {
                         signature: signature.to_string(),
                         resolved: resolved_order,
                         encoded_order: Some(order.encoded_order),
+                        route: route.cloned(),
                     },
                 );
             }
