@@ -12,7 +12,7 @@ use tokio_stream::wrappers::IntervalStream;
 use crate::shared::RouteInfo;
 
 static UNISWAPX_API_URL: &str = "https://api.uniswap.org/v2";
-static POLL_INTERVAL_SECS: u64 = 1;
+static POLL_INTERVAL_MS: u64 = 250;
 
 #[derive(Debug)]
 pub enum OrderTypeError {
@@ -115,8 +115,8 @@ impl Collector<UniswapXOrder> for UniswapXOrderCollector {
         );
 
         // stream that polls the UniswapX API every 5 seconds
-        let stream = IntervalStream::new(tokio::time::interval(Duration::from_secs(
-            POLL_INTERVAL_SECS,
+        let stream = IntervalStream::new(tokio::time::interval(Duration::from_millis(
+            POLL_INTERVAL_MS,
         )))
         .then(move |_| {
             let url = url.clone();
@@ -155,8 +155,8 @@ mod tests {
     use crate::shared::{MethodParameters, RouteInfo};
     
     use alloy_primitives::{Address, Bytes, U256};
+    use alloy::hex;
     use artemis_core::types::Collector;
-    use ethers::utils::hex;
     use futures::StreamExt;
     use mockito::{Mock, Server, ServerGuard};
     use tokio::sync::mpsc::{channel, Receiver, Sender};
