@@ -11,6 +11,7 @@ use crate::{
         uniswapx_order_collector::UniswapXOrder,
         uniswapx_route_collector::{OrderBatchData, OrderData, RoutedOrder},
     },
+    shared::RouteInfo,
     strategies::types::SubmitTxToMempoolWithExecutionMetadata,
 };
 use alloy::{
@@ -215,10 +216,15 @@ impl UniswapXPriorityFill {
             .unwrap();
 
         let order_hash = event.order_hash.clone();
+        let has_calldata = event.route.as_ref()
+            .map(|route| !route.method_parameters.calldata.is_empty())
+            .unwrap_or(false);
+
         let resolved_order = order.resolve(
             *self.last_block_number.read().await,
             *self.last_block_timestamp.read().await + BLOCK_TIME,
             Uint::from(0),
+            has_calldata,
         );
 
         let order_status = match resolved_order {
@@ -242,6 +248,7 @@ impl UniswapXPriorityFill {
                     signature: event.signature.clone(),
                     resolved,
                     encoded_order: None,
+                    route: event.route.clone(),
                 };
                 self.processing_orders
                     .insert(order_hash.clone(), order_data.clone());
@@ -271,6 +278,7 @@ impl UniswapXPriorityFill {
                         signature: event.signature.clone(),
                         resolved,
                         encoded_order: None,
+                        route: event.route.clone(),
                     },
                 );
             }
@@ -506,11 +514,14 @@ impl UniswapXPriorityFill {
         order: PriorityOrder,
         order_hash: String,
         signature: &str,
+        route: Option<RouteInfo>,
     ) -> Result<()> {
+        let has_calldata = route.as_ref().map(|route| !route.method_parameters.calldata.is_empty()).unwrap_or(false);
         let resolved = order.resolve(
             *self.last_block_number.read().await,
             *self.last_block_timestamp.read().await + BLOCK_TIME,
             Uint::from(0),
+            has_calldata,
         );
         let order_status = match resolved {
             OrderResolution::Expired => OrderStatus::Done,
@@ -542,6 +553,7 @@ impl UniswapXPriorityFill {
                     signature: signature.to_string(),
                     resolved: resolved_order,
                     encoded_order: None,
+                    route: route,
                 };
                 self.new_orders.remove(&order_hash);
                 self.processing_orders
@@ -591,6 +603,7 @@ impl UniswapXPriorityFill {
                                 order.clone(),
                                 order_hash.clone(),
                                 &order_data.signature,
+                                order_data.route.clone(),
                             )
                             .await
                         {

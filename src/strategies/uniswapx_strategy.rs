@@ -9,7 +9,7 @@ use crate::{
         uniswapx_order_collector::UniswapXOrder,
         uniswapx_route_collector::{OrderBatchData, OrderData, RoutedOrder},
     },
-    shared::send_metric_with_order_hash,
+    shared::{send_metric_with_order_hash, RouteInfo},
 };
 use alloy::{
     hex,
@@ -132,7 +132,7 @@ impl UniswapXUniswapFill {
             .ok();
 
         if let Some(order) = order {
-            self.update_order_state(order, &event.signature, &event.order_hash);
+            self.update_order_state(order, &event.signature, &event.order_hash, event.route.as_ref());
         }
         vec![]
     }
@@ -348,6 +348,7 @@ impl UniswapXUniswapFill {
                         order.clone(),
                         &order_data.signature,
                         &order_hash.to_string(),
+                        order_data.route.as_ref(),
                     );
                 }
                 _ => {
@@ -367,7 +368,7 @@ impl UniswapXUniswapFill {
         }
     }
 
-    fn update_order_state(&mut self, order: V2DutchOrder, signature: &str, order_hash: &String) {
+    fn update_order_state(&mut self, order: V2DutchOrder, signature: &str, order_hash: &String, route: Option<&RouteInfo>) {
         let resolved = order.resolve(self.last_block_timestamp + BLOCK_TIME);
         let order_status: OrderStatus = match resolved {
             OrderResolution::Expired => OrderStatus::Done,
@@ -396,6 +397,7 @@ impl UniswapXUniswapFill {
                         signature: signature.to_string(),
                         resolved: resolved_order,
                         encoded_order: None,
+                        route: route.cloned()
                     },
                 );
             }
