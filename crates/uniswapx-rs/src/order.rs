@@ -271,7 +271,7 @@ impl PriorityOrder {
 
         let min_start_block = std::cmp::min(self.cosignerData.auctionTargetBlock, self.auctionStartBlock);
 
-        if BigUint::from(block_number).lt(&min_start_block.saturating_sub(BigUint::from(2))) {
+        if BigUint::from(block_number).lt(&min_start_block.saturating_sub(BigUint::from(1))) {
             return OrderResolution::NotFillableYet(ResolvedOrder { input, outputs });
         };
 

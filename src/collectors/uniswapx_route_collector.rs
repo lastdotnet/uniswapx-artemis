@@ -268,7 +268,9 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
                         if let Some(route) = get_route_from_order_service(&request) {
                             seen.insert(route.request.orders[0].hash.clone());
                             yield route;
-                        } else if !seen.contains(&request.orders[0].hash) {
+                        }
+                        // Still request a route even if we already have one
+                        if !seen.contains(&request.orders[0].hash) {
                             seen.insert(request.orders[0].hash.clone());
                             all_requests.push(request);
                         }
@@ -282,7 +284,9 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
                             if let Some(route) = get_route_from_order_service(&request) {
                                 seen.insert(route.request.orders[0].hash.clone());
                                 yield route;
-                            } else if !seen.contains(&request.orders[0].hash) {
+                            } 
+                            // Still request a route even if we already have one
+                            if !seen.contains(&request.orders[0].hash) {
                                 seen.insert(request.orders[0].hash.clone());
                                 all_requests.push(request);
                             }
