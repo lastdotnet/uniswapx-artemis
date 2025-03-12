@@ -4679,6 +4679,7 @@ dependencies = [
  "alloy-sol-types",
  "anyhow",
  "hex",
+ "tracing",
 ]
 
 [[package]]
