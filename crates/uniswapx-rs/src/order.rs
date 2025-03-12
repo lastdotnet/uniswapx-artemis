@@ -8,7 +8,6 @@ use anyhow::Result;
 
 use crate::sol_math::MulDiv;
 
-// Add this function here instead of importing from strategies
 fn current_timestamp() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

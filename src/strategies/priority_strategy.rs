@@ -35,7 +35,7 @@ use tokio::sync::{
     mpsc::{Receiver, Sender},
     RwLock,
 };
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 use uniswapx_rs::order::{Order, OrderResolution, PriorityOrder, MPS};
 
 use super::types::{Action, Event};
@@ -228,10 +228,10 @@ impl UniswapXPriorityFill {
         if self.new_orders.contains_key(&event.order_hash)
             || self.processing_orders.contains_key(&event.order_hash)
         {
-            // info!(
-            //     "{} - skipping processing new order event (already tracking)",
-            //     event.order_hash
-            // );
+            debug!(
+                "{} - skipping processing new order event (already tracking)",
+                event.order_hash
+            );
             return vec![];
         }
 
@@ -245,7 +245,7 @@ impl UniswapXPriorityFill {
 
         match self.check_order_fillable(&order).await {
             OrderStatus::Done => {
-                // info!("{} - Order already done, skipping", order_hash);
+                debug!("{} - Order already done, skipping", order_hash);
                 return vec![];
             }
             OrderStatus::NotFillableYet(resolved) | OrderStatus::Open(resolved) => {

@@ -265,11 +265,6 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
                 // Collect all available messages without blocking
                 while let Ok(requests) = receiver.try_recv() {
                     for request in requests {
-                        // if let Some(route) = get_route_from_order_service(&request) {
-                        //     seen.insert(route.request.orders[0].hash.clone());
-                        //     yield route;
-                        // }
-                        // Still request a route even if we already have one
                         if !seen.contains(&request.orders[0].hash) {
                             seen.insert(request.orders[0].hash.clone());
                             all_requests.push(request);
@@ -281,11 +276,6 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
                 if all_requests.is_empty() {
                     if let Some(requests) = receiver.recv().await {
                         for request in requests {
-                            // if let Some(route) = get_route_from_order_service(&request) {
-                            //     seen.insert(route.request.orders[0].hash.clone());
-                            //     yield route;
-                            // } 
-                            // Still request a route even if we already have one
                             if !seen.contains(&request.orders[0].hash) {
                                 seen.insert(request.orders[0].hash.clone());
                                 all_requests.push(request);
