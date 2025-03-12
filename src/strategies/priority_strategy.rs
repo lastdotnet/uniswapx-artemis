@@ -40,11 +40,18 @@ use uniswapx_rs::order::{Order, OrderResolution, PriorityOrder, MPS};
 
 use super::types::{Action, Event};
 
-const BLOCK_TIME: u64 = 2;
 const DONE_EXPIRY: u64 = 300;
 // Base addresses
 const REACTOR_ADDRESS: &str = "0x000000001Ec5656dcdB24D90DFa42742738De729";
 pub const WETH_ADDRESS: &str = "0x4200000000000000000000000000000000000006";
+
+fn get_block_time(chain_id: u64) -> u64 {
+    match chain_id {
+        130 => 1,   // Unichain
+        8453 => 2,  // Base Mainnet
+        _ => 2,     // Default to 2 seconds for unknown chains
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct ExecutionMetadata {
@@ -199,8 +206,8 @@ impl UniswapXPriorityFill {
     async fn check_order_fillable(&self, order: &PriorityOrder) -> OrderStatus {
         let resolved_order = order.resolve(
             *self.last_block_number.read().await,
-            *self.last_block_timestamp.read().await + BLOCK_TIME,
-            BLOCK_TIME,
+            *self.last_block_timestamp.read().await + get_block_time(self.chain_id),
+            get_block_time(self.chain_id),
             Uint::from(0),
         );
         let order_status = match resolved_order {
@@ -497,8 +504,8 @@ impl UniswapXPriorityFill {
     ) -> Result<()> {
         let resolved = order.resolve(
             *self.last_block_number.read().await,
-            *self.last_block_timestamp.read().await + BLOCK_TIME,
-            BLOCK_TIME,
+            *self.last_block_timestamp.read().await + get_block_time(self.chain_id),
+            get_block_time(self.chain_id),
             Uint::from(0),
         );
 
