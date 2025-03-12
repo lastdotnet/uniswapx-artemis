@@ -443,6 +443,7 @@ impl UniswapXPriorityFill {
                 "{} - Removing filled order from processing_orders",
                 order_hash
             );
+            self.new_orders.remove(&order_hash);
             self.processing_orders.remove(&order_hash);
             self.done_orders.insert(
                 order_hash.to_string(),
@@ -531,14 +532,9 @@ impl UniswapXPriorityFill {
                         info!("{} - Received cached route for order", order_hash);
                     }
                 }
-                info!("{} - 1234, adding to new_orders", order_hash);
-                self.new_orders.remove(&order_hash);
-                self.processing_orders
-                    .insert(order_hash.to_string(), order_data.clone());
                 info!(
-                    "{} - Sending order for routing and execution at latest block {}",
-                    order_hash,
-                    *self.last_block_number.read().await
+                    "{} - Requesting fresh route for order",
+                    order_hash
                 );
                 let order_batch = self.get_order_batch(&order_data);
                 self.try_route_order_batch(order_batch, order_hash, order_data)
@@ -631,6 +627,10 @@ impl UniswapXPriorityFill {
                 if order_data.route.is_none() {
                     continue;
                 }
+                // skip if order is already in processing_orders
+                if self.processing_orders.contains_key(&order_hash) {
+                    continue;
+                }
 
                 // Check if order is now fillable
                 let order = match &order_data.order {
@@ -641,6 +641,7 @@ impl UniswapXPriorityFill {
                 match self.check_order_fillable(order).await {
                     OrderStatus::Done => {
                         self.new_orders.remove(&order_hash);
+                        self.processing_orders.remove(&order_hash);
                         self.done_orders.insert(
                             order_hash,
                             self.current_timestamp().unwrap_or(0) + DONE_EXPIRY,
@@ -689,21 +690,7 @@ impl UniswapXPriorityFill {
                                 let metadata = self.get_execution_metadata(&routed_order);
                                 match metadata {
                                     Some(metadata) => {
-                                        info!("{} - Got execution metadata with quote: {}, required: {}", 
-                                            order_hash, metadata.quote, metadata.amount_out_required);
-                                        
-                                        info!("{} - Moving order from new_orders to processing_orders", order_hash);
-
-                                        if self.new_orders.contains_key(&order_hash) {
-                                            let removed = self.new_orders.remove(&order_hash);
-                                            info!("{} - Removed from new_orders: {:?}", order_hash, removed.is_some());
-                                        }
-                                        
-                                        let inserted = self.processing_orders.insert(order_hash.clone(), order_data.value().clone());
-                                        info!("{} - Inserted into processing_orders: {:?}", order_hash, inserted.is_none());
-                                        
-                                        info!("{} - Creating SubmitPublicTx action with bid_percentage: {}", 
-                                            order_hash, self.bid_percentage);
+                                        self.processing_orders.insert(order_hash.clone(), order_data.value().clone());
                                         let action = Action::SubmitPublicTx(
                                             SubmitTxToMempoolWithExecutionMetadata {
                                                 execution: SubmitTxToMempool {
@@ -717,7 +704,6 @@ impl UniswapXPriorityFill {
                                                 metadata: metadata.clone(),
                                             },
                                         );
-                                        info!("{} - Created action, pushing to actions vector", order_hash);
                                         actions.push(action);
                                         info!("{} - Successfully queued transaction for submission", order_hash);
                                     }

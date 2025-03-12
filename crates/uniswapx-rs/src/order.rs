@@ -7,7 +7,6 @@ use alloy_sol_types::sol;
 use anyhow::Result;
 
 use crate::sol_math::MulDiv;
-use tracing::info;
 
 // Add this function here instead of importing from strategies
 fn current_timestamp() -> u64 {
@@ -268,7 +267,6 @@ impl PriorityOrder {
         let next_block_timestamp = BigUint::from(next_block_timestamp);
 
         if self.info.deadline.lt(&next_block_timestamp) {
-            info!("Order expired");
             return OrderResolution::Expired;
         };
 
@@ -283,7 +281,6 @@ impl PriorityOrder {
         
         // If we're more than two blocks away from target AND current timestamp is > BLOCK_TIME away from target
         // then not yet fillable
-        info!("comparing blocks {} to {}", block_number, &min_start_block.saturating_sub(BigUint::from(2)));
         if BigUint::from(block_number).lt(&min_start_block.saturating_sub(BigUint::from(2))) {
             let min_start_timedelta = min_start_block
                 // block_number + 1 since we have next_block_timestamp
@@ -291,7 +288,6 @@ impl PriorityOrder {
                 .unwrap()
                 .wrapping_mul(BigUint::from(block_time));
             let min_start_timestamp = next_block_timestamp + min_start_timedelta;
-            info!("comparing timestamps {} to {}", current_timestamp() + block_time, min_start_timestamp);
             if BigUint::from(current_timestamp() + block_time).lt(&min_start_timestamp) {
                 return OrderResolution::NotFillableYet(ResolvedOrder { input, outputs });
             }
