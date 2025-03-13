@@ -262,12 +262,8 @@ impl PriorityOrder {
         PriorityOrder::abi_encode(self)
     }
 
-    pub fn resolve(&self, block_number: u64, next_block_timestamp: u64, block_time: u64, priority_fee: BigUint) -> OrderResolution {
-        let next_block_timestamp = BigUint::from(next_block_timestamp);
-
-        if self.info.deadline.lt(&next_block_timestamp) {
-            return OrderResolution::Expired;
-        };
+    pub fn resolve(&self, block_number: u64, block_timestamp: u64, block_time: u64, priority_fee: BigUint) -> OrderResolution {
+        let next_block_timestamp = BigUint::from(block_timestamp) + BigUint::from(block_time);
 
         let input = self.input.scale(priority_fee);
         let outputs = self
@@ -277,20 +273,22 @@ impl PriorityOrder {
             .collect();
 
         let min_start_block = std::cmp::min(self.cosignerData.auctionTargetBlock, self.auctionStartBlock);
-        
-        // If we're more than two blocks away from target AND current timestamp is > BLOCK_TIME away from target
-        // then not yet fillable
-        if BigUint::from(block_number).lt(&min_start_block.saturating_sub(BigUint::from(2))) {
-            let min_start_timedelta = min_start_block
-                // block_number + 1 since we have next_block_timestamp
-                .checked_sub(BigUint::from(block_number + 1)) 
-                .unwrap()
-                .wrapping_mul(BigUint::from(block_time));
-            let min_start_timestamp = next_block_timestamp + min_start_timedelta;
-            if BigUint::from(current_timestamp() + block_time).lt(&min_start_timestamp) {
-                return OrderResolution::NotFillableYet(ResolvedOrder { input, outputs });
-            }
+
+        let current_block = BigUint::from(block_number);
+        if self.info.deadline.lt(&next_block_timestamp) || current_block >= min_start_block {
+            return OrderResolution::Expired;
         };
+        
+        // If current timestamp is > BLOCK_TIME away from target
+        // then not yet fillable
+        let min_start_timedelta = min_start_block
+            .checked_sub(current_block) 
+            .unwrap()
+            .wrapping_mul(BigUint::from(block_time));
+        let min_start_timestamp = BigUint::from(block_timestamp) + min_start_timedelta;
+        if BigUint::from(current_timestamp() + (block_time * 1125 / 1000)).lt(&min_start_timestamp) {
+            return OrderResolution::NotFillableYet(ResolvedOrder { input, outputs });
+        }
 
         OrderResolution::Resolved(ResolvedOrder { input, outputs })
     }
