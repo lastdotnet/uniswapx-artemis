@@ -88,16 +88,18 @@ pub struct UniswapXOrderResponse {
 pub struct UniswapXOrderCollector {
     pub client: Client,
     pub base_url: String,
+    pub api_key: String,
     pub chain_id: u64,
     pub order_type: OrderType,
     pub execute_address: String,
 }
 
 impl UniswapXOrderCollector {
-    pub fn new(chain_id: u64, order_type: OrderType, execute_address: String, base_url: Option<String>) -> Self {
+    pub fn new(chain_id: u64, order_type: OrderType, execute_address: String, api_key: Option<String>) -> Self {
         Self {
             client: Client::new(),
-            base_url: base_url.unwrap_or_else(|| UNISWAPX_API_URL.to_string()),
+            base_url: UNISWAPX_API_URL.to_string(),
+            api_key: api_key.unwrap_or_else(|| "".to_string()),
             chain_id,
             order_type,
             execute_address,
@@ -129,10 +131,14 @@ impl Collector<UniswapXOrder> for UniswapXOrderCollector {
         .then(move |_| {
             let url = url.clone();
             let client = self.client.clone();
+            let api_key = self.api_key.clone();
             async move {
                 tracing::debug!("Polling UniswapX API for new orders");
                 
-                let response = match client.get(url.clone()).send().await {
+                let response = match client.get(url.clone())
+                    .header("x-api-key", api_key)
+                    .send()
+                    .await {
                     Ok(resp) => resp,
                     Err(e) => {
                         tracing::error!(error = %e, "Failed to fetch orders from UniswapX API");
@@ -214,12 +220,14 @@ mod tests {
                 "orderStatus".into(),
                 "open".into(),
             ))
+            .match_header("x-api-key", "test-key")
             .with_body(mock_response)
             .create_async()
             .await;
         let res = UniswapXOrderCollector {
             client: reqwest::Client::new(),
             base_url: url.clone(),
+            api_key: "test-key".to_string(),
             chain_id: 1,
             order_type: order_type,
             // Inconsequential query parameter because we mock the order service response

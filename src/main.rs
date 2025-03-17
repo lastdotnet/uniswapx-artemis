@@ -88,9 +88,9 @@ pub struct Args {
     #[arg(long, required = true)]
     pub chain_id: u64,
 
-    /// Optional UniswapX API URL override
+    /// Optional UniswapX API Key
     #[arg(long)]
-    pub uniswapx_api_url: Option<String>,
+    pub uniswapx_api_key: Option<String>,
 }
 
 /// Retrying websocket connection using exponential backoff
@@ -205,7 +205,7 @@ async fn main() -> Result<()> {
         chain_id,
         args.order_type.clone(),
         args.executor_address.clone(),
-        args.uniswapx_api_url,
+        args.uniswapx_api_key,
     ));
     let uniswapx_order_collector = CollectorMap::new(uniswapx_order_collector, |e| {
         Event::UniswapXOrder(Box::new(e))
