@@ -86,16 +86,18 @@ pub struct UniswapXOrderResponse {
 pub struct UniswapXOrderCollector {
     pub client: Client,
     pub base_url: String,
+    pub api_key: String,
     pub chain_id: u64,
     pub order_type: OrderType,
     pub execute_address: String,
 }
 
 impl UniswapXOrderCollector {
-    pub fn new(chain_id: u64, order_type: OrderType, execute_address: String) -> Self {
+    pub fn new(chain_id: u64, order_type: OrderType, execute_address: String, api_key: Option<String>) -> Self {
         Self {
             client: Client::new(),
             base_url: UNISWAPX_API_URL.to_string(),
+            api_key: api_key.unwrap_or_else(|| "".to_string()),
             chain_id,
             order_type,
             execute_address,
@@ -114,6 +116,12 @@ impl Collector<UniswapXOrder> for UniswapXOrderCollector {
             self.base_url, self.chain_id, self.order_type, self.execute_address,
         );
 
+        tracing::info!(
+            chain_id = self.chain_id,
+            order_type = %self.order_type,
+            "Starting UniswapX order collector stream"
+        );
+
         // stream that polls the UniswapX API every 5 seconds
         let stream = IntervalStream::new(tokio::time::interval(Duration::from_millis(
             POLL_INTERVAL_MS,
@@ -121,22 +129,53 @@ impl Collector<UniswapXOrder> for UniswapXOrderCollector {
         .then(move |_| {
             let url = url.clone();
             let client = self.client.clone();
+            let api_key = self.api_key.clone();
             async move {
-                let response = client.get(url).send().await?;
-                let data = response.json::<UniswapXOrderResponse>().await?;
+                tracing::debug!("Polling UniswapX API for new orders");
+                
+                let response = match client.get(url.clone())
+                    .header("x-api-key", api_key)
+                    .send()
+                    .await {
+                    Ok(resp) => resp,
+                    Err(e) => {
+                        tracing::error!(error = %e, "Failed to fetch orders from UniswapX API");
+                        return Err(anyhow::anyhow!("Failed to fetch orders: {}", e));
+                    }
+                };
+
+                let data = match response.json::<UniswapXOrderResponse>().await {
+                    Ok(data) => data,
+                    Err(e) => {
+                        tracing::error!(error = %e, "Failed to parse UniswapX API response");
+                        return Err(anyhow::anyhow!("Failed to parse response: {}", e));
+                    }
+                };
+
+                tracing::debug!(
+                    num_orders = data.orders.len(),
+                    "Successfully fetched orders from UniswapX API"
+                );
+                
                 Ok(data.orders)
             }
         })
         .flat_map(
             |values_result: Result<Vec<UniswapXOrder>>| match values_result {
                 Ok(values) => stream::iter(values.into_iter().map(Ok)).left_stream(),
-                Err(e) => stream::once(async { Err(e) }).right_stream(),
+                Err(e) => {
+                    tracing::warn!(error = %e, "Error in order stream, skipping batch");
+                    stream::once(async { Err(e) }).right_stream()
+                },
             },
         )
         .filter_map(|result| async {
             match result {
                 Ok(value) => Some(value),
-                Err(_) => None, // if Err, ignore the value
+                Err(e) => {
+                    tracing::error!(error = %e, "Error processing order, skipping");
+                    None
+                }
             }
         });
 
@@ -179,12 +218,14 @@ mod tests {
                 "orderStatus".into(),
                 "open".into(),
             ))
+            .match_header("x-api-key", "test-key")
             .with_body(mock_response)
             .create_async()
             .await;
         let res = UniswapXOrderCollector {
             client: reqwest::Client::new(),
             base_url: url.clone(),
+            api_key: "test-key".to_string(),
             chain_id: 1,
             order_type: order_type,
             // Inconsequential query parameter because we mock the order service response
