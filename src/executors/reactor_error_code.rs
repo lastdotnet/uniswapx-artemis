@@ -12,6 +12,7 @@ pub enum ReactorErrorCode {
     InvalidDeadline,
     OrderNotFillable,
     OrderAlreadyFilled,
+    InsufficientETH,
     Unknown,
 }
 
@@ -24,6 +25,7 @@ impl From<String> for ReactorErrorCode {
             "0xc6035520" => ReactorErrorCode::OrderNotFillable,
             "0xee3b3d4b" => ReactorErrorCode::OrderAlreadyFilled,
             "0x769d11e4" => ReactorErrorCode::InvalidDeadline,
+            "0x6a12f104" => ReactorErrorCode::InsufficientETH,
             _ => ReactorErrorCode::Unknown,
         }
     }
@@ -35,6 +37,7 @@ impl std::fmt::Display for ReactorErrorCode {
             ReactorErrorCode::InvalidDeadline => "InvalidDeadline",
             ReactorErrorCode::OrderNotFillable => "OrderNotFillable",
             ReactorErrorCode::OrderAlreadyFilled => "OrderAlreadyFilled",
+            ReactorErrorCode::InsufficientETH => "InsufficientETH",
             ReactorErrorCode::Unknown => "Unknown",
         };
         write!(f, "{}", s)

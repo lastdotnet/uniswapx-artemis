@@ -36,7 +36,7 @@ use tokio::sync::{
     RwLock,
 };
 use tracing::{debug, error, info, warn};
-use uniswapx_rs::order::{Order, OrderResolution, PriorityOrder, MPS};
+use uniswapx_rs::order::{projected_target_block_ms, Order, OrderResolution, PriorityOrder, MPS};
 
 use super::types::{Action, Event};
 
@@ -45,11 +45,11 @@ const DONE_EXPIRY: u64 = 300;
 const REACTOR_ADDRESS: &str = "0x000000001Ec5656dcdB24D90DFa42742738De729";
 pub const WETH_ADDRESS: &str = "0x4200000000000000000000000000000000000006";
 
-fn get_block_time(chain_id: u64) -> u64 {
+fn get_block_time_ms(chain_id: u64) -> u64 {
     match chain_id {
-        130 => 1,   // Unichain
-        8453 => 2,  // Base Mainnet
-        _ => 2,     // Default to 2 seconds for unknown chains
+        130 => 1000,   // Unichain
+        8453 => 2000,  // Base Mainnet
+        _ => 2000,     // Default to 2 seconds for unknown chains
     }
 }
 
@@ -203,11 +203,11 @@ impl UniswapXPriorityFill {
             .map_err(|e| format!("Failed to decode order: {}", e).into())
     }
 
-    async fn get_order_status(&self, order: &PriorityOrder) -> OrderStatus {
+    async fn get_order_status(&self, order: &PriorityOrder, order_hash: &str) -> OrderStatus {
         let resolved_order = order.resolve(
             *self.last_block_number.read().await,
             *self.last_block_timestamp.read().await,
-            get_block_time(self.chain_id),
+            get_block_time_ms(self.chain_id),
             Uint::from(0),
         );
         let order_status = match resolved_order {
@@ -250,7 +250,7 @@ impl UniswapXPriorityFill {
 
         let order_hash = event.order_hash.clone();
 
-        match self.get_order_status(&order).await {
+        match self.get_order_status(&order, &order_hash).await {
             OrderStatus::Done => {
                 debug!("{} - Order already done, skipping", order_hash);
             }
@@ -270,6 +270,11 @@ impl UniswapXPriorityFill {
                     encoded_order: None,
                     route: event.route.clone(),
                 };
+                if let Some(route) = &order_data.route {
+                    if !route.method_parameters.calldata.is_empty() {
+                        info!("{} - Received cached route for order", order_hash);
+                    }
+                }
                 self.new_orders.insert(order_hash.clone(), order_data.clone());
 
                 info!(
@@ -320,7 +325,7 @@ impl UniswapXPriorityFill {
                     _ => continue,
                 };
 
-                if let OrderStatus::NotFillableYet(_) = self.get_order_status(resolved_order).await {
+                if let OrderStatus::NotFillableYet(_) = self.get_order_status(resolved_order, &order.hash).await {
                     let order_batch = self.get_order_batch(entry.value());
                     self.try_route_order_batch(order_batch, order.hash.clone())
                         .await;
@@ -497,7 +502,7 @@ impl UniswapXPriorityFill {
         signature: &str,
         route: Option<RouteInfo>,
     ) -> Result<()> {
-        let order_status = self.get_order_status(&order).await;
+        let order_status = self.get_order_status(&order, &order_hash).await;
 
         match order_status {
             OrderStatus::Done => {
@@ -516,11 +521,6 @@ impl UniswapXPriorityFill {
                     encoded_order: None,
                     route: route,
                 };
-                if let Some(route) = &order_data.route {
-                    if !route.method_parameters.calldata.is_empty() {
-                        info!("{} - Received cached route for order", order_hash);
-                    }
-                }
                 info!(
                     "{} - Requesting fresh route for order",
                     order_hash
@@ -608,9 +608,9 @@ impl UniswapXPriorityFill {
         let mut actions = Vec::new();
 
         for order_hash in order_hashes {
-            if let Some(order_data) = self.new_orders.get(&order_hash) {
+            if let Some(mut order_data) = self.new_orders.get_mut(&order_hash) {
                 // Skip if no route available
-                if order_data.route.is_none() {
+                if order_data.route.as_ref().map_or(true, |r| r.method_parameters.calldata.is_empty()) {
                     debug!("{} - No route available, skipping", order_hash);
                     continue;
                 }
@@ -626,7 +626,7 @@ impl UniswapXPriorityFill {
                     _ => continue,
                 };
 
-                match self.get_order_status(order).await {
+                match self.get_order_status(order, &order_hash).await {
                     OrderStatus::Done => {
                         info!("{} - Order is done, removing from new_orders and processing_orders", order_hash);
                         self.new_orders.remove(&order_hash);
@@ -706,7 +706,17 @@ impl UniswapXPriorityFill {
                                         info!("{} - Successfully queued transaction for submission", order_hash);
                                     }
                                     None => {
-                                        // Remove from processing_orders to check again
+                                        // Clear the route and refresh
+                                        order_data.value_mut().route = None;
+                                        // Refresh route and try again
+                                        let order_batch = self.get_order_batch(&order_data.value());
+                                        self.try_route_order_batch(order_batch, order_hash.clone())
+                                            .await;
+                                        info!(
+                                            "{} - Order not fillable yet, refreshing route at block {}",
+                                            order_hash,
+                                            *self.last_block_number.read().await
+                                        );
                                         self.processing_orders.remove(&order_hash);
                                     }
                                 }

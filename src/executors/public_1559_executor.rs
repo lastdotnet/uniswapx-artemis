@@ -20,7 +20,7 @@ use crate::executors::reactor_error_code::get_revert_reason;
 
 const GAS_LIMIT: u64 = 1_000_000;
 const MAX_RETRIES: u32 = 3;
-const TX_BACKOFF_MS: u64 = 10; // 10 ms
+const TX_BACKOFF_MS: u64 = 0; // retry immediately
 
 /// An executor that sends transactions to the public mempool.
 pub struct Public1559Executor {
@@ -66,7 +66,7 @@ impl Public1559Executor {
             Ok(tx) => {
                 info!("{} - Waiting for confirmations", order_hash);
                 let receipt = tx
-                    .with_required_confirmations(1)
+                    .with_required_confirmations(0)
                     .get_receipt()
                     .await
                     .map_err(|e| {
@@ -333,6 +333,7 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
 
         let mut attempts = 0;
         
+        // Retry tx submission on retryable failures
         let (block_number, status) = loop {
             match self.send_transaction(&wallet, tx_request.clone(), &order_hash).await {
                 Ok(TransactionOutcome::Success(result)) => {
@@ -347,6 +348,7 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
                         "{} - Order not fillable, retrying in {}ms (attempt {}/{})",
                         order_hash, TX_BACKOFF_MS, attempts, MAX_RETRIES
                     );
+                    tx_request.set_nonce(nonce + attempts as u64);
                     tokio::time::sleep(tokio::time::Duration::from_millis(TX_BACKOFF_MS)).await;
                     continue;
                 }

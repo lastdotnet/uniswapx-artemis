@@ -8,11 +8,11 @@ use anyhow::Result;
 
 use crate::sol_math::MulDiv;
 
-fn current_timestamp() -> u64 {
+fn current_timestamp_ms() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
-        .as_secs()
+        .as_millis() as u64
 }
 
 type BigUint = Uint<256, 4>;
@@ -253,6 +253,13 @@ impl V2DutchOrder {
     }
 }
 
+// Estimates the target block timestamp based on the current block timestamp and average block time
+pub fn projected_target_block_ms(current_block: u64, target_block: u64, block_timestamp: u64, block_time_ms: u64) -> BigUint {
+    let blocks_until_target = BigUint::from(target_block).checked_sub(BigUint::from(current_block)).unwrap_or_default();
+    let time_until_target_ms = blocks_until_target.wrapping_mul(BigUint::from(block_time_ms));
+    BigUint::from(block_timestamp).wrapping_mul(BigUint::from(1000)).wrapping_add(time_until_target_ms)
+}
+
 impl PriorityOrder {
     pub fn decode_inner(order_hex: &[u8], validate: bool) -> Result<Self, Box<dyn Error>> {
         Ok(PriorityOrder::abi_decode(order_hex, validate)?)
@@ -262,7 +269,8 @@ impl PriorityOrder {
         PriorityOrder::abi_encode(self)
     }
 
-    pub fn resolve(&self, block_number: u64, block_timestamp: u64, block_time: u64, priority_fee: BigUint) -> OrderResolution {
+    pub fn resolve(&self, block_number: u64, block_timestamp: u64, block_time_ms: u64, priority_fee: BigUint, ) -> OrderResolution {
+        let block_time = block_time_ms / 1000;
         let next_block_timestamp = BigUint::from(block_timestamp) + BigUint::from(block_time);
 
         let input = self.input.scale(priority_fee);
@@ -281,12 +289,14 @@ impl PriorityOrder {
         
         // If current timestamp is > BLOCK_TIME away from target
         // then not yet fillable
-        let min_start_timedelta = min_start_block
-            .checked_sub(current_block) 
-            .unwrap()
-            .wrapping_mul(BigUint::from(block_time));
-        let min_start_timestamp = BigUint::from(block_timestamp) + min_start_timedelta;
-        if BigUint::from(current_timestamp() + (block_time * 2000 / 1000)).lt(&min_start_timestamp) {
+        let target_block_ms = projected_target_block_ms(
+            block_number,
+            min_start_block.try_into().unwrap(),
+            block_timestamp,
+            block_time_ms
+        );
+        let time_buffer_ms = block_time_ms * 2;
+        if BigUint::from(current_timestamp_ms() + time_buffer_ms).lt(&target_block_ms) {
             return OrderResolution::NotFillableYet(ResolvedOrder { input, outputs });
         }
 
