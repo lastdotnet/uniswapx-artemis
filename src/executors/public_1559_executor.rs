@@ -2,15 +2,9 @@ use std::{str::FromStr, sync::Arc};
 use tracing::{info, warn};
 
 use alloy::{
-    eips::{BlockId, BlockNumberOrTag},
-    network::{
-        AnyNetwork, EthereumWallet, ReceiptResponse, TransactionBuilder,
-    },
-    primitives::{utils::format_units, Address, U256},
-    providers::{DynProvider, Provider},
-    rpc::types::TransactionReceipt,
-    serde::WithOtherFields,
-    signers::{local::PrivateKeySigner, Signer},
+    eips::{BlockId, BlockNumberOrTag}, network::{
+        AnyNetwork, EthereumWallet, ReceiptResponse, TransactionBuilder
+    }, primitives::{utils::format_units, Address, U256}, providers::{DynProvider, Provider}, rpc::types::TransactionRequest, serde::WithOtherFields, signers::{local::PrivateKeySigner, Signer}
 };
 use anyhow::{Context, Result};
 use artemis_core::types::Executor;
@@ -20,12 +14,13 @@ use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use crate::{
     aws_utils::cloudwatch_utils::{
         build_metric_future, receipt_status_to_metric, CwMetrics, DimensionValue,
-    },
-    shared::send_metric_with_order_hash,
-    strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata},
+    }, executors::reactor_error_code::ReactorErrorCode, shared::send_metric_with_order_hash, strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
 };
+use crate::executors::reactor_error_code::get_revert_reason;
 
 const GAS_LIMIT: u64 = 1_000_000;
+const MAX_RETRIES: u32 = 3;
+const TX_BACKOFF_MS: u64 = 10; // 10 ms
 
 /// An executor that sends transactions to the public mempool.
 pub struct Public1559Executor {
@@ -33,6 +28,13 @@ pub struct Public1559Executor {
     sender_client: Arc<DynProvider<AnyNetwork>>,
     key_store: Arc<KeyStore>,
     cloudwatch_client: Option<Arc<CloudWatchClient>>,
+}
+
+#[derive(Debug)]
+enum TransactionOutcome {
+    Success(Option<u64>),
+    Failure(Option<u64>),
+    RetryableFailure,
 }
 
 impl Public1559Executor {
@@ -47,6 +49,74 @@ impl Public1559Executor {
             sender_client,
             key_store,
             cloudwatch_client,
+        }
+    }
+
+    async fn send_transaction(
+        &self,
+        wallet: &EthereumWallet,
+        tx_request: WithOtherFields<TransactionRequest>,
+        order_hash: &str,
+    ) -> Result<TransactionOutcome> {
+        let tx_request_for_revert = tx_request.clone();
+        let tx = tx_request.build(wallet).await?;
+        let result = self.sender_client.send_tx_envelope(tx).await;
+
+        match result {
+            Ok(tx) => {
+                info!("{} - Waiting for confirmations", order_hash);
+                let receipt = tx
+                    .with_required_confirmations(1)
+                    .get_receipt()
+                    .await
+                    .map_err(|e| {
+                        anyhow::anyhow!("{} - Error waiting for confirmations: {}", order_hash, e)
+                    });
+                
+                match receipt {
+                    Ok(receipt) => {
+                        let status = receipt.status();
+                        info!(
+                            "{} - receipt: tx_hash: {:?}, status: {}",
+                            order_hash, receipt.transaction_hash, status,
+                        );
+                        
+                        if !status {
+                            info!("{} - Attempting to get revert reason", order_hash);
+                            // Parse revert reason
+                            let revert_reason = get_revert_reason(
+                                &self.sender_client,
+                                tx_request_for_revert,
+                                receipt.block_number.unwrap()
+                            ).await;
+                            
+                            if let Ok(reason) = revert_reason {
+                                info!("{} - Revert reason: {}", order_hash, reason);
+                                // Retry if the order isn't yet fillable
+                                if matches!(reason, ReactorErrorCode::OrderNotFillable) {
+                                    return Ok(TransactionOutcome::RetryableFailure);
+                                }
+                                else {
+                                    info!("{} - Order not fillable, returning failure", order_hash);
+                                    return Ok(TransactionOutcome::Failure(receipt.block_number));
+                                }
+                            }
+                            info!("{} - Failed to get revert reason - error: {:?}", order_hash, revert_reason.err().unwrap());
+                            Ok(TransactionOutcome::Failure(None))
+                        } else {
+                            Ok(TransactionOutcome::Success(receipt.block_number))
+                        }
+                    }
+                    Err(e) => {
+                        warn!("{} - Error waiting for confirmations: {}", order_hash, e);
+                        Ok(TransactionOutcome::Failure(None))
+                    }
+                }
+            }
+            Err(e) => {
+                warn!("{} - Error sending transaction: {}", order_hash, e);
+                Ok(TransactionOutcome::Failure(None))
+            }
         }
     }
 }
@@ -260,49 +330,29 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
         };
         tx_request.set_nonce(nonce);
         info!("{} - Executing tx from {:?}", order_hash, address);
-        let tx = tx_request.build(&wallet).await?;
-        let result = sender_client.send_tx_envelope(tx).await;
 
-        //let metric_future = build_metric_future(
-        //    self.cloudwatch_client.clone(),
-        //    DimensionValue::PriorityExecutor,
-        //    CwMetrics::TxSubmitted(chain_id_u64),
-        //    1.0,
-        //);
-        //if let Some(metric_future) = metric_future {
-        //    // do not block current thread by awaiting in the background
-        //    send_metric_with_order_hash!(&order_hash, metric_future);
-        //}
-
-        // Block on pending transaction getting confirmations
-        let (receipt, status) = match result {
-            Ok(tx) => {
-                info!("{} - Waiting for confirmations", order_hash);
-                let receipt = tx
-                    .with_required_confirmations(1)
-                    .get_receipt()
-                    .await
-                    .map_err(|e| {
-                        anyhow::anyhow!("{} - Error waiting for confirmations: {}", order_hash, e)
-                    });
-                match receipt {
-                    Ok(receipt) => {
-                        let status = receipt.status();
-                        info!(
-                            "{} - receipt: tx_hash: {:?}, status: {}",
-                            order_hash, receipt.transaction_hash, status,
-                        );
-                        (Some(receipt), status)
-                    }
-                    Err(e) => {
-                        warn!("{} - Error waiting for confirmations: {}", order_hash, e);
-                        (None, false)
-                    }
+        let mut attempts = 0;
+        
+        let (block_number, status) = loop {
+            match self.send_transaction(&wallet, tx_request.clone(), &order_hash).await {
+                Ok(TransactionOutcome::Success(result)) => {
+                    break (result, true);
                 }
-            }
-            Err(e) => {
-                warn!("{} - Error sending transaction: {}", order_hash, e);
-                (None, false)
+                Ok(TransactionOutcome::Failure(result)) => {
+                    break (result, false);
+                }
+                Ok(TransactionOutcome::RetryableFailure) if attempts < MAX_RETRIES => {
+                    attempts += 1;
+                    info!(
+                        "{} - Order not fillable, retrying in {}ms (attempt {}/{})",
+                        order_hash, TX_BACKOFF_MS, attempts, MAX_RETRIES
+                    );
+                    tokio::time::sleep(tokio::time::Duration::from_millis(TX_BACKOFF_MS)).await;
+                    continue;
+                }
+                Ok(TransactionOutcome::RetryableFailure) | Err(_) => {
+                    break (None, false);
+                }
             }
         };
 
@@ -317,7 +367,6 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
         }
 
         // post key-release processing
-        // TODO: parse revert reason
         if let Some(_) = &self.cloudwatch_client {
             let metric_future = build_metric_future(
                 self.cloudwatch_client.clone(),
@@ -331,15 +380,7 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
             }
         }
 
-        if let Some(WithOtherFields {
-            inner:
-                TransactionReceipt::<_> {
-                    block_number: Some(block_number),
-                    ..
-                },
-            ..
-        }) = receipt
-        {
+        if status {
             let balance_eth = self
                 .client
                 .get_balance(address)
@@ -353,7 +394,7 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
                     "{}- balance: {} at block {}",
                     order_hash,
                     balance_eth.clone(),
-                    block_number
+                    block_number.unwrap()
                 );
                 let metric_future = build_metric_future(
                     self.cloudwatch_client.clone(),

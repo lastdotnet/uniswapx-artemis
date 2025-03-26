@@ -300,10 +300,10 @@ impl UniswapXPriorityFill {
             return vec![];
         }
 
-        // Store route in processing_orders
+        // Store route in new_orders
         for order in &event.request.orders {
             info!("{} - Received new route for order", order.hash);
-            if let Some(mut entry) = self.processing_orders.get_mut(&order.hash) {
+            if let Some(mut entry) = self.new_orders.get_mut(&order.hash) {
                 // Update the route in the existing OrderData
                 entry.value_mut().route = Some(RouteInfo {
                     quote: event.route.quote.clone(),
@@ -472,6 +472,7 @@ impl UniswapXPriorityFill {
         let amount_out_required =
             U256::from_str_radix(&request.amount_out_required.to_string(), 10).ok()?;
         if quote.le(&amount_out_required) {
+            info!("{} - Quote is less than amount out required", request.orders[0].hash);
             return None;
         }
 
@@ -610,10 +611,12 @@ impl UniswapXPriorityFill {
             if let Some(order_data) = self.new_orders.get(&order_hash) {
                 // Skip if no route available
                 if order_data.route.is_none() {
+                    debug!("{} - No route available, skipping", order_hash);
                     continue;
                 }
                 // skip if order is already in processing_orders
                 if self.processing_orders.contains_key(&order_hash) {
+                    debug!("{} - Order is already in processing_orders, skipping", order_hash);
                     continue;
                 }
 
@@ -625,6 +628,7 @@ impl UniswapXPriorityFill {
 
                 match self.get_order_status(order).await {
                     OrderStatus::Done => {
+                        info!("{} - Order is done, removing from new_orders and processing_orders", order_hash);
                         self.new_orders.remove(&order_hash);
                         self.processing_orders.remove(&order_hash);
                         self.done_orders.insert(
@@ -634,9 +638,11 @@ impl UniswapXPriorityFill {
                         continue;
                     }
                     OrderStatus::NotFillableYet(_) => {
+                        debug!("{} - Order is not fillable yet, skipping", order_hash);
                         continue;
                     }
                     OrderStatus::Open(_) => {
+                        debug!("{} - Order is open, adding to processing_orders", order_hash);
                         // if already in processing_orders, skip (prevent race condition)
                         if self.processing_orders.contains_key(&order_hash) {
                             continue;
@@ -679,7 +685,7 @@ impl UniswapXPriorityFill {
                             &routed_order,
                         ).await {
                             Ok(fill_tx_request) => {
-                                info!("{} - Successfully built fill transaction", order_hash);
+                                debug!("{} - Successfully built fill transaction", order_hash);
                                 let metadata = self.get_execution_metadata(&routed_order);
                                 match metadata {
                                     Some(metadata) => {
@@ -700,7 +706,8 @@ impl UniswapXPriorityFill {
                                         info!("{} - Successfully queued transaction for submission", order_hash);
                                     }
                                     None => {
-                                        warn!("{} - Failed to get execution metadata - trade may be unprofitable", order_hash);
+                                        // Remove from processing_orders to check again
+                                        self.processing_orders.remove(&order_hash);
                                     }
                                 }
                             }

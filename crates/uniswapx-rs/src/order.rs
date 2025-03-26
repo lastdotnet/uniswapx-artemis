@@ -286,7 +286,7 @@ impl PriorityOrder {
             .unwrap()
             .wrapping_mul(BigUint::from(block_time));
         let min_start_timestamp = BigUint::from(block_timestamp) + min_start_timedelta;
-        if BigUint::from(current_timestamp() + (block_time * 1125 / 1000)).lt(&min_start_timestamp) {
+        if BigUint::from(current_timestamp() + (block_time * 2000 / 1000)).lt(&min_start_timestamp) {
             return OrderResolution::NotFillableYet(ResolvedOrder { input, outputs });
         }
 
