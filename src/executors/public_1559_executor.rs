@@ -302,9 +302,10 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
         }
 
         let mut tx_request = action.execution.tx.clone();
+        let bid_priority_fee_128 = bid_priority_fee.unwrap().to::<u128>();
         tx_request.set_gas_limit(GAS_LIMIT);
-        tx_request.set_max_fee_per_gas(base_fee);
-        tx_request.set_max_priority_fee_per_gas(bid_priority_fee.unwrap().to());
+        tx_request.set_max_fee_per_gas(base_fee + bid_priority_fee_128);
+        tx_request.set_max_priority_fee_per_gas(bid_priority_fee_128);
 
         let sender_client = self.sender_client.clone();
 

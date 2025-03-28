@@ -36,7 +36,7 @@ use tokio::sync::{
     RwLock,
 };
 use tracing::{debug, error, info, warn};
-use uniswapx_rs::order::{projected_target_block_ms, Order, OrderResolution, PriorityOrder, MPS};
+use uniswapx_rs::order::{Order, OrderResolution, PriorityOrder, MPS};
 
 use super::types::{Action, Event};
 
@@ -203,7 +203,7 @@ impl UniswapXPriorityFill {
             .map_err(|e| format!("Failed to decode order: {}", e).into())
     }
 
-    async fn get_order_status(&self, order: &PriorityOrder, order_hash: &str) -> OrderStatus {
+    async fn get_order_status(&self, order: &PriorityOrder) -> OrderStatus {
         let resolved_order = order.resolve(
             *self.last_block_number.read().await,
             *self.last_block_timestamp.read().await,
@@ -250,7 +250,7 @@ impl UniswapXPriorityFill {
 
         let order_hash = event.order_hash.clone();
 
-        match self.get_order_status(&order, &order_hash).await {
+        match self.get_order_status(&order).await {
             OrderStatus::Done => {
                 debug!("{} - Order already done, skipping", order_hash);
             }
@@ -325,7 +325,7 @@ impl UniswapXPriorityFill {
                     _ => continue,
                 };
 
-                if let OrderStatus::NotFillableYet(_) = self.get_order_status(resolved_order, &order.hash).await {
+                if let OrderStatus::NotFillableYet(_) = self.get_order_status(resolved_order).await {
                     let order_batch = self.get_order_batch(entry.value());
                     self.try_route_order_batch(order_batch, order.hash.clone())
                         .await;
@@ -502,7 +502,7 @@ impl UniswapXPriorityFill {
         signature: &str,
         route: Option<RouteInfo>,
     ) -> Result<()> {
-        let order_status = self.get_order_status(&order, &order_hash).await;
+        let order_status = self.get_order_status(&order).await;
 
         match order_status {
             OrderStatus::Done => {
@@ -626,7 +626,7 @@ impl UniswapXPriorityFill {
                     _ => continue,
                 };
 
-                match self.get_order_status(order, &order_hash).await {
+                match self.get_order_status(order).await {
                     OrderStatus::Done => {
                         info!("{} - Order is done, removing from new_orders and processing_orders", order_hash);
                         self.new_orders.remove(&order_hash);

@@ -295,7 +295,7 @@ impl PriorityOrder {
             block_timestamp,
             block_time_ms
         );
-        let time_buffer_ms = block_time_ms * 2;
+        let time_buffer_ms = block_time_ms * 1300 / 1000; // TODO: fine tune
         if BigUint::from(current_timestamp_ms() + time_buffer_ms).lt(&target_block_ms) {
             return OrderResolution::NotFillableYet(ResolvedOrder { input, outputs });
         }
