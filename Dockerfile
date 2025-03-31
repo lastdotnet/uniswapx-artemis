@@ -12,7 +12,7 @@ ARG APP_NAME=uniswapx-artemis
 ################################################################################
 # Create a stage for building the application.
 
-FROM rust:${RUST_VERSION}-bookworm AS build
+FROM public.ecr.aws/docker/library/rust:${RUST_VERSION}-bookworm AS build
 ARG APP_NAME
 WORKDIR /app
 
@@ -28,8 +28,15 @@ cp ./target/release/$APP_NAME /bin/server
 # image from the build stage where the necessary files are copied from the build
 # stage.
 #
-FROM debian:bookworm-slim AS final
-RUN apt-get -y update && apt-get -y upgrade && apt-get install -y libssl3 ca-certificates && update-ca-certificates && rm -rf /var/lib/apt/lists/*
+FROM public.ecr.aws/debian/debian:bookworm-slim AS final
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+    libssl3 \
+    ca-certificates && \
+    update-ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy the executable from the "build" stage.
 COPY --from=build /bin/server /bin/
