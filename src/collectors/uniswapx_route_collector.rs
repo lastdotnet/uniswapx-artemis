@@ -346,28 +346,3 @@ fn resolve_address(token: String) -> String {
     }
     token
 }
-
-pub fn get_route_from_order_service(request: &OrderBatchData) -> Option<RoutedOrder> {
-    if let Some(route) = &request.orders[0].route {
-        if !route.method_parameters.calldata.is_empty() {
-            info!("{} - Received cached route for order", request.orders[0].hash);
-            return Some(RoutedOrder {
-                request: request.clone(),
-                route: OrderRoute {
-                    quote: route.quote.clone(),
-                    quote_gas_adjusted: route.quote_gas_adjusted.clone(),
-                    gas_price_wei: route.gas_price_wei.clone(),
-                    gas_use_estimate_quote: route.gas_use_estimate_quote.clone(),
-                    gas_use_estimate: route.gas_use_estimate.clone(),
-                    route: vec![],
-                    method_parameters: route.method_parameters.clone(),
-                },
-                target_block: match &request.orders[0].order {
-                    Order::PriorityOrder(order) => Some(order.cosignerData.auctionTargetBlock),
-                    _ => None,
-                },
-            });
-        }
-    }
-    None
-}
