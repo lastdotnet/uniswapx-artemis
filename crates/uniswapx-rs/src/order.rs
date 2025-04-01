@@ -3,12 +3,18 @@ use std::error::Error;
 use alloy_dyn_abi::SolType;
 use alloy_primitives::Uint;
 use alloy_primitives::I256;
+use alloy_primitives::U256;
 use alloy_sol_types::sol;
 use anyhow::Result;
 
 use crate::sol_math::MulDiv;
 
-type BigUint = Uint<256, 4>;
+fn current_timestamp_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("System time should never be before Unix epoch")
+        .as_millis() as u64
+}
 
 sol! {
     #[derive(Debug)]
@@ -135,7 +141,7 @@ sol! {
 }
 
 pub const MPS: u64 = 1e7 as u64;
-pub const BPS: BigUint = Uint::from_limbs([10000, 0, 0, 0]);
+pub const BPS: U256 = Uint::from_limbs([10000, 0, 0, 0]);
 const PACKED_UINT16_ARRAY_LENGTH: usize = 256 / 16;
 
 #[derive(Debug, Clone)]
@@ -158,13 +164,13 @@ impl Order {
 #[derive(Debug, Clone)]
 pub struct ResolvedInput {
     pub token: String,
-    pub amount: BigUint,
+    pub amount: U256,
 }
 
 #[derive(Debug, Clone)]
 pub struct ResolvedOutput {
     pub token: String,
-    pub amount: BigUint,
+    pub amount: U256,
     pub recipient: String,
 }
 
@@ -192,7 +198,7 @@ impl V2DutchOrder {
     }
 
     pub fn resolve(&self, timestamp: u64) -> OrderResolution {
-        let timestamp = BigUint::from(timestamp);
+        let timestamp = U256::from(timestamp);
 
         if self.info.deadline.lt(&timestamp) {
             return OrderResolution::Expired;
@@ -246,6 +252,13 @@ impl V2DutchOrder {
     }
 }
 
+// Estimates the target block timestamp based on the current block timestamp and average block time
+pub fn projected_target_block_ms(current_block: u64, target_block: u64, block_timestamp: u64, block_time_ms: u64) -> U256 {
+    let blocks_until_target = U256::from(target_block).saturating_sub(U256::from(current_block));
+    let time_until_target_ms = blocks_until_target.saturating_mul(U256::from(block_time_ms));
+    U256::from(block_timestamp).saturating_mul(U256::from(1000)).saturating_add(time_until_target_ms)
+}
+
 impl PriorityOrder {
     pub fn decode_inner(order_hex: &[u8], validate: bool) -> Result<Self, Box<dyn Error>> {
         Ok(PriorityOrder::abi_decode(order_hex, validate)?)
@@ -255,12 +268,9 @@ impl PriorityOrder {
         PriorityOrder::abi_encode(self)
     }
 
-    pub fn resolve(&self, block_number: u64, timestamp: u64, priority_fee: BigUint, has_calldata: bool) -> OrderResolution {
-        let timestamp = BigUint::from(timestamp);
-
-        if self.info.deadline.lt(&timestamp) {
-            return OrderResolution::Expired;
-        };
+    pub fn resolve(&self, block_number: u64, block_timestamp: u64, block_time_ms: u64, priority_fee: U256, ) -> OrderResolution {
+        let block_time = block_time_ms / 1000;
+        let next_block_timestamp = U256::from(block_timestamp) + U256::from(block_time);
 
         let input = self.input.scale(priority_fee);
         let outputs = self
@@ -271,20 +281,31 @@ impl PriorityOrder {
 
         let min_start_block = std::cmp::min(self.cosignerData.auctionTargetBlock, self.auctionStartBlock);
 
-        // If the order already has calldata, we can quickly process it the block before the target block
-        // Otherwise, we need to process it in targetBlock - 2 to give time for the routing-api call (~1 second)
-        let buffer = if has_calldata { 1 } else { 2 };
-        if BigUint::from(block_number).lt(&min_start_block.saturating_sub(BigUint::from(buffer))) {
-            return OrderResolution::NotFillableYet(ResolvedOrder { input, outputs });
+        let current_block = U256::from(block_number);
+        if self.info.deadline.lt(&next_block_timestamp) || current_block >= min_start_block {
+            return OrderResolution::Expired;
         };
+        
+        // If current timestamp is > BLOCK_TIME away from target
+        // then not yet fillable
+        let target_block_ms = projected_target_block_ms(
+            block_number,
+            min_start_block.try_into().unwrap(),
+            block_timestamp,
+            block_time_ms
+        );
+        let time_buffer_ms = block_time_ms * 1300 / 1000; // TODO: fine tune
+        if U256::from(current_timestamp_ms() + time_buffer_ms).lt(&target_block_ms) {
+            return OrderResolution::NotFillableYet(ResolvedOrder { input, outputs });
+        }
 
         OrderResolution::Resolved(ResolvedOrder { input, outputs })
     }
 }
 
 impl PriorityInput {
-    pub fn scale(&self, priority_fee: BigUint) -> ResolvedInput {
-        let amount = self.amount.wrapping_mul(BigUint::from(MPS).wrapping_add(priority_fee.wrapping_mul(self.mpsPerPriorityFeeWei))).wrapping_div(BigUint::from(MPS));
+    pub fn scale(&self, priority_fee: U256) -> ResolvedInput {
+        let amount = self.amount.wrapping_mul(U256::from(MPS).wrapping_add(priority_fee.wrapping_mul(self.mpsPerPriorityFeeWei))).wrapping_div(U256::from(MPS));
         ResolvedInput {
             token: self.token.to_string(),
             amount,
@@ -293,8 +314,8 @@ impl PriorityInput {
 }
 
 impl PriorityOutput {
-    pub fn scale(&self, priority_fee: BigUint) -> ResolvedOutput {
-        let amount = self.amount.wrapping_mul(BigUint::from(MPS).saturating_sub(priority_fee.wrapping_mul(self.mpsPerPriorityFeeWei))).wrapping_div(BigUint::from(MPS));
+    pub fn scale(&self, priority_fee: U256) -> ResolvedOutput {
+        let amount = self.amount.wrapping_mul(U256::from(MPS).saturating_sub(priority_fee.wrapping_mul(self.mpsPerPriorityFeeWei))).wrapping_div(U256::from(MPS));
         ResolvedOutput {
             token: self.token.to_string(),
             amount,
@@ -313,7 +334,7 @@ impl V3DutchOrder {
     }
 
     pub fn resolve(&self, block_number: u64, timestamp: u64) -> OrderResolution {
-        let timestamp = BigUint::from(timestamp);
+        let timestamp = U256::from(timestamp);
 
         if self.info.deadline.lt(&timestamp) {
             return OrderResolution::Expired;
@@ -325,8 +346,8 @@ impl V3DutchOrder {
             amount: match self.baseInput.curve.decay(
                 self.baseInput.startAmount,
                 self.cosignerData.decayStartBlock,
-                BigUint::from(block_number),
-                BigUint::from(0),
+                U256::from(block_number),
+                U256::from(0),
                 self.baseInput.maxAmount,
                 NonlinearDutchDecay::v3_linear_input_decay
             ) {
@@ -342,14 +363,14 @@ impl V3DutchOrder {
                 let mut amount = output.curve.decay(
                     output.startAmount,
                     self.cosignerData.decayStartBlock,
-                    BigUint::from(block_number),
+                    U256::from(block_number),
                     output.minAmount,
-                    BigUint::MAX,
+                    U256::MAX,
                     NonlinearDutchDecay::v3_linear_output_decay
                 )?;
                 
                 // add exclusivity override to amount if before decay start block
-                if self.cosignerData.decayStartBlock.gt(&BigUint::from(block_number)) && !self.cosignerData.exclusiveFiller.is_zero() {
+                if self.cosignerData.decayStartBlock.gt(&U256::from(block_number)) && !self.cosignerData.exclusiveFiller.is_zero() {
                     let exclusivity = self.cosignerData.exclusivityOverrideBps.checked_add(BPS).ok_or(anyhow::Error::msg("Overflow in exclusivity calculation"))?;
                     let exclusivity = exclusivity.checked_mul(amount).ok_or(anyhow::Error::msg("Overflow in exclusivity calculation"))?;
                     amount = exclusivity.checked_div(BPS).ok_or(anyhow::Error::msg("Division by zero in exclusivity calculation"))?;
@@ -371,12 +392,12 @@ impl V3DutchOrder {
 }
 
 fn resolve_decay(
-    at_time: BigUint,
-    start_time: BigUint,
-    end_time: BigUint,
-    start_amount: BigUint,
-    end_amount: BigUint,
-) -> BigUint {
+    at_time: U256,
+    start_time: U256,
+    end_time: U256,
+    start_amount: U256,
+    end_amount: U256,
+) -> U256 {
     if end_time.le(&at_time) {
         return end_amount;
     }
@@ -393,23 +414,25 @@ fn resolve_decay(
         return start_amount;
     }
 
-    let duration = end_time.wrapping_sub(start_time);
-    let elapsed = at_time.wrapping_sub(start_time);
-    // TODO: better handle overflows
+    let duration = end_time.saturating_sub(start_time);
+    let elapsed = at_time.saturating_sub(start_time);
+
     if start_amount.gt(&end_amount) {
         // decaying downward
         let decay = start_amount
-            .wrapping_sub(end_amount)
-            .wrapping_mul(elapsed)
-            .wrapping_div(duration);
-        return start_amount.wrapping_sub(decay);
+            .saturating_sub(end_amount)
+            .saturating_mul(elapsed)
+            .checked_div(duration)
+            .unwrap_or(U256::ZERO);
+        return start_amount.saturating_sub(decay);
     } else {
         // decaying upward
         let decay = end_amount
-            .wrapping_sub(start_amount)
-            .wrapping_mul(elapsed)
-            .wrapping_div(duration);
-        return start_amount.wrapping_add(decay);
+            .saturating_sub(start_amount)
+            .saturating_mul(elapsed)
+            .checked_div(duration)
+            .unwrap_or(U256::ZERO);
+        return start_amount.saturating_add(decay);
     }
 }
 
@@ -417,13 +440,13 @@ impl NonlinearDutchDecay {
 
     pub fn decay(
         &self,
-        start_amount: BigUint,
-        decay_start_block: BigUint,
-        block_numberish: BigUint,
-        min_amount: BigUint,
-        max_amount: BigUint,
-        decay_func: fn(BigUint, BigUint, BigUint, I256, I256) -> Result<I256>
-    ) -> Result<BigUint> {
+        start_amount: U256,
+        decay_start_block: U256,
+        block_numberish: U256,
+        min_amount: U256,
+        max_amount: U256,
+        decay_func: fn(U256, U256, U256, I256, I256) -> Result<I256>
+    ) -> Result<U256> {
         // Check for invalid decay curve
         if self.relativeAmounts.len() > PACKED_UINT16_ARRAY_LENGTH {
             return Err(anyhow::anyhow!("Invalid decay curve"));
@@ -436,7 +459,7 @@ impl NonlinearDutchDecay {
 
         // Cap block_delta to u16::MAX to prevent overflow
         let block_delta: u16 = u16::try_from(
-            (block_numberish - decay_start_block).min(BigUint::from(u16::MAX))
+            (block_numberish - decay_start_block).min(U256::from(u16::MAX))
         )?;
 
         let (start_point, end_point, rel_start_amount, rel_end_amount) = 
@@ -444,9 +467,9 @@ impl NonlinearDutchDecay {
 
         // Calculate decay of only the relative amounts
         let curve_delta = (decay_func)(
-            BigUint::from(start_point),
-            BigUint::from(end_point),
-            BigUint::from(block_delta),
+            U256::from(start_point),
+            U256::from(end_point),
+            U256::from(block_delta),
             rel_start_amount,
             rel_end_amount,
         )?;
@@ -475,9 +498,9 @@ impl NonlinearDutchDecay {
     ///
     /// The interpolated amount as an I256
     pub fn v3_linear_input_decay(
-        start_point: BigUint,
-        end_point: BigUint,
-        current_point: BigUint,
+        start_point: U256,
+        end_point: U256,
+        current_point: U256,
         start_amount: I256,
         end_amount: I256,
     ) -> Result<I256> {
@@ -492,14 +515,14 @@ impl NonlinearDutchDecay {
         // we want to maximize start_amount + delta to favor the swapper
         if end_amount < start_amount {
             delta = -(I256::try_from(
-                BigUint::try_from(start_amount.checked_sub(end_amount)
+                U256::try_from(start_amount.checked_sub(end_amount)
                     .ok_or_else(|| anyhow::anyhow!("Underflow in start_amount - end_amount"))?)?
                     .mul_div_down(elapsed, duration)
                     .map_err(|e| anyhow::anyhow!("MulDivDown error: {}", e))?
             )?);
         } else {
             delta = I256::try_from(
-                BigUint::try_from(end_amount.checked_sub(start_amount)
+                U256::try_from(end_amount.checked_sub(start_amount)
                 .ok_or_else(|| anyhow::anyhow!("Underflow in end_amount - start_amount"))?)?
                 .mul_div_up(elapsed, duration)
                 .map_err(|e| anyhow::anyhow!("MulDivUp error: {}", e))?
@@ -523,9 +546,9 @@ impl NonlinearDutchDecay {
     ///
     /// The interpolated amount as an I256
     pub fn v3_linear_output_decay(
-        start_point: BigUint,
-        end_point: BigUint,
-        current_point: BigUint,
+        start_point: U256,
+        end_point: U256,
+        current_point: U256,
         start_amount: I256,
         end_amount: I256,
     ) -> Result<I256> {
@@ -539,14 +562,14 @@ impl NonlinearDutchDecay {
         // For outputs, we want to minimize start_amount + delta to favor the swapper
         if end_amount < start_amount {
             delta = -(I256::try_from(
-                BigUint::try_from(start_amount.checked_sub(end_amount)
+                U256::try_from(start_amount.checked_sub(end_amount)
                     .ok_or_else(|| anyhow::anyhow!("Underflow in start_amount - end_amount"))?)?
                     .mul_div_up(elapsed, duration)
                     .map_err(|e| anyhow::anyhow!("MulDivUp error: {}", e))?
             )?);
         } else {
             delta = I256::try_from(
-                BigUint::try_from(end_amount.checked_sub(start_amount)
+                U256::try_from(end_amount.checked_sub(start_amount)
                 .ok_or_else(|| anyhow::anyhow!("Underflow in end_amount - start_amount"))?)?
                 .mul_div_down(elapsed, duration)
                 .map_err(|e| anyhow::anyhow!("MulDivDown error: {}", e))?
@@ -598,15 +621,15 @@ impl NonlinearDutchDecay {
     /// # Returns
     /// 
     /// * `Result<Uint<256, 4>>` - The packed Uint value or an error
-    pub fn to_uint16_array(input_array: &[u16]) -> Result<BigUint> {
+    pub fn to_uint16_array(input_array: &[u16]) -> Result<U256> {
         if input_array.len() > PACKED_UINT16_ARRAY_LENGTH {
             return Err(anyhow::Error::msg("Invalid array length"));
         }
 
-        let mut packed_data = BigUint::ZERO;
+        let mut packed_data = U256::ZERO;
 
         for (i, &value) in input_array.iter().enumerate() {
-            let shifted_value = BigUint::from(value as u64) << (i * 16);
+            let shifted_value = U256::from(value) << (i * 16);
             packed_data |= shifted_value;
         }
 
@@ -615,13 +638,13 @@ impl NonlinearDutchDecay {
 
     
     /// Retrieve the nth uint16 value from a packed uint256
-    fn get_element(packed_data: BigUint, n: usize) -> Result<u16> {
+    fn get_element(packed_data: U256, n: usize) -> Result<u16> {
         if n >= PACKED_UINT16_ARRAY_LENGTH {
             return Err(anyhow::Error::msg("IndexOutOfBounds"));
         }
         
         let shift_amount = n * 16;
-        let masked_value = (packed_data >> shift_amount) & BigUint::from(0xFFFF);
+        let masked_value = (packed_data >> shift_amount) & U256::from(0xFFFF);
         let result = u16::try_from(masked_value)?;
         Ok(result)
     }
@@ -632,19 +655,19 @@ impl NonlinearDutchDecay {
 mod tests {
     use super::*;
 
-    const DECAY_FUNCTIONS: [fn(BigUint, BigUint, BigUint, I256, I256) -> Result<I256>; 2] = [
+    const DECAY_FUNCTIONS: [fn(U256, U256, U256, I256, I256) -> Result<I256>; 2] = [
         NonlinearDutchDecay::v3_linear_input_decay,
         NonlinearDutchDecay::v3_linear_output_decay
     ];
 
     #[test]
     fn test_decay_after_end_time() {
-        let start_time = BigUint::from(1);
-        let end_time = BigUint::from(10);
-        let start_amount = BigUint::from(100000);
-        let end_amount = BigUint::from(100000000);
+        let start_time = U256::from(1);
+        let end_time = U256::from(10);
+        let start_amount = U256::from(100000);
+        let end_amount = U256::from(100000000);
 
-        let at_time = BigUint::from(11);
+        let at_time = U256::from(11);
 
         let result = resolve_decay(at_time, start_time, end_time, start_amount, end_amount);
 
@@ -653,12 +676,12 @@ mod tests {
 
     #[test]
     fn test_decay_at_end_time() {
-        let start_time = BigUint::from(1);
-        let end_time = BigUint::from(10);
-        let start_amount = BigUint::from(100000);
-        let end_amount = BigUint::from(100000000);
+        let start_time = U256::from(1);
+        let end_time = U256::from(10);
+        let start_amount = U256::from(100000);
+        let end_amount = U256::from(100000000);
 
-        let at_time = BigUint::from(10);
+        let at_time = U256::from(10);
 
         let result = resolve_decay(at_time, start_time, end_time, start_amount, end_amount);
 
@@ -667,12 +690,12 @@ mod tests {
 
     #[test]
     fn test_decay_before_start_time() {
-        let start_time = BigUint::from(10);
-        let end_time = BigUint::from(100);
-        let start_amount = BigUint::from(100000);
-        let end_amount = BigUint::from(100000000);
+        let start_time = U256::from(10);
+        let end_time = U256::from(100);
+        let start_amount = U256::from(100000);
+        let end_amount = U256::from(100000000);
 
-        let at_time = BigUint::from(5);
+        let at_time = U256::from(5);
 
         let result = resolve_decay(at_time, start_time, end_time, start_amount, end_amount);
 
@@ -681,12 +704,12 @@ mod tests {
 
     #[test]
     fn test_decay_at_start_time() {
-        let start_time = BigUint::from(10);
-        let end_time = BigUint::from(100);
-        let start_amount = BigUint::from(100000);
-        let end_amount = BigUint::from(100000000);
+        let start_time = U256::from(10);
+        let end_time = U256::from(100);
+        let start_amount = U256::from(100000);
+        let end_amount = U256::from(100000000);
 
-        let at_time = BigUint::from(10);
+        let at_time = U256::from(10);
 
         let result = resolve_decay(at_time, start_time, end_time, start_amount, end_amount);
 
@@ -695,30 +718,30 @@ mod tests {
 
     #[test]
     fn test_upwards_decay() {
-        let start_time = BigUint::from(10);
-        let end_time = BigUint::from(20);
-        let start_amount = BigUint::from(100000);
-        let end_amount = BigUint::from(200000);
+        let start_time = U256::from(10);
+        let end_time = U256::from(20);
+        let start_amount = U256::from(100000);
+        let end_amount = U256::from(200000);
 
-        let at_time = BigUint::from(15);
+        let at_time = U256::from(15);
 
         let result = resolve_decay(at_time, start_time, end_time, start_amount, end_amount);
 
-        assert_eq!(result, BigUint::from(150000));
+        assert_eq!(result, U256::from(150000));
     }
 
     #[test]
     fn test_downwards_decay() {
-        let start_time = BigUint::from(10);
-        let end_time = BigUint::from(20);
-        let start_amount = BigUint::from(200000);
-        let end_amount = BigUint::from(100000);
+        let start_time = U256::from(10);
+        let end_time = U256::from(20);
+        let start_amount = U256::from(200000);
+        let end_amount = U256::from(100000);
 
-        let at_time = BigUint::from(15);
+        let at_time = U256::from(15);
 
         let result = resolve_decay(at_time, start_time, end_time, start_amount, end_amount);
 
-        assert_eq!(result, BigUint::from(150000));
+        assert_eq!(result, U256::from(150000));
     }
 
     #[test]
@@ -740,11 +763,11 @@ mod tests {
             ],
         };
 
-        let start_block = BigUint::from(1000);
-        let current_block = BigUint::from(999);
-        let start_amount = BigUint::from(1000);
-        let min_amount = BigUint::from(0);
-        let max_amount = BigUint::MAX;
+        let start_block = U256::from(1000);
+        let current_block = U256::from(999);
+        let start_amount = U256::from(1000);
+        let min_amount = U256::from(0);
+        let max_amount = U256::MAX;
 
         for decay_func in DECAY_FUNCTIONS.iter() {
             let result = decay.decay(
@@ -778,11 +801,11 @@ mod tests {
             ],
         };
 
-        let start_block = BigUint::from(1000);
-        let current_block = BigUint::from(1000);
-        let start_amount = BigUint::from(1000);
-        let min_amount = BigUint::from(0);
-        let max_amount = BigUint::MAX;
+        let start_block = U256::from(1000);
+        let current_block = U256::from(1000);
+        let start_amount = U256::from(1000);
+        let min_amount = U256::from(0);
+        let max_amount = U256::MAX;
 
         for decay_func in DECAY_FUNCTIONS.iter() {
             let result = decay.decay(
@@ -794,7 +817,7 @@ mod tests {
                 *decay_func
             );
 
-            assert_eq!(result.unwrap(), BigUint::from(1000));
+            assert_eq!(result.unwrap(), U256::from(1000));
         }
     }
 
@@ -817,11 +840,11 @@ mod tests {
             ],
         };
 
-        let start_block = BigUint::from(1000);
-        let current_block = BigUint::from(1150);
-        let start_amount = BigUint::from(1000);
-        let min_amount = BigUint::from(0);
-        let max_amount = BigUint::MAX;
+        let start_block = U256::from(1000);
+        let current_block = U256::from(1150);
+        let start_amount = U256::from(1000);
+        let min_amount = U256::from(0);
+        let max_amount = U256::MAX;
 
         for decay_func in DECAY_FUNCTIONS.iter() {
             let result = decay.decay(
@@ -833,7 +856,7 @@ mod tests {
                 *decay_func
             );
 
-            assert_eq!(result.unwrap(), BigUint::from(100));
+            assert_eq!(result.unwrap(), U256::from(100));
         }
     }
 
@@ -856,11 +879,11 @@ mod tests {
             ],
         };
 
-        let start_block = BigUint::from(1000);
-        let current_block = BigUint::from(1500);
-        let start_amount = BigUint::from(1000);
-        let min_amount = BigUint::from(0);
-        let max_amount = BigUint::MAX;
+        let start_block = U256::from(1000);
+        let current_block = U256::from(1500);
+        let start_amount = U256::from(1000);
+        let min_amount = U256::from(0);
+        let max_amount = U256::MAX;
 
         for decay_func in DECAY_FUNCTIONS.iter() {
             let result = decay.decay(
@@ -872,7 +895,7 @@ mod tests {
                 *decay_func
             );
 
-            assert_eq!(result.unwrap(), BigUint::from(800));
+            assert_eq!(result.unwrap(), U256::from(800));
         }
     }
 
@@ -895,11 +918,11 @@ mod tests {
             ],
         };
 
-        let start_block = BigUint::from(1000);
-        let current_block = BigUint::from(1600);
-        let start_amount = BigUint::from(1000);
-        let min_amount = BigUint::from(0);
-        let max_amount = BigUint::MAX;
+        let start_block = U256::from(1000);
+        let current_block = U256::from(1600);
+        let start_amount = U256::from(1000);
+        let min_amount = U256::from(0);
+        let max_amount = U256::MAX;
 
         for decay_func in DECAY_FUNCTIONS.iter() {
             let result = decay.decay(
@@ -910,7 +933,7 @@ mod tests {
                 max_amount,
                 *decay_func
             );
-        assert_eq!(result.unwrap(), BigUint::from(800));
+        assert_eq!(result.unwrap(), U256::from(800));
         }
     }
 
@@ -933,11 +956,11 @@ mod tests {
             ],
         };
 
-        let start_block = BigUint::from(1000);
-        let current_block = BigUint::from(1100);
-        let start_amount = BigUint::from(1000);
-        let min_amount = BigUint::from(300);
-        let max_amount = BigUint::MAX;
+        let start_block = U256::from(1000);
+        let current_block = U256::from(1100);
+        let start_amount = U256::from(1000);
+        let min_amount = U256::from(300);
+        let max_amount = U256::MAX;
 
         for decay_func in DECAY_FUNCTIONS.iter() {
             let result = decay.decay(
@@ -972,11 +995,11 @@ mod tests {
             ],
         };
 
-        let start_block = BigUint::from(1000);
-        let current_block = BigUint::from(1500);
-        let start_amount = BigUint::from(1000);
-        let min_amount = BigUint::from(0);
-        let max_amount = BigUint::from(500);
+        let start_block = U256::from(1000);
+        let current_block = U256::from(1500);
+        let start_amount = U256::from(1000);
+        let min_amount = U256::from(0);
+        let max_amount = U256::from(500);
 
         for decay_func in DECAY_FUNCTIONS.iter() {
             let result = decay.decay(
@@ -1001,11 +1024,11 @@ mod tests {
             ],
         };
 
-        let start_block = BigUint::from(1000);
-        let current_block = BigUint::from(1100);
-        let start_amount = BigUint::from(500); // Less than max relativeAmount
-        let min_amount = BigUint::from(10);
-        let max_amount = BigUint::MAX;
+        let start_block = U256::from(1000);
+        let current_block = U256::from(1100);
+        let start_amount = U256::from(500); // Less than max relativeAmount
+        let min_amount = U256::from(10);
+        let max_amount = U256::MAX;
 
         for decay_func in DECAY_FUNCTIONS.iter() {
             let result = decay.decay(
@@ -1031,11 +1054,11 @@ mod tests {
             ],
         };
 
-        let start_block = BigUint::from(1000);
-        let current_block = BigUint::from(1100);
-        let start_amount = BigUint::MAX;
-        let min_amount = BigUint::from(10);
-        let max_amount = BigUint::MAX;
+        let start_block = U256::from(1000);
+        let current_block = U256::from(1100);
+        let start_amount = U256::MAX;
+        let min_amount = U256::from(10);
+        let max_amount = U256::MAX;
 
         for decay_func in DECAY_FUNCTIONS.iter() {
             let result = decay.decay(
@@ -1074,11 +1097,11 @@ mod tests {
             relativeBlocks: NonlinearDutchDecay::to_uint16_array(&vec![]).unwrap(),
             relativeAmounts: vec![],
         };
-        let start_block = BigUint::from(1000);
-        let current_block = BigUint::from(1100);
-        let start_amount = BigUint::from(1000);
-        let min_amount = BigUint::from(0);
-        let max_amount = BigUint::MAX;
+        let start_block = U256::from(1000);
+        let current_block = U256::from(1100);
+        let start_amount = U256::from(1000);
+        let min_amount = U256::from(0);
+        let max_amount = U256::MAX;
 
         for decay_func in DECAY_FUNCTIONS.iter() {
             let result = decay_empty.decay(
