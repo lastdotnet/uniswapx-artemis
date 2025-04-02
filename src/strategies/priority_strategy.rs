@@ -759,3 +759,91 @@ impl UniswapXPriorityFill {
         actions
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calculate_priority_fee_from_gas_use_estimate() {
+        // Test case 1: Normal case with profit
+        let metadata = ExecutionMetadata::new(
+            U256::from(1000),  // quote
+            U256::from(800),   // amount_out_required
+            U256::from(50),    // gas_use_estimate_quote
+            "test_hash",
+            None,
+        );
+        
+        // With gas buffer of 2x
+        let mut gas_buffer = U256::from(2);
+        let result = metadata.calculate_priority_fee_from_gas_use_estimate(gas_buffer);
+        assert!(result.is_some());
+        // profit = 100, MPS = 10_000_000
+        // bid: (100 * 10_000_000) / 800 = 1_250_000
+        assert_eq!(result.unwrap(), U256::from(1_250_000));
+
+        // Test case 2: No profit after gas and required amount
+        let metadata = ExecutionMetadata::new(
+            U256::from(1000),  // quote
+            U256::from(900),   // amount_out_required
+            U256::from(100),   // gas_use_estimate_quote
+            "test_hash",
+            None,
+        );
+        
+        // With gas buffer of 1x
+        gas_buffer = U256::from(1);
+        let result = metadata.calculate_priority_fee_from_gas_use_estimate(gas_buffer);
+        assert!(result.is_none());
+
+
+        // Test case 3: 1 profit after gas and required amount
+        let metadata = ExecutionMetadata::new(
+            U256::from(1000),  // quote
+            U256::from(900),   // amount_out_required
+            U256::from(99),   // gas_use_estimate_quote
+            "test_hash",
+            None,
+        );
+        
+        // With gas buffer of 1x
+        gas_buffer = U256::from(1);
+        let result = metadata.calculate_priority_fee_from_gas_use_estimate(gas_buffer);
+        assert!(result.is_some());
+        // profit = 1, MPS = 10_000_000
+        // bid: (1 * 10_000_000) / 900 = 11,111
+        assert_eq!(result.unwrap(), U256::from(11_111));
+
+        // Test case 4: Quote less than required amount plus gas
+        let metadata = ExecutionMetadata::new(
+            U256::from(1000),  // quote
+            U256::from(900),   // amount_out_required
+            U256::from(200),   // gas_use_estimate_quote
+            "test_hash",
+            None,
+        );
+        
+        // With gas buffer of 1x (900 + 200 > 1000)
+        gas_buffer = U256::from(1);
+        let result = metadata.calculate_priority_fee_from_gas_use_estimate(gas_buffer);
+        assert!(result.is_none());
+
+        // Test case 5: Edge case with zero gas estimate
+        let metadata = ExecutionMetadata::new(
+            U256::from(1000),  // quote
+            U256::from(800),   // amount_out_required
+            U256::from(0),     // gas_use_estimate_quote
+            "test_hash",
+            None,
+        );
+        
+        // With gas buffer of 2x
+        gas_buffer = U256::from(2);
+        let result = metadata.calculate_priority_fee_from_gas_use_estimate(gas_buffer);
+        assert!(result.is_some());
+        // profit = 2000, MPS = 10_000_000
+        // bid: (2000 * 10_000_000) / 800 = 2_500_000
+        assert_eq!(result.unwrap(), U256::from(2_500_000));
+    }
+}
