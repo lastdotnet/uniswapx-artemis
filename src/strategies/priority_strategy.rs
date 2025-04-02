@@ -59,6 +59,7 @@ pub struct ExecutionMetadata {
     pub quote: U256,
     // amount of quote token needed to fill the order
     pub amount_out_required: U256,
+    pub gas_use_estimate_quote: U256,
     pub order_hash: String,
     pub target_block: Option<U64>,
 }
@@ -67,12 +68,14 @@ impl ExecutionMetadata {
     pub fn new(
         quote: U256,
         amount_out_required: U256,
+        gas_use_estimate_quote: U256,
         order_hash: &str,
         target_block: Option<U64>,
     ) -> Self {
         Self {
             quote,
             amount_out_required,
+            gas_use_estimate_quote,
             order_hash: order_hash.to_owned(),
             target_block,
         }
@@ -92,6 +95,27 @@ impl ExecutionMetadata {
             .checked_mul(U256::from(bid_percentage))?
             .checked_div(U256::from(100))?;
         Some(priority_fee)
+    }
+
+    // Uses the gas_use_estimate_quote to calculate the maximum priority fee we can bid
+    // @param gas_buffer: The buffer to multiply the gas use estimate by
+    pub fn calculate_priority_fee_from_gas_use_estimate(&self, gas_buffer: U256) -> Option<U256> {
+        let gas_with_buffer = U256::from(self.gas_use_estimate_quote).checked_mul(gas_buffer)?;
+
+        if self.quote.le(&self.amount_out_required.checked_add(gas_with_buffer)?) {
+            return None;
+        }
+
+        // profit = quote - gas - amount_out_required
+        let profit_quote = self.quote
+            .saturating_sub(gas_with_buffer)
+            .saturating_sub(self.amount_out_required);
+
+        let mps_of_improvement = profit_quote
+            .saturating_mul(U256::from(MPS))
+            .checked_div(self.amount_out_required)?;
+
+        Some(mps_of_improvement)
     }
 }
 
@@ -485,6 +509,7 @@ impl UniswapXPriorityFill {
             ExecutionMetadata {
                 quote,
                 amount_out_required,
+                gas_use_estimate_quote: U256::from_str_radix(&route.gas_use_estimate_quote, 10).ok()?,
                 order_hash: request.orders[0].hash.clone(),
                 target_block: target_block.map(|b| U64::from(b)),
             }
