@@ -290,29 +290,28 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
             }
             // If the quote is large in ETH, add more bids
             // < 1e7 gwei = 1 fallback bid, 1e8 = 2 fallback bids, 1e9 = 3 fallback bids, etc.
+            let mut num_fallback_bids = 1;
             if action.metadata.quote_eth > U256::from(0) {
                 debug!("{} - Adding fallback bids based on quote size", order_hash);
-                let quote_eth_gwei = &action.metadata.quote_eth / GWEI_PER_ETH;
-                info!("{} - quote_eth_gwei: {:?}", order_hash, quote_eth_gwei);
-                let quote_eth_log10 = quote_eth_gwei.log10() - QUOTE_ETH_LOG10_THRESHOLD;
-                info!("{} - quote_eth_log10: {:?}", order_hash, quote_eth_log10);
-                let num_fallback_bids = max(quote_eth_log10, 1);
-                for i in 0..num_fallback_bids {
-                    let gas_bid_bps = gas_bid_info.bid_percentage;
-                    let bid_bps = gas_bid_bps - U128::from(BID_SCALE_FACTOR * i as u64);
-                    let fallback_bid = action
-                        .metadata
-                        .calculate_priority_fee(bid_bps);
-                    bid_priority_fees.push(fallback_bid);
-                    info!("{} - fallback_bid_{}: {:?}", order_hash, i, fallback_bid);
+                let quote_in_gwei = &action.metadata.quote_eth / GWEI_PER_ETH;
+                info!("{} - quote_eth_gwei: {:?}", order_hash, quote_in_gwei);
+                
+                if quote_in_gwei > U256::from(0) {
+                    let quote_gwei_log10 = quote_in_gwei.log10();
+                    info!("{} - quote_gwei_log10: {:?}", order_hash, quote_gwei_log10);
+                    if quote_gwei_log10 > QUOTE_ETH_LOG10_THRESHOLD {
+                        num_fallback_bids = quote_gwei_log10 - QUOTE_ETH_LOG10_THRESHOLD;
+                    }
                 }
-            } else {
-                debug!("{} - Adding single fallback bid", order_hash);
+            }
+            for i in 0..num_fallback_bids {
+                let gas_bid_bps = gas_bid_info.bid_percentage;
+                let bid_bps = gas_bid_bps - U128::from(BID_SCALE_FACTOR * i as u64);
                 let fallback_bid = action
-                .metadata
-                .calculate_priority_fee(gas_bid_info.bid_percentage);
+                    .metadata
+                    .calculate_priority_fee(bid_bps);
                 bid_priority_fees.push(fallback_bid);
-                info!("{} - fallback_bid: {:?}", order_hash, fallback_bid);
+                info!("{} - fallback_bid_{}: {:?}", order_hash, i, fallback_bid);
             }
         } else {
             bid_priority_fees.push(Some(U256::from(50)));
