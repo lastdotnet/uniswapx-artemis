@@ -1,10 +1,10 @@
-use std::{str::FromStr, sync::Arc};
-use tracing::{info, warn};
+use std::{cmp::max, str::FromStr, sync::Arc};
+use tracing::{info, warn, debug};
 
 use alloy::{
     eips::{BlockId, BlockNumberOrTag}, network::{
         AnyNetwork, EthereumWallet, ReceiptResponse, TransactionBuilder
-    }, primitives::{utils::format_units, Address, U256}, providers::{DynProvider, Provider}, rpc::types::TransactionRequest, serde::WithOtherFields, signers::{local::PrivateKeySigner, Signer}
+    }, primitives::{utils::format_units, Address, U128, U256}, providers::{DynProvider, Provider}, rpc::types::TransactionRequest, serde::WithOtherFields, signers::{local::PrivateKeySigner, Signer}
 };
 use anyhow::{Context, Result};
 use artemis_core::types::Executor;
@@ -17,11 +17,16 @@ use crate::{
     }, executors::reactor_error_code::ReactorErrorCode, shared::send_metric_with_order_hash, strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
 };
 use crate::executors::reactor_error_code::get_revert_reason;
+use alloy_primitives::Uint;
 
 const GAS_LIMIT: u64 = 1_000_000;
 const MAX_RETRIES: u32 = 3;
 const TX_BACKOFF_MS: u64 = 0; // retry immediately
-static QUOTE_BASED_PRIORITY_BID_BUFFER: u64 = 2;
+static QUOTE_BASED_PRIORITY_BID_BUFFER: U256 = Uint::from_limbs([2, 0, 0, 0]);
+static GWEI_PER_ETH: U256 = Uint::from_limbs([1_000_000_000, 0, 0, 0]);
+const QUOTE_ETH_LOG10_THRESHOLD: usize = 6;
+// The number of bps to add to the base bid for each fallback bid
+const BID_SCALE_FACTOR: u64 = 50;
 
 /// An executor that sends transactions to the public mempool.
 pub struct Public1559Executor {
@@ -279,15 +284,36 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
             if action.metadata.gas_use_estimate_quote > U256::from(0) {
                 let quote_based_priority_bid = action
                     .metadata
-                    .calculate_priority_fee_from_gas_use_estimate(U256::from(QUOTE_BASED_PRIORITY_BID_BUFFER));
+                    .calculate_priority_fee_from_gas_use_estimate(QUOTE_BASED_PRIORITY_BID_BUFFER);
                 bid_priority_fees.push(quote_based_priority_bid);
                 info!("{} - quote_based_priority_bid: {:?}", order_hash, quote_based_priority_bid);
             }
-            let fallback_bid = action
+            // If the quote is large in ETH, add more bids
+            // < 1e7 gwei = 1 fallback bid, 1e8 = 2 fallback bids, 1e9 = 3 fallback bids, etc.
+            if action.metadata.quote_eth > U256::from(0) {
+                debug!("{} - Adding fallback bids based on quote size", order_hash);
+                let quote_eth_gwei = &action.metadata.quote_eth / GWEI_PER_ETH;
+                info!("{} - quote_eth_gwei: {:?}", order_hash, quote_eth_gwei);
+                let quote_eth_log10 = quote_eth_gwei.log10() - QUOTE_ETH_LOG10_THRESHOLD;
+                info!("{} - quote_eth_log10: {:?}", order_hash, quote_eth_log10);
+                let num_fallback_bids = max(quote_eth_log10, 1);
+                for i in 0..num_fallback_bids {
+                    let gas_bid_bps = gas_bid_info.bid_percentage;
+                    let bid_bps = gas_bid_bps - U128::from(BID_SCALE_FACTOR * i as u64);
+                    let fallback_bid = action
+                        .metadata
+                        .calculate_priority_fee(bid_bps);
+                    bid_priority_fees.push(fallback_bid);
+                    info!("{} - fallback_bid_{}: {:?}", order_hash, i, fallback_bid);
+                }
+            } else {
+                debug!("{} - Adding single fallback bid", order_hash);
+                let fallback_bid = action
                 .metadata
                 .calculate_priority_fee(gas_bid_info.bid_percentage);
-            info!("{} - fallback_bid: {:?}", order_hash, fallback_bid);
-            bid_priority_fees.push(fallback_bid);
+                bid_priority_fees.push(fallback_bid);
+                info!("{} - fallback_bid: {:?}", order_hash, fallback_bid);
+            }
         } else {
             bid_priority_fees.push(Some(U256::from(50)));
         }
