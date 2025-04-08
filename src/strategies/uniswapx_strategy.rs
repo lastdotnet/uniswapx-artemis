@@ -149,7 +149,7 @@ impl UniswapXUniswapFill {
         let OrderBatchData {
             // orders,
             orders,
-            amount_out_required,
+            amount_required: amount_out_required,
             ..
         } = &event.request;
 
@@ -284,7 +284,12 @@ impl UniswapXUniswapFill {
                 e.insert(OrderBatchData {
                     orders: vec![order_data.clone()],
                     amount_in,
-                    amount_out_required: amount_out,
+                    amount_out,
+                    amount_required: if order_data.order.is_exact_output() {
+                        amount_in
+                    } else {
+                        amount_out
+                    },
                     token_in: order_data.resolved.input.token.clone(),
                     token_out: order_data.resolved.outputs[0].token.clone(),
                     chain_id: self.chain_id,
@@ -293,8 +298,8 @@ impl UniswapXUniswapFill {
                 let order_batch_data = order_batches.get_mut(&token_in_token_out).unwrap();
                 order_batch_data.orders.push(order_data.clone());
                 order_batch_data.amount_in = order_batch_data.amount_in.wrapping_add(amount_in);
-                order_batch_data.amount_out_required = order_batch_data
-                    .amount_out_required
+                order_batch_data.amount_required = order_batch_data
+                    .amount_required
                     .wrapping_add(amount_out);
             }
         });

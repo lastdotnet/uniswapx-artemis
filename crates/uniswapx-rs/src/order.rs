@@ -159,6 +159,14 @@ impl Order {
             Order::V3DutchOrder(order) => order.encode_inner(),
         }
     }
+
+    pub fn is_exact_output(&self) -> bool {
+        match self {
+            Order::V2DutchOrder(order) => order.baseOutputs.iter().any(|o| o.startAmount == o.endAmount),
+            Order::PriorityOrder(order) => order.outputs.iter().any(|o| o.mpsPerPriorityFeeWei == U256::from(0)),
+            Order::V3DutchOrder(order) => order.baseOutputs.iter().any(|o| o.curve.relativeAmounts.len() == 0 || *o.curve.relativeAmounts.last().unwrap() == I256::ZERO),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

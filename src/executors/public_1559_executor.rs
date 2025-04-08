@@ -1,4 +1,4 @@
-use std::{cmp::max, str::FromStr, sync::Arc};
+use std::{str::FromStr, sync::Arc};
 use tracing::{info, warn, debug};
 
 use alloy::{
@@ -131,6 +131,7 @@ impl Public1559Executor {
 impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
     /// Send a transaction to the mempool.
     async fn execute(&self, mut action: SubmitTxToMempoolWithExecutionMetadata) -> Result<()> {
+        info!("{} - Executing transaction", action.metadata.order_hash);
         let order_hash = Arc::new(action.metadata.order_hash.clone());
         let chain_id_u64 = action
             .execution
@@ -291,16 +292,18 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
             // If the quote is large in ETH, add more bids
             // < 1e7 gwei = 1 fallback bid, 1e8 = 2 fallback bids, 1e9 = 3 fallback bids, etc.
             let mut num_fallback_bids = 1;
-            if action.metadata.quote_eth > U256::from(0) {
-                debug!("{} - Adding fallback bids based on quote size", order_hash);
-                let quote_in_gwei = &action.metadata.quote_eth / GWEI_PER_ETH;
-                info!("{} - quote_eth_gwei: {:?}", order_hash, quote_in_gwei);
-                
-                if quote_in_gwei > U256::from(0) {
-                    let quote_gwei_log10 = quote_in_gwei.log10();
-                    info!("{} - quote_gwei_log10: {:?}", order_hash, quote_gwei_log10);
-                    if quote_gwei_log10 > QUOTE_ETH_LOG10_THRESHOLD {
-                        num_fallback_bids = quote_gwei_log10 - QUOTE_ETH_LOG10_THRESHOLD;
+            if let Some(quote_eth) = action.metadata.quote_eth {
+                if quote_eth > U256::from(0) {
+                    debug!("{} - Adding fallback bids based on quote size", order_hash);
+                    let quote_in_gwei = &quote_eth / GWEI_PER_ETH;
+                    info!("{} - quote_eth_gwei: {:?}", order_hash, quote_in_gwei);
+                    
+                    if quote_in_gwei > U256::from(0) {
+                        let quote_gwei_log10 = quote_in_gwei.log10();
+                        info!("{} - quote_gwei_log10: {:?}", order_hash, quote_gwei_log10);
+                        if quote_gwei_log10 > QUOTE_ETH_LOG10_THRESHOLD {
+                            num_fallback_bids = quote_gwei_log10 - QUOTE_ETH_LOG10_THRESHOLD;
+                        }
                     }
                 }
             }

@@ -40,14 +40,15 @@ pub struct OrderBatchData {
     pub orders: Vec<OrderData>,
     pub chain_id: u64,
     pub amount_in: Uint<256, 4>,
-    pub amount_out_required: Uint<256, 4>,
+    pub amount_out: Uint<256, 4>,
+    pub amount_required: Uint<256, 4>,
     pub token_in: String,
     pub token_out: String,
 }
 
 #[derive(Serialize, Debug)]
 #[allow(dead_code)]
-enum TradeType {
+pub enum TradeType {
     #[serde(rename = "exactIn")]
     ExactIn,
     #[serde(rename = "exactOut")]
@@ -128,6 +129,7 @@ pub struct RouteOrderParams {
     pub token_out: String,
     pub amount: String,
     pub recipient: String,
+    pub trade_type: TradeType,
 }
 
 #[derive(Clone, Debug)]
@@ -177,13 +179,12 @@ impl UniswapXRouteCollector {
         params: RouteOrderParams,
         order_hash: String,
     ) -> Result<OrderRoute> {
-        // TODO: support exactOutput
         let query = RoutingApiQuery {
             token_in_address: resolve_address(params.token_in),
             token_out_address: resolve_address(params.token_out),
             token_in_chain_id: params.chain_id,
             token_out_chain_id: params.chain_id,
-            trade_type: TradeType::ExactIn,
+            trade_type: params.trade_type,
             amount: params.amount,
             recipient: params.recipient,
             slippage_tolerance: SLIPPAGE_TOLERANCE.to_string(),
@@ -192,7 +193,7 @@ impl UniswapXRouteCollector {
             protocols: "v2,v3,v4,mixed".to_string(),
         };
 
-        let query_string = serde_qs::to_string(&query).unwrap();
+        let query_string = serde_qs::to_string(&query)?;
         let full_query = format!("{}?{}", ROUTING_API, query_string);
         info!("{} - full query: {}", order_hash, full_query);
         let client = reqwest::Client::new();
@@ -218,10 +219,14 @@ impl UniswapXRouteCollector {
         }
 
         match response.status() {
-            StatusCode::OK => Ok(response
-                .json::<OrderRoute>()
-                .await
-                .map_err(|e| anyhow!("{} - Failed to parse response: {}", order_hash, e))?),
+            StatusCode::OK => {
+                let order_route = response
+                    .json::<OrderRoute>()
+                    .await
+                    .map_err(|e| anyhow!("{} - Failed to parse response: {}", order_hash, e))?;
+                info!("{} - Received route: {:?}", order_hash, order_route);
+                Ok(order_route)
+            }
             StatusCode::BAD_REQUEST => Err(anyhow!(
                 "{} - Bad request: {}",
                 order_hash,
@@ -292,20 +297,29 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
 
                 for batch in all_requests {
                     let order_hash = batch.orders[0].hash.clone();
-                    let OrderBatchData { token_in, token_out, amount_in, .. } = batch.clone();
+                    let OrderBatchData { token_in, token_out, amount_in, amount_out, .. } = batch.clone();
                     info!(
-                        "{} - Routing order, token in: {}, token out: {}",
+                        "{} - Routing order, token in: {}, token out: {}, amount in: {}, amount out: {}",
                         order_hash,
-                        token_in, token_out
+                        token_in, token_out, amount_in, amount_out
                     );
-
+                    let exact_out = batch.orders[0].order.is_exact_output();
                     let future = async move {
                         let route_result = self.route_order(RouteOrderParams {
                             chain_id: self.chain_id,
                             token_in: token_in.clone(),
                             token_out: token_out.clone(),
-                            amount: amount_in.to_string(),
+                            amount: if exact_out {
+                                amount_out.to_string()
+                            } else {
+                                amount_in.to_string()
+                            },
                             recipient: self.executor_address.clone(),
+                            trade_type: if exact_out {
+                                TradeType::ExactOut
+                            } else {
+                                TradeType::ExactIn
+                            },
                         }, order_hash).await;
                         (batch, route_result)
                     };
