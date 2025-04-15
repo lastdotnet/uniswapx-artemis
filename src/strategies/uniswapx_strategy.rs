@@ -268,6 +268,7 @@ impl UniswapXUniswapFill {
             let token_in_token_out = TokenInTokenOut {
                 token_in: order_data.resolved.input.token.clone(),
                 token_out: order_data.resolved.outputs[0].token.clone(),
+                exact_out: order_data.order.is_exact_output(),
             };
 
             let amount_in = order_data.resolved.input.amount;
@@ -277,6 +278,11 @@ impl UniswapXUniswapFill {
                 .iter()
                 .fold(Uint::from(0), |sum, output| sum.wrapping_add(output.amount));
 
+            let amount_required = if order_data.order.is_exact_output() {
+                amount_in
+            } else {
+                amount_out
+            };
             // insert new order and update total amount out
             if let std::collections::hash_map::Entry::Vacant(e) =
                 order_batches.entry(token_in_token_out.clone())
@@ -285,11 +291,7 @@ impl UniswapXUniswapFill {
                     orders: vec![order_data.clone()],
                     amount_in,
                     amount_out,
-                    amount_required: if order_data.order.is_exact_output() {
-                        amount_in
-                    } else {
-                        amount_out
-                    },
+                    amount_required,
                     token_in: order_data.resolved.input.token.clone(),
                     token_out: order_data.resolved.outputs[0].token.clone(),
                     chain_id: self.chain_id,
@@ -300,7 +302,7 @@ impl UniswapXUniswapFill {
                 order_batch_data.amount_in = order_batch_data.amount_in.wrapping_add(amount_in);
                 order_batch_data.amount_required = order_batch_data
                     .amount_required
-                    .wrapping_add(amount_out);
+                    .wrapping_add(amount_required);
             }
         });
         order_batches

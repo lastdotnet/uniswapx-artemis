@@ -10,6 +10,7 @@ use anyhow::{Context, Result};
 use artemis_core::types::Executor;
 use async_trait::async_trait;
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
+use uniswapx_rs::order::BPS;
 
 use crate::{
     aws_utils::cloudwatch_utils::{
@@ -24,7 +25,7 @@ const MAX_RETRIES: u32 = 3;
 const TX_BACKOFF_MS: u64 = 0; // retry immediately
 static QUOTE_BASED_PRIORITY_BID_BUFFER: U256 = Uint::from_limbs([2, 0, 0, 0]);
 static GWEI_PER_ETH: U256 = Uint::from_limbs([1_000_000_000, 0, 0, 0]);
-const QUOTE_ETH_LOG10_THRESHOLD: usize = 6;
+const QUOTE_ETH_LOG10_THRESHOLD: usize = 4;
 // The number of bps to add to the base bid for each fallback bid
 const BID_SCALE_FACTOR: u64 = 50;
 
@@ -290,8 +291,8 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
                 info!("{} - quote_based_priority_bid: {:?}", order_hash, quote_based_priority_bid);
             }
             // If the quote is large in ETH, add more bids
-            // < 1e7 gwei = 1 fallback bid, 1e8 = 2 fallback bids, 1e9 = 3 fallback bids, etc.
-            let mut num_fallback_bids = 1;
+            // < 1e5 gwei = 1 fallback bid, 1e6 = 2 fallback bids, 1e7 = 3 fallback bids, etc.
+            let mut num_fallback_bids = 3;
             if let Some(quote_eth) = action.metadata.quote_eth {
                 if quote_eth > U256::from(0) {
                     debug!("{} - Adding fallback bids based on quote size", order_hash);
@@ -307,9 +308,11 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
                     }
                 }
             }
+            // Each fallback bid is 10000 - BID_SCALE_FACTOR * 2^i
+            // If BID_SCALE_FACTOR = 50, then the bids are:
+            // 9950, 9900, 9800, 9600, 9200, ...
             for i in 0..num_fallback_bids {
-                let gas_bid_bps = gas_bid_info.bid_percentage;
-                let bid_bps = gas_bid_bps - U128::from(BID_SCALE_FACTOR * i as u64);
+                let bid_bps = U128::from(BPS) - U128::from(BID_SCALE_FACTOR * (1 << i));
                 let fallback_bid = action
                     .metadata
                     .calculate_priority_fee(bid_bps);

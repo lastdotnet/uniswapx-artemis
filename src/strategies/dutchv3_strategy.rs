@@ -177,7 +177,10 @@ impl UniswapXDutchV3Fill {
         if filtered_orders.is_empty() {
             return vec![];
         }
-
+        let quote = U256::from_str_radix(&event.route.quote, 10).ok();
+        let amount_required =
+            U256::from_str_radix(&event.request.amount_required.to_string(), 10).ok();
+        info!("Quote: {:?}, Amount required: {:?}", quote, amount_required);
         if let Some(profit) = self.get_profit_eth(event) {
             info!(
                 "Sending trade: num trades: {} routed quote: {}, batch needs: {}, profit: {} wei",
@@ -294,7 +297,7 @@ impl UniswapXDutchV3Fill {
     fn get_order_batches(&self) -> HashMap<TokenInTokenOut, OrderBatchData> {
         let mut order_batches: HashMap<TokenInTokenOut, OrderBatchData> = HashMap::new();
 
-        // group orders by token in and token out
+        // group orders by token in, token out, and order type (exact_in or exact_out)
         self.open_orders
             .iter()
             .filter(|(_, order_data)| !self.processing_orders.contains(&order_data.hash))
@@ -302,6 +305,7 @@ impl UniswapXDutchV3Fill {
                 let token_in_token_out = TokenInTokenOut {
                     token_in: order_data.resolved.input.token.clone(),
                     token_out: order_data.resolved.outputs[0].token.clone(),
+                    exact_out: order_data.order.is_exact_output(),
                 };
 
                 let amount_in = order_data.resolved.input.amount;
@@ -311,6 +315,11 @@ impl UniswapXDutchV3Fill {
                     .iter()
                     .fold(Uint::from(0), |sum, output| sum.wrapping_add(output.amount));
 
+                let amount_required = if order_data.order.is_exact_output() {
+                    amount_in
+                } else {
+                    amount_out
+                };
                 // insert new order and update total amount out
                 if let std::collections::hash_map::Entry::Vacant(e) =
                     order_batches.entry(token_in_token_out.clone())
@@ -319,11 +328,7 @@ impl UniswapXDutchV3Fill {
                         orders: vec![order_data.clone()],
                         amount_in,
                         amount_out,
-                        amount_required: if order_data.order.is_exact_output() {
-                            amount_in
-                        } else {
-                            amount_out
-                        },
+                        amount_required,
                         token_in: order_data.resolved.input.token.clone(),
                         token_out: order_data.resolved.outputs[0].token.clone(),
                         chain_id: self.chain_id,
@@ -334,9 +339,10 @@ impl UniswapXDutchV3Fill {
                     order_batch_data.amount_in = order_batch_data.amount_in.wrapping_add(amount_in);
                     order_batch_data.amount_required = order_batch_data
                         .amount_required
-                        .wrapping_add(amount_out);
+                        .wrapping_add(amount_required);
                 }
             });
+        info!("Order batches: {:?}", order_batches);
         order_batches
     }
 
