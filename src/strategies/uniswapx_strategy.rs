@@ -74,7 +74,9 @@ impl UniswapXUniswapFill {
         Self {
             client,
             executor_address: config.executor_address,
-            bid_bps: config.bid_bps,
+            bid_bps: config
+                .bid_bps
+                .expect("Config missing bid_bps: cannot initialize UniswapXUniswapFill"),
             last_block_number: 0,
             last_block_timestamp: 0,
             open_orders: HashMap::new(),

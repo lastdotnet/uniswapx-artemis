@@ -70,8 +70,8 @@ pub struct Args {
 
     /// Percentage of profit to pay in gas (as basis points).
     /// Example: 9950 = 99.5%
-    #[arg(long, required = true)]
-    pub bid_bps: u128,
+    #[arg(long, required = false)]
+    pub bid_bps: Option<u128>,
 
     /// Private key for sending txs.
     #[arg(long, required = true)]

@@ -162,8 +162,6 @@ pub struct UniswapXPriorityFill {
     cloudwatch_client: Option<Arc<CloudWatchClient>>,
     /// executor address
     executor_address: String,
-    /// Amount of profits to bid in gas (as basis points)
-    bid_bps: u128,
     last_block_number: RwLock<u64>,
     last_block_timestamp: RwLock<u64>,
     // map of new order hashes to order data
@@ -192,7 +190,6 @@ impl UniswapXPriorityFill {
             client,
             cloudwatch_client,
             executor_address: config.executor_address,
-            bid_bps: config.bid_bps,
             last_block_number: RwLock::new(0),
             last_block_timestamp: RwLock::new(0),
             new_orders: Arc::new(DashMap::new()),
@@ -752,8 +749,8 @@ impl UniswapXPriorityFill {
                                                 execution: SubmitTxToMempool {
                                                     tx: fill_tx_request.clone(),
                                                     gas_bid_info: Some(GasBidInfo {
-                                                        bid_percentage: U128::from(self.bid_bps),
-                                                        // this field is not used for priority orders
+                                                        // these fields are not used for priority orders
+                                                        bid_percentage: U128::from(0),
                                                         total_profit: U128::from(0),
                                                     }),
                                                 },

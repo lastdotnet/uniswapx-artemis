@@ -79,7 +79,9 @@ impl UniswapXDutchV3Fill {
         Self {
             client,
             executor_address: config.executor_address,
-            bid_bps: config.bid_bps,
+            bid_bps: config
+                .bid_bps
+                .expect("Config missing bid_bps: cannot initialize UniswapXDutchV3Fill"),
             last_block_number: 0,
             last_block_timestamp: 0,
             open_orders: HashMap::new(),
@@ -164,7 +166,7 @@ impl UniswapXDutchV3Fill {
 
         let OrderBatchData {
             orders,
-            amount_required: amount_out_required,
+            amount_required,
             ..
         } = &event.request;
 
@@ -177,16 +179,15 @@ impl UniswapXDutchV3Fill {
         if filtered_orders.is_empty() {
             return vec![];
         }
-        let quote = U256::from_str_radix(&event.route.quote, 10).ok();
-        let amount_required =
-            U256::from_str_radix(&event.request.amount_required.to_string(), 10).ok();
-        info!("Quote: {:?}, Amount required: {:?}", quote, amount_required);
+
+        let amount_required_u256 = U256::from_str_radix(&amount_required.to_string(), 10).ok();
+        info!("Quote: {:?}, Amount required: {:?}", event.route.quote_gas_adjusted, amount_required_u256);
         if let Some(profit) = self.get_profit_eth(event) {
             info!(
                 "Sending trade: num trades: {} routed quote: {}, batch needs: {}, profit: {} wei",
                 filtered_orders.len(),
                 event.route.quote_gas_adjusted,
-                amount_out_required,
+                amount_required.to_string(),
                 profit
             );
             let signed_orders = self

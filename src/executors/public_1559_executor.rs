@@ -1,4 +1,4 @@
-use std::{str::FromStr, sync::Arc};
+use std::{cmp::max, str::FromStr, sync::Arc};
 use tracing::{info, warn, debug};
 
 use alloy::{
@@ -25,7 +25,7 @@ const MAX_RETRIES: u32 = 3;
 const TX_BACKOFF_MS: u64 = 0; // retry immediately
 static QUOTE_BASED_PRIORITY_BID_BUFFER: U256 = Uint::from_limbs([2, 0, 0, 0]);
 static GWEI_PER_ETH: U256 = Uint::from_limbs([1_000_000_000, 0, 0, 0]);
-const QUOTE_ETH_LOG10_THRESHOLD: usize = 4;
+const QUOTE_ETH_LOG10_THRESHOLD: usize = 8;
 // The number of bps to add to the base bid for each fallback bid
 const BID_SCALE_FACTOR: u64 = 50;
 
@@ -281,46 +281,42 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
             .await
             .context("Error getting gas price: {}")?;
 
-        if let Some(gas_bid_info) = action.execution.gas_bid_info {
-            // priority fee at which we'd break even, meaning 100% of profit goes to user in the form of price improvement
-            if action.metadata.gas_use_estimate_quote > U256::from(0) {
-                let quote_based_priority_bid = action
-                    .metadata
-                    .calculate_priority_fee_from_gas_use_estimate(QUOTE_BASED_PRIORITY_BID_BUFFER);
-                bid_priority_fees.push(quote_based_priority_bid);
-                info!("{} - quote_based_priority_bid: {:?}", order_hash, quote_based_priority_bid);
-            }
-            // If the quote is large in ETH, add more bids
-            // < 1e5 gwei = 1 fallback bid, 1e6 = 2 fallback bids, 1e7 = 3 fallback bids, etc.
-            let mut num_fallback_bids = 3;
-            if let Some(quote_eth) = action.metadata.quote_eth {
-                if quote_eth > U256::from(0) {
-                    debug!("{} - Adding fallback bids based on quote size", order_hash);
-                    let quote_in_gwei = &quote_eth / GWEI_PER_ETH;
-                    info!("{} - quote_eth_gwei: {:?}", order_hash, quote_in_gwei);
-                    
-                    if quote_in_gwei > U256::from(0) {
-                        let quote_gwei_log10 = quote_in_gwei.log10();
-                        info!("{} - quote_gwei_log10: {:?}", order_hash, quote_gwei_log10);
-                        if quote_gwei_log10 > QUOTE_ETH_LOG10_THRESHOLD {
-                            num_fallback_bids = quote_gwei_log10 - QUOTE_ETH_LOG10_THRESHOLD;
-                        }
+        // priority fee at which we'd break even, meaning 100% of profit goes to user in the form of price improvement
+        if action.metadata.gas_use_estimate_quote > U256::from(0) {
+            let quote_based_priority_bid = action
+                .metadata
+                .calculate_priority_fee_from_gas_use_estimate(QUOTE_BASED_PRIORITY_BID_BUFFER);
+            bid_priority_fees.push(quote_based_priority_bid);
+            info!("{} - quote_based_priority_bid: {:?}", order_hash, quote_based_priority_bid);
+        }
+        // If the quote is large in ETH, add more bids
+        // < 1e5 gwei = 1 fallback bid, 1e6 = 2 fallback bids, 1e7 = 3 fallback bids, etc.
+        let mut num_fallback_bids = 3;
+        if let Some(quote_eth) = action.metadata.quote_eth {
+            if quote_eth > U256::from(0) {
+                debug!("{} - Adding fallback bids based on quote size", order_hash);
+                let quote_in_gwei = &quote_eth / GWEI_PER_ETH;
+                info!("{} - quote_eth_gwei: {:?}", order_hash, quote_in_gwei);
+                
+                if quote_in_gwei > U256::from(0) {
+                    let quote_gwei_log10 = quote_in_gwei.log10();
+                    info!("{} - quote_gwei_log10: {:?}", order_hash, quote_gwei_log10);
+                    if quote_gwei_log10 > QUOTE_ETH_LOG10_THRESHOLD {
+                        num_fallback_bids = max(num_fallback_bids, quote_gwei_log10 - QUOTE_ETH_LOG10_THRESHOLD);
                     }
                 }
             }
-            // Each fallback bid is 10000 - BID_SCALE_FACTOR * 2^i
-            // If BID_SCALE_FACTOR = 50, then the bids are:
-            // 9950, 9900, 9800, 9600, 9200, ...
-            for i in 0..num_fallback_bids {
-                let bid_bps = U128::from(BPS) - U128::from(BID_SCALE_FACTOR * (1 << i));
-                let fallback_bid = action
-                    .metadata
-                    .calculate_priority_fee(bid_bps);
-                bid_priority_fees.push(fallback_bid);
-                info!("{} - fallback_bid_{}: {:?}", order_hash, i, fallback_bid);
-            }
-        } else {
-            bid_priority_fees.push(Some(U256::from(50)));
+        }
+        // Each fallback bid is 10000 - BID_SCALE_FACTOR * 2^i
+        // If BID_SCALE_FACTOR = 50, then the bids are:
+        // 9950, 9900, 9800, 9600, 9200, ...
+        for i in 0..num_fallback_bids {
+            let bid_bps = U128::from(BPS) - U128::from(BID_SCALE_FACTOR * (1 << i));
+            let fallback_bid = action
+                .metadata
+                .calculate_priority_fee(bid_bps);
+            bid_priority_fees.push(fallback_bid);
+            info!("{} - fallback_bid_{}: {:?}", order_hash, i, fallback_bid);
         }
 
         if bid_priority_fees.len() == 0 {

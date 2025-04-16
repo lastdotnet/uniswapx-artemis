@@ -86,6 +86,16 @@ pub struct TokenInRoute {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[allow(dead_code)]
+pub struct V4Route {
+    address: String,
+    token_in: TokenInRoute,
+    token_out: TokenInRoute,
+    fee: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct V3Route {
     address: String,
     token_in: TokenInRoute,
@@ -105,6 +115,8 @@ pub struct V2Route {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]
 pub enum Route {
+    #[serde(rename = "v4-pool")]
+    V4(V4Route),
     #[serde(rename = "v3-pool")]
     V3(V3Route),
     #[serde(rename = "v2-pool")]
@@ -203,6 +215,7 @@ impl UniswapXRouteCollector {
             .get(format!("{}?{}", ROUTING_API, query_string))
             .header(ORIGIN, "https://app.uniswap.org")
             .header("x-request-source", "uniswap-web")
+            .header("x-universal-router-version", "2.0")
             .send()
             .await
             .map_err(|e| anyhow!("Quote request failed with error: {}", e))?;
