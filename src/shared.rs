@@ -11,7 +11,14 @@ macro_rules! send_metric_with_order_hash {
     };
 }
 
+macro_rules! u256 {
+    ($($limb:expr),*) => {
+        alloy_primitives::Uint::from_limbs([$($limb, 0, 0, 0),*])
+    };
+}
+
 pub(crate) use send_metric_with_order_hash;
+pub(crate) use u256;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]

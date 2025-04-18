@@ -740,7 +740,7 @@ impl UniswapXPriorityFill {
                             &routed_order,
                         ).await {
                             Ok(fill_tx_request) => {
-                                info!("{} - Successfully built fill transaction", order_hash);
+                                debug!("{} - Successfully built fill transaction", order_hash);
                                 let metadata = self.get_execution_metadata(&routed_order);
                                 match metadata {
                                     Some(metadata) => {

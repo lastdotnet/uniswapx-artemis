@@ -15,16 +15,18 @@ use uniswapx_rs::order::BPS;
 use crate::{
     aws_utils::cloudwatch_utils::{
         build_metric_future, receipt_status_to_metric, CwMetrics, DimensionValue,
-    }, executors::reactor_error_code::ReactorErrorCode, shared::send_metric_with_order_hash, strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
+    }, 
+    executors::reactor_error_code::ReactorErrorCode, 
+    shared::{send_metric_with_order_hash, u256},
+    strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
 };
 use crate::executors::reactor_error_code::get_revert_reason;
-use alloy_primitives::Uint;
 
 const GAS_LIMIT: u64 = 1_000_000;
 const MAX_RETRIES: u32 = 3;
 const TX_BACKOFF_MS: u64 = 0; // retry immediately
-static QUOTE_BASED_PRIORITY_BID_BUFFER: U256 = Uint::from_limbs([2, 0, 0, 0]);
-static GWEI_PER_ETH: U256 = Uint::from_limbs([1_000_000_000, 0, 0, 0]);
+static QUOTE_BASED_PRIORITY_BID_BUFFER: U256 = u256!(2);
+static GWEI_PER_ETH: U256 = u256!(1_000_000_000);
 const QUOTE_ETH_LOG10_THRESHOLD: usize = 8;
 // The number of bps to add to the base bid for each fallback bid
 const BID_SCALE_FACTOR: u64 = 50;
@@ -56,6 +58,33 @@ impl Public1559Executor {
             sender_client,
             key_store,
             cloudwatch_client,
+        }
+    }
+
+    async fn get_nonce_with_retry(
+        &self,
+        sender_client: &Arc<DynProvider<AnyNetwork>>,
+        address: Address,
+        order_hash: &str,
+        max_attempts: u32,
+    ) -> Result<u64> {
+        let mut attempts = 0;
+        loop {
+            match sender_client.get_transaction_count(address).await {
+                Ok(nonce) => break Ok(nonce),
+                Err(e) => {
+                    if attempts < max_attempts - 1 {
+                        attempts += 1;
+                    } else {
+                        return Err(anyhow::anyhow!(
+                            "{} - Failed to get nonce after {} attempts: {}",
+                            order_hash,
+                            max_attempts,
+                            e
+                        ));
+                    }
+                }
+            }
         }
     }
 
@@ -125,6 +154,63 @@ impl Public1559Executor {
                 Ok(TransactionOutcome::Failure(None))
             }
         }
+    }
+
+    fn get_bids_for_order(
+        &self,
+        action: &SubmitTxToMempoolWithExecutionMetadata,
+        order_hash: &str,
+    ) -> Vec<Option<U256>> {
+        let mut bid_priority_fees = vec![];
+
+        // priority fee at which we'd break even, meaning 100% of profit goes to user in the form of price improvement
+        if action.metadata.gas_use_estimate_quote > U256::from(0) {
+            let quote_based_priority_bid = action
+                .metadata
+                .calculate_priority_fee_from_gas_use_estimate(QUOTE_BASED_PRIORITY_BID_BUFFER);
+            bid_priority_fees.push(quote_based_priority_bid);
+            debug!("{} - quote_based_priority_bid: {:?}", order_hash, quote_based_priority_bid);
+        }
+
+        // If the quote is large in ETH, add more bids
+        // < 1e5 gwei = 1 fallback bid, 1e6 = 2 fallback bids, 1e7 = 3 fallback bids, etc.
+        let mut num_fallback_bids = 3;
+        if let Some(quote_eth) = action.metadata.quote_eth {
+            if quote_eth > U256::from(0) {
+                debug!("{} - Adding fallback bids based on quote size", order_hash);
+                let quote_in_gwei = &quote_eth / GWEI_PER_ETH;
+                debug!("{} - quote_eth_gwei: {:?}", order_hash, quote_in_gwei);
+                
+                if quote_in_gwei > U256::from(0) {
+                    let quote_gwei_log10 = quote_in_gwei.log10();
+                    debug!("{} - quote_gwei_log10: {:?}", order_hash, quote_gwei_log10);
+                    if quote_gwei_log10 > QUOTE_ETH_LOG10_THRESHOLD {
+                        num_fallback_bids = max(num_fallback_bids, quote_gwei_log10 - QUOTE_ETH_LOG10_THRESHOLD);
+                    }
+                }
+            }
+        }
+
+        // Each fallback bid is 10000 - BID_SCALE_FACTOR * 2^i
+        // If BID_SCALE_FACTOR = 50, then the bids are:
+        // 9950, 9900, 9800, 9600, 9200, ...
+        for i in 0..num_fallback_bids {
+            // Check if the shift would cause overflow or if the result would be negative
+            let bid_reduction = U128::from(BID_SCALE_FACTOR * (1 << i));
+            if bid_reduction >= U128::from(BPS) {
+                // Stop generating more fallback bids
+                break;
+            }
+            
+            let bid_bps = U128::from(BPS) - bid_reduction;
+            let fallback_bid = action
+                .metadata
+                .calculate_priority_fee(bid_bps);
+            bid_priority_fees.push(fallback_bid);
+            debug!("{} - fallback_bid_{}: {:?}", order_hash, i, fallback_bid);
+        }
+
+        bid_priority_fees
     }
 }
 
@@ -206,134 +292,12 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
                 target_block.as_u64().unwrap()
             );
 
-        // estimate_gas always fails because of target block being a future block
-        /*
-        let gas_usage_result = self
-            .client
-            .estimate_gas(&action.execution.tx)
-            .await
-            .or_else(|err| {
-                if let Some(raw) = &err.as_error_resp().unwrap().data {
-                    if let Ok(serde_value) = serde_json::from_str::<serde_json::Value>(raw.get()) {
-                        if let serde_json::Value::String(four_byte) = serde_value {
-                            let error_code = ReactorErrorCode::from(four_byte.clone());
-                            match error_code {
-                                ReactorErrorCode::OrderAlreadyFilled => {
-                                    info!(
-                                        "{} - Order already filled, skipping execution",
-                                        order_hash
-                                    );
-                                    let metric_future = build_metric_future(
-                                        self.cloudwatch_client.clone(),
-                                        DimensionValue::PriorityExecutor,
-                                        CwMetrics::ExecutionSkippedAlreadyFilled(chain_id_u64),
-                                        1.0,
-                                    );
-                                    if let Some(metric_future) = metric_future {
-                                        send_metric_with_order_hash!(&order_hash, metric_future);
-                                    }
-                                    Err(anyhow::anyhow!("Order Already Filled"))
-                                }
-                                ReactorErrorCode::InvalidDeadline => {
-                                    info!(
-                                        "{} - Order past deadline, skipping execution",
-                                        order_hash
-                                    );
-                                    let metric_future = build_metric_future(
-                                        self.cloudwatch_client.clone(),
-                                        DimensionValue::PriorityExecutor,
-                                        CwMetrics::ExecutionSkippedPastDeadline(chain_id_u64),
-                                        1.0,
-                                    );
-                                    if let Some(metric_future) = metric_future {
-                                        send_metric_with_order_hash!(&order_hash, metric_future);
-                                    }
-                                    Err(anyhow::anyhow!("Order Past Deadline"))
-                                }
-                                _ => Ok(GAS_LIMIT),
-                            }
-                        } else {
-                            warn!("{} - Unexpected error data: {:?}", order_hash, serde_value);
-                            Ok(GAS_LIMIT)
-                        }
-                    } else {
-                        warn!("{} - Failed to parse error data: {:?}", order_hash, err);
-                        Ok(GAS_LIMIT)
-                    }
-                } else {
-                    warn!("{} - Error estimating gas: {:?}", order_hash, err);
-                    Ok(GAS_LIMIT)
-                }
-            });
-
-        let gas_usage = match gas_usage_result {
-            Ok(gas) => gas,
-            Err(e) => {
-                warn!("{} - Error getting gas usage: {}", order_hash, e);
-                // Release the key before returning
-                match self.key_store.release_key(public_address.clone()).await {
-                    Ok(_) => {
-                        info!("{} - Released key: {}", order_hash, public_address);
-                    }
-                    Err(release_err) => {
-                        warn!("{} - Failed to release key: {}", order_hash, release_err);
-                    }
-                }
-                return Err(e);
-            }
-        };
-        */
-
-            let mut bid_priority_fees = vec![];
             let base_fee = self
                 .client
                 .get_gas_price()
                 .await
                 .context("Error getting gas price: {}")?;
-
-            // priority fee at which we'd break even, meaning 100% of profit goes to user in the form of price improvement
-            if action.metadata.gas_use_estimate_quote > U256::from(0) {
-                let quote_based_priority_bid = action
-                    .metadata
-                    .calculate_priority_fee_from_gas_use_estimate(QUOTE_BASED_PRIORITY_BID_BUFFER);
-                bid_priority_fees.push(quote_based_priority_bid);
-                info!("{} - quote_based_priority_bid: {:?}", order_hash, quote_based_priority_bid);
-            }
-            // If the quote is large in ETH, add more bids
-            // < 1e5 gwei = 1 fallback bid, 1e6 = 2 fallback bids, 1e7 = 3 fallback bids, etc.
-            let mut num_fallback_bids = 3;
-            if let Some(quote_eth) = action.metadata.quote_eth {
-                if quote_eth > U256::from(0) {
-                    debug!("{} - Adding fallback bids based on quote size", order_hash);
-                    let quote_in_gwei = &quote_eth / GWEI_PER_ETH;
-                    info!("{} - quote_eth_gwei: {:?}", order_hash, quote_in_gwei);
-                    
-                    if quote_in_gwei > U256::from(0) {
-                        let quote_gwei_log10 = quote_in_gwei.log10();
-                        info!("{} - quote_gwei_log10: {:?}", order_hash, quote_gwei_log10);
-                        if quote_gwei_log10 > QUOTE_ETH_LOG10_THRESHOLD {
-                            num_fallback_bids = max(num_fallback_bids, quote_gwei_log10 - QUOTE_ETH_LOG10_THRESHOLD);
-                        }
-                    }
-                }
-            }
-            // Each fallback bid is 10000 - BID_SCALE_FACTOR * 2^i
-            // If BID_SCALE_FACTOR = 50, then the bids are:
-            // 9950, 9900, 9800, 9600, 9200, ...
-            for i in 0..num_fallback_bids {
-                // Check if the shift would cause overflow or if the result would be negative
-                if U128::from(BID_SCALE_FACTOR * (1 << i)) >= U128::from(BPS) {
-                    // Stop generating more fallback bids
-                    break;
-                }
-                
-                let bid_bps = U128::from(BPS) - U128::from(BID_SCALE_FACTOR * (1 << i));
-                let fallback_bid = action
-                    .metadata
-                    .calculate_priority_fee(bid_bps);
-                bid_priority_fees.push(fallback_bid);
-                info!("{} - fallback_bid_{}: {:?}", order_hash, i, fallback_bid);
-            }
+            let bid_priority_fees = self.get_bids_for_order(&action, &order_hash);
 
             if bid_priority_fees.len() == 0 {
                 info!(
@@ -369,25 +333,7 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
             let sender_client = self.sender_client.clone();
 
             // Retry up to 3 times to get the nonce.
-            let mut nonce = {
-                let mut attempts = 0;
-                loop {
-                    match sender_client.get_transaction_count(address).await {
-                        Ok(nonce) => break nonce,
-                        Err(e) => {
-                            if attempts < 2 {
-                                attempts += 1;
-                            } else {
-                                return Err(anyhow::anyhow!(
-                                    "{} - Failed to get nonce after 3 attempts: {}",
-                                    order_hash,
-                                    e
-                                ));
-                            }
-                        }
-                    }
-                }
-            };
+            let mut nonce = self.get_nonce_with_retry(&sender_client, address, &order_hash, 3).await?;
 
             // Set unique nonces for each transaction
             for tx_request in tx_requests.iter_mut() {
