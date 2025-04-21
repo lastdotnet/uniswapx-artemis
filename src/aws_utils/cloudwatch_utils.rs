@@ -26,6 +26,8 @@ pub const EXECUTION_ATTEMPTED_METRIC: &str = "ExecutionAttempted";
 pub const EXECUTION_SKIPPED_ALREADY_FILLED_METRIC: &str = "ExecutionSkippedAlreadyFilled";
 pub const EXECUTION_SKIPPED_PAST_DEADLINE_METRIC: &str = "ExecutionSkippedPastDeadline";
 pub const UNPROFITABLE_METRIC: &str = "Unprofitable";
+pub const TARGET_BLOCK_DELTA: &str = "TargetBlockDelta";
+
 pub enum DimensionName {
     Service,
 }
@@ -88,6 +90,8 @@ pub enum CwMetrics {
 
     /// Balance for individual address
     Balance(String),
+    // positive is too early, negative is too late
+    TargetBlockDelta(u64),
 }
 impl From<CwMetrics> for String {
     fn from(metric: CwMetrics) -> Self {
@@ -111,6 +115,7 @@ impl From<CwMetrics> for String {
             }
             CwMetrics::Balance(val) => format!("Bal-{}", val),
             CwMetrics::LatestBlock(chain_id) => format!("{}-{}", chain_id, LATEST_BLOCK),
+            CwMetrics::TargetBlockDelta(chain_id) => format!("{}-{}", chain_id, TARGET_BLOCK_DELTA),
         }
     }
 }

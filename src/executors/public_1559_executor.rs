@@ -97,6 +97,8 @@ impl Public1559Executor {
         wallet: &EthereumWallet,
         tx_request: WithOtherFields<TransactionRequest>,
         order_hash: &str,
+        chain_id: u64,
+        target_block: Option<u64>,
     ) -> Result<TransactionOutcome> {
         let tx_request_for_revert = tx_request.clone();
         let tx = tx_request.build(wallet).await?;
@@ -113,8 +115,22 @@ impl Public1559Executor {
                         anyhow::anyhow!("{} - Error waiting for confirmations: {}", order_hash, e)
                     });
                 
+
                 match receipt {
                     Ok(receipt) => {
+                        let target_block_delta: f64 = target_block.unwrap() as f64 - receipt.block_number.unwrap() as f64;
+                        if let Some(target_block) = target_block {
+                            info!("{} - target block delta: {}, target_block: {}, actual_block: {}", order_hash, target_block_delta, target_block, receipt.block_number.unwrap());
+                        }
+                        let metric_future = build_metric_future(
+                            self.cloudwatch_client.clone(),
+                            DimensionValue::PriorityExecutor,
+                            CwMetrics::TargetBlockDelta(chain_id),
+                            target_block_delta as f64,
+                        );
+                        if let Some(metric_future) = metric_future {
+                            send_metric_with_order_hash!(&Arc::new(order_hash.to_string()), metric_future);
+                        }
                         let status = receipt.status();
                         info!(
                             "{} - receipt: tx_hash: {:?}, status: {}",
@@ -358,7 +374,7 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
             while attempts < MAX_RETRIES && !success && retryable_failure {
                 // Create futures for all transactions
                 let futures: Vec<_> = tx_requests.iter().map(|tx_request| {
-                    self.send_transaction(&wallet, tx_request.clone(), &order_hash)
+                    self.send_transaction(&wallet, tx_request.clone(), &order_hash, chain_id_u64, target_block.as_u64())
                 }).collect();
 
                 // Wait for all transactions to complete
@@ -611,7 +627,7 @@ mod tests {
         );
 
         let action = create_test_action(
-            U256::from(1e17), // quote: 0.1 ETH
+            U256::from(2e17), // quote: 0.2 ETH
             U256::from(3e17), // amount_required: 0.3 ETH
             U256::from(10000), // gas_estimate: 10000 gas
             false,

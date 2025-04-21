@@ -33,6 +33,7 @@ pub enum Action {
 pub struct Config {
     pub bid_bps: Option<u128>,
     pub executor_address: String,
+    pub min_block_percentage_buffer: Option<u64>,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]

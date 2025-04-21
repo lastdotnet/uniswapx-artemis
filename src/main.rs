@@ -73,6 +73,12 @@ pub struct Args {
     #[arg(long, required = false)]
     pub bid_bps: Option<u128>,
 
+    /// Minimum block percentage buffer for priority orders.
+    /// This determines how much time to wait before the target block to submit the fill transaction.
+    /// Example: 120 = 120% of the block time which would be 2.4 seconds with a block time of 2 seconds.
+    #[arg(long, required = false)]
+    pub min_block_percentage_buffer: Option<u64>,
+
     /// Private key for sending txs.
     #[arg(long, required = true)]
     pub executor_address: String,
@@ -234,6 +240,7 @@ async fn main() -> Result<()> {
 
     let config = Config {
         bid_bps: args.bid_bps,
+        min_block_percentage_buffer: args.min_block_percentage_buffer,
         executor_address: args.executor_address,
     };
 

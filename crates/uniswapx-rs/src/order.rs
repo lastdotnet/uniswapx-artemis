@@ -308,7 +308,7 @@ impl PriorityOrder {
         PriorityOrder::abi_encode(self)
     }
 
-    pub fn resolve(&self, block_number: u64, block_timestamp: u64, block_time_ms: u64, priority_fee: U256, ) -> OrderResolution {
+    pub fn resolve(&self, block_number: u64, block_timestamp: u64, block_time_ms: u64, priority_fee: U256, min_block_percentage_buffer: u64) -> OrderResolution {
         let block_time = block_time_ms / 1000;
         let next_block_timestamp = U256::from(block_timestamp) + U256::from(block_time);
 
@@ -334,7 +334,7 @@ impl PriorityOrder {
             block_timestamp,
             block_time_ms
         );
-        let time_buffer_ms = block_time_ms * 1300 / 1000; // TODO: fine tune
+        let time_buffer_ms = block_time_ms * min_block_percentage_buffer / 100;
         if U256::from(current_timestamp_ms() + time_buffer_ms).lt(&target_block_ms) {
             return OrderResolution::NotFillableYet(ResolvedOrder { input, outputs });
         }

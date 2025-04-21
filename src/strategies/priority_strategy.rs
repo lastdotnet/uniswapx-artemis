@@ -162,6 +162,7 @@ pub struct UniswapXPriorityFill {
     cloudwatch_client: Option<Arc<CloudWatchClient>>,
     /// executor address
     executor_address: String,
+    min_block_percentage_buffer: Option<u64>,
     last_block_number: RwLock<u64>,
     last_block_timestamp: RwLock<u64>,
     // map of new order hashes to order data
@@ -190,6 +191,7 @@ impl UniswapXPriorityFill {
             client,
             cloudwatch_client,
             executor_address: config.executor_address,
+            min_block_percentage_buffer: config.min_block_percentage_buffer,
             last_block_number: RwLock::new(0),
             last_block_timestamp: RwLock::new(0),
             new_orders: Arc::new(DashMap::new()),
@@ -256,6 +258,7 @@ impl UniswapXPriorityFill {
             *self.last_block_timestamp.read().await,
             get_block_time_ms(self.chain_id),
             Uint::from(0),
+            self.min_block_percentage_buffer.unwrap_or(100)
         );
         let order_status = match resolved_order {
             OrderResolution::Expired | OrderResolution::Invalid => OrderStatus::Done,
