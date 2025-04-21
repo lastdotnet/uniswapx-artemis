@@ -39,7 +39,6 @@ pub struct Config {
 pub struct TokenInTokenOut {
     pub token_in: String,
     pub token_out: String,
-    pub exact_out: bool,
 }
 
 #[derive(Debug, Clone)]

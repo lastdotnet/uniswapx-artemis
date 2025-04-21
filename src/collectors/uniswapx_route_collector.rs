@@ -7,7 +7,7 @@ use reqwest::header::ORIGIN;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{error, info};
-use uniswapx_rs::order::{Order, ResolvedOrder};
+use uniswapx_rs::order::{Order, ResolvedOrder, TradeType};
 
 use artemis_core::types::{Collector, CollectorStream};
 use async_trait::async_trait;
@@ -44,15 +44,6 @@ pub struct OrderBatchData {
     pub amount_required: Uint<256, 4>,
     pub token_in: String,
     pub token_out: String,
-}
-
-#[derive(Serialize, Debug)]
-#[allow(dead_code)]
-pub enum TradeType {
-    #[serde(rename = "exactIn")]
-    ExactIn,
-    #[serde(rename = "exactOut")]
-    ExactOut,
 }
 
 #[derive(Serialize, Debug)]
@@ -316,23 +307,18 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
                         order_hash,
                         token_in, token_out, amount_in, amount_out
                     );
-                    let exact_out = batch.orders[0].order.is_exact_output();
                     let future = async move {
                         let route_result = self.route_order(RouteOrderParams {
                             chain_id: self.chain_id,
                             token_in: token_in.clone(),
                             token_out: token_out.clone(),
-                            amount: if exact_out {
+                            amount: if batch.orders[0].order.is_exact_output() {
                                 amount_out.to_string()
                             } else {
                                 amount_in.to_string()
                             },
                             recipient: self.executor_address.clone(),
-                            trade_type: if exact_out {
-                                TradeType::ExactOut
-                            } else {
-                                TradeType::ExactIn
-                            },
+                            trade_type: batch.orders[0].order.trade_type(),
                         }, order_hash).await;
                         (batch, route_result)
                     };

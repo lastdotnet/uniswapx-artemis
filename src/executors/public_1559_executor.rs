@@ -1,10 +1,14 @@
-use std::{cmp::max, str::FromStr, sync::Arc};
+use std::{str::FromStr, sync::Arc};
 use tracing::{info, warn, debug};
 
 use alloy::{
-    eips::{BlockId, BlockNumberOrTag}, network::{
-        AnyNetwork, EthereumWallet, ReceiptResponse, TransactionBuilder
-    }, primitives::{utils::format_units, Address, U128, U256}, providers::{DynProvider, Provider}, rpc::types::TransactionRequest, serde::WithOtherFields, signers::{local::PrivateKeySigner, Signer}
+    eips::{BlockId, BlockNumberOrTag},
+    network::{AnyNetwork, EthereumWallet, ReceiptResponse, TransactionBuilder},
+    primitives::{utils::format_units, Address, U128, U256},
+    providers::{DynProvider, Provider},
+    rpc::types::TransactionRequest,
+    serde::WithOtherFields,
+    signers::{local::PrivateKeySigner, Signer},
 };
 use anyhow::{Context, Result};
 use artemis_core::types::Executor;
@@ -161,15 +165,17 @@ impl Public1559Executor {
         action: &SubmitTxToMempoolWithExecutionMetadata,
         order_hash: &str,
     ) -> Vec<Option<U256>> {
-        let mut bid_priority_fees = vec![];
+        let mut bid_priority_fees: Vec<Option<U256>> = vec![];
 
         // priority fee at which we'd break even, meaning 100% of profit goes to user in the form of price improvement
         if action.metadata.gas_use_estimate_quote > U256::from(0) {
             let quote_based_priority_bid = action
                 .metadata
                 .calculate_priority_fee_from_gas_use_estimate(QUOTE_BASED_PRIORITY_BID_BUFFER);
-            bid_priority_fees.push(quote_based_priority_bid);
-            debug!("{} - quote_based_priority_bid: {:?}", order_hash, quote_based_priority_bid);
+            if let Some(bid) = quote_based_priority_bid {
+                bid_priority_fees.push(Some(bid));
+                debug!("{} - quote_based_priority_bid: {:?}", order_hash, bid);
+            }
         }
 
         // If the quote is large in ETH, add more bids
@@ -185,7 +191,7 @@ impl Public1559Executor {
                     let quote_gwei_log10 = quote_in_gwei.log10();
                     debug!("{} - quote_gwei_log10: {:?}", order_hash, quote_gwei_log10);
                     if quote_gwei_log10 > QUOTE_ETH_LOG10_THRESHOLD {
-                        num_fallback_bids = max(num_fallback_bids, quote_gwei_log10 - QUOTE_ETH_LOG10_THRESHOLD);
+                        num_fallback_bids += (quote_gwei_log10 - QUOTE_ETH_LOG10_THRESHOLD) as u64;
                     }
                 }
             }
@@ -456,5 +462,184 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
         }
         
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy::primitives::{U256, U128, U64};
+    use alloy::network::AnyNetwork;
+    use alloy::providers::{DynProvider, Provider, RootProvider};
+    use alloy::rpc::types::TransactionRequest;
+    use crate::strategies::types::SubmitTxToMempoolWithExecutionMetadata;
+    use crate::strategies::priority_strategy::ExecutionMetadata;
+    use artemis_core::executors::mempool_executor::{SubmitTxToMempool, GasBidInfo};
+    use std::sync::Arc;
+
+    // Mock provider that implements the Provider trait
+    #[derive(Clone)]
+    struct MockProvider;
+    impl Provider<AnyNetwork> for MockProvider {
+        fn root(&self) -> &RootProvider<AnyNetwork> {
+            unimplemented!("Mock provider does not support root provider")
+        }
+    }
+
+    // Helper function to create a test action
+    fn create_test_action(
+        quote_size: U256,
+        amount_required: U256,
+        gas_estimate: U256,
+        is_exact_output: bool,
+        target_block: Option<u64>,
+    ) -> SubmitTxToMempoolWithExecutionMetadata {
+        let action = SubmitTxToMempoolWithExecutionMetadata {
+            execution: SubmitTxToMempool {
+                tx: WithOtherFields::new(TransactionRequest::default()),
+                gas_bid_info: Some(GasBidInfo {
+                    bid_percentage: U128::from(0),
+                    total_profit: U128::from(0),
+                }),
+            },
+            metadata: ExecutionMetadata {
+                quote: quote_size,
+                quote_eth: Some(quote_size),
+                exact_output: is_exact_output,
+                amount_required: amount_required,
+                gas_use_estimate_quote: gas_estimate,
+                order_hash: "test_hash".to_string(),
+                target_block: target_block.map(|b| U64::from(b)),
+            },
+        };
+        action
+    }
+
+    #[tokio::test]
+    async fn test_get_bids_for_order_small_quote() {
+        let executor = Public1559Executor::new(
+            Arc::new(DynProvider::new(MockProvider)),
+            Arc::new(DynProvider::new(MockProvider)),
+            Arc::new(KeyStore::new()),
+            None,
+        );
+
+        let action = create_test_action(
+            U256::from(9e17), // quote: 0.9 ETH
+            U256::from(8e17), // amount_required: 0.8 ETH
+            U256::from(100000), // gas_estimate: 100k gas
+            false,
+            None,
+        );
+
+        let bids = executor.get_bids_for_order(&action, "test_hash");
+        assert_eq!(bids.len(), 1 + 3); // 1 quote-based bid + minimum 3 fallback bids
+        assert!(bids[0].is_some());
+    }
+
+    #[tokio::test]
+    async fn test_get_bids_for_order_large_quote() {
+        let executor = Public1559Executor::new(
+            Arc::new(DynProvider::new(MockProvider)),
+            Arc::new(DynProvider::new(MockProvider)),
+            Arc::new(KeyStore::new()),
+            None,
+        );
+
+        let action = create_test_action(
+            U256::from(1000e18), // quote: 1000 ETH
+            U256::from(900e18), // amount_required: 900 ETH
+            U256::from(100000), // gas_estimate: 100k gas
+            false,
+            None,
+        );
+
+        let bids = executor.get_bids_for_order(&action, "test_hash");
+        assert_eq!(bids.len(), 1 + 3 + 4); // 1 quote-based bid + 3 fallback bids + 4 additional fallback bids
+    }
+
+    #[tokio::test]
+    async fn test_get_bids_for_order_exact_output() {
+        let executor = Public1559Executor::new(
+            Arc::new(DynProvider::new(MockProvider)),
+            Arc::new(DynProvider::new(MockProvider)),
+            Arc::new(KeyStore::new()),
+            None,
+        );
+
+        let action = create_test_action(
+            U256::from(7e18), // quote: 7 ETH
+            U256::from(8e18), // amount_required: 8 ETH
+            U256::from(1000), // gas_estimate: 1k gas
+            true,
+            None,
+        );
+
+        let bids = executor.get_bids_for_order(&action, "test_hash");
+        assert_eq!(bids.len(), 1 + 3 + 1); // 1 quote-based bid + minimum 3 fallback bids + 1 additional fallback bid
+        assert!(bids[0].is_some());
+    }
+
+    #[tokio::test]
+    async fn test_get_bids_for_order_no_gas_estimate() {
+        let executor = Public1559Executor::new(
+            Arc::new(DynProvider::new(MockProvider)),
+            Arc::new(DynProvider::new(MockProvider)),
+            Arc::new(KeyStore::new()),
+            None,
+        );
+
+        let action = create_test_action(
+            U256::from(2e17), // quote: 0.2 ETH
+            U256::from(1e17), // amount_required: 0.1 ETH
+            U256::from(0), // gas_estimate: 0 gas
+            false,
+            None,
+        );
+
+        let bids = executor.get_bids_for_order(&action, "test_hash");
+        assert_eq!(bids.len(), 3); // 3 fallback bids should still be generated
+    }
+
+    #[tokio::test]
+    async fn test_get_bids_for_order_too_little_quote() {
+        let executor = Public1559Executor::new(
+            Arc::new(DynProvider::new(MockProvider)),
+            Arc::new(DynProvider::new(MockProvider)),
+            Arc::new(KeyStore::new()),
+            None,
+        );
+
+        let action = create_test_action(
+            U256::from(1e17), // quote: 0.1 ETH
+            U256::from(3e17), // amount_required: 0.3 ETH
+            U256::from(10000), // gas_estimate: 10000 gas
+            false,
+            None,
+        );
+
+        let bids = executor.get_bids_for_order(&action, "test_hash");
+        assert_eq!(bids.len(), 3); // 3 fallback bids should still be generated
+    }
+
+    #[tokio::test]
+    async fn test_extremely_large_quote() {
+        let executor = Public1559Executor::new(
+            Arc::new(DynProvider::new(MockProvider)),
+            Arc::new(DynProvider::new(MockProvider)),
+            Arc::new(KeyStore::new()),
+            None,
+        );
+
+        let action = create_test_action(
+            U256::from(1e30), // quote: 1e12 ETH
+            U256::from(1e29), // amount_required: 1e11 ETH
+            U256::from(100000), // gas_estimate: 100k gas
+            false,
+            None,
+        );
+
+        let bids = executor.get_bids_for_order(&action, "test_hash");
+        assert_eq!(bids.len(), 1 + 8); // 1 quote-based bid + max of 8 additional fallback bids (based on underflow check)
     }
 }

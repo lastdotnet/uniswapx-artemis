@@ -6,6 +6,7 @@ use alloy_primitives::I256;
 use alloy_primitives::U256;
 use alloy_sol_types::sol;
 use anyhow::Result;
+use serde::Serialize;
 
 use crate::sol_math::MulDiv;
 
@@ -151,6 +152,15 @@ pub enum Order {
     V3DutchOrder(V3DutchOrder),
 }
 
+#[derive(Serialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[allow(dead_code)]
+pub enum TradeType {
+    #[serde(rename = "exactIn")]
+    ExactIn,
+    #[serde(rename = "exactOut")]
+    ExactOut,
+}
+
 impl Order {
     pub fn encode(&self) -> Vec<u8> {
         match self {
@@ -160,12 +170,34 @@ impl Order {
         }
     }
 
-    pub fn is_exact_output(&self) -> bool {
+    pub fn trade_type(&self) -> TradeType {
         match self {
-            Order::V2DutchOrder(order) => order.baseOutputs.iter().any(|o| o.startAmount == o.endAmount),
-            Order::PriorityOrder(order) => order.outputs.iter().any(|o| o.mpsPerPriorityFeeWei == U256::from(0)),
-            Order::V3DutchOrder(order) => order.baseOutputs.iter().any(|o| o.curve.relativeAmounts.len() == 0 || *o.curve.relativeAmounts.last().unwrap() == I256::ZERO),
+            Order::V2DutchOrder(order) => {
+                if order.baseOutputs.iter().any(|o| o.startAmount == o.endAmount) {
+                    TradeType::ExactOut
+                } else {
+                    TradeType::ExactIn
+                }
+            }
+            Order::PriorityOrder(order) => {
+                if order.outputs.iter().any(|o| o.mpsPerPriorityFeeWei == U256::from(0)) {
+                    TradeType::ExactOut
+                } else {
+                    TradeType::ExactIn
+                }
+            }
+            Order::V3DutchOrder(order) => {
+                if order.baseOutputs.iter().any(|o| o.curve.relativeAmounts.len() == 0 || *o.curve.relativeAmounts.last().unwrap() == I256::ZERO) {
+                    TradeType::ExactOut
+                } else {
+                    TradeType::ExactIn
+                }
+            }
         }
+    }
+
+    pub fn is_exact_output(&self) -> bool {
+        matches!(self.trade_type(), TradeType::ExactOut)
     }
 }
 

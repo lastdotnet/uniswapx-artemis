@@ -270,7 +270,6 @@ impl UniswapXUniswapFill {
             let token_in_token_out = TokenInTokenOut {
                 token_in: order_data.resolved.input.token.clone(),
                 token_out: order_data.resolved.outputs[0].token.clone(),
-                exact_out: order_data.order.is_exact_output(),
             };
 
             let amount_in = order_data.resolved.input.amount;

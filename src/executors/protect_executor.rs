@@ -150,7 +150,7 @@ impl Executor<SubmitTxToMempool> for ProtectExecutor {
         if let Some(gas_bid_info) = action.gas_bid_info {
             // gas price at which we'd break even, meaning 100% of profit goes to validator
             let breakeven_gas_price = gas_bid_info.total_profit / U128::from(gas_usage);
-            // gas price corresponding to bid percentage
+            // gas price corresponding to bid bps
             bid_gas_price = breakeven_gas_price * gas_bid_info.bid_percentage / U128::from(BPS);
         } else {
             bid_gas_price = self

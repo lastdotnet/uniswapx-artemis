@@ -35,7 +35,7 @@ use std::{
 };
 use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{error, info};
-use uniswapx_rs::order::{Order, OrderResolution, V3DutchOrder};
+use uniswapx_rs::order::{Order, OrderResolution, V3DutchOrder, BPS};
 
 use super::types::{Action, Event};
 
@@ -225,7 +225,7 @@ impl UniswapXDutchV3Fill {
                     // gas price corresponding to bid percentage
                     let bid_gas_price: Uint<256, 4> = breakeven_gas_price
                         .mul(U256::from(self.bid_bps))
-                        .div(U256::from(100));
+                        .div(U256::from(BPS));
                     if bid_gas_price < min_gas_price {
                         info!(
                             "Bid gas price {} is less than min gas price {}, skipping",
@@ -306,7 +306,6 @@ impl UniswapXDutchV3Fill {
                 let token_in_token_out = TokenInTokenOut {
                     token_in: order_data.resolved.input.token.clone(),
                     token_out: order_data.resolved.outputs[0].token.clone(),
-                    exact_out: order_data.order.is_exact_output(),
                 };
 
                 let amount_in = order_data.resolved.input.amount;
