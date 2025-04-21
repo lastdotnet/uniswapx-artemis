@@ -47,7 +47,7 @@ pub struct UniswapXUniswapFill {
     /// executor address
     executor_address: String,
     /// Amount of profits to bid in gas
-    bid_bps: u128,
+    bid_percentage: u128,
     last_block_number: u64,
     last_block_timestamp: u64,
     // map of open order hashes to order data
@@ -74,9 +74,9 @@ impl UniswapXUniswapFill {
         Self {
             client,
             executor_address: config.executor_address,
-            bid_bps: config
-                .bid_bps
-                .expect("Config missing bid_bps: cannot initialize UniswapXUniswapFill"),
+            bid_percentage: config
+                .bid_percentage
+                .expect("Config missing bid_percentage: cannot initialize UniswapXUniswapFill"),
             last_block_number: 0,
             last_block_timestamp: 0,
             open_orders: HashMap::new(),
@@ -181,7 +181,7 @@ impl UniswapXUniswapFill {
                     return vec![Action::SubmitTx(SubmitTxToMempool {
                         tx: fill_tx_request,
                         gas_bid_info: Some(GasBidInfo {
-                            bid_percentage: U128::from(self.bid_bps),
+                            bid_percentage: U128::from(self.bid_percentage),
                             total_profit: U128::from(profit),
                         }),
                     })];
