@@ -104,6 +104,16 @@ impl Public1559Executor {
         let tx = tx_request.build(wallet).await?;
         let result = self.sender_client.send_tx_envelope(tx).await;
 
+        let metric_future = build_metric_future(
+            self.cloudwatch_client.clone(),
+            DimensionValue::PriorityExecutor,
+            CwMetrics::TxSubmitted(chain_id),
+            1.0,
+        );
+        if let Some(metric_future) = metric_future {
+            send_metric_with_order_hash!(&Arc::new(order_hash.to_string()), metric_future);
+        }
+
         match result {
             Ok(tx) => {
                 info!("{} - Waiting for confirmations", order_hash);
@@ -118,7 +128,7 @@ impl Public1559Executor {
 
                 match receipt {
                     Ok(receipt) => {
-                        let target_block_delta: f64 = target_block.unwrap() as f64 - receipt.block_number.unwrap() as f64;
+                        let target_block_delta: f64 = receipt.block_number.unwrap() as f64 - target_block.unwrap() as f64;
                         if let Some(target_block) = target_block {
                             info!("{} - target block delta: {}, target_block: {}, actual_block: {}", order_hash, target_block_delta, target_block, receipt.block_number.unwrap());
                         }
@@ -158,8 +168,26 @@ impl Public1559Executor {
                                 }
                             }
                             info!("{} - Failed to get revert reason - error: {:?}", order_hash, revert_reason.err().unwrap());
+                            let metric_future = build_metric_future(
+                                self.cloudwatch_client.clone(),
+                                DimensionValue::PriorityExecutor,
+                                CwMetrics::TxReverted(chain_id),
+                                1.0,
+                            );
+                            if let Some(metric_future) = metric_future {
+                                send_metric_with_order_hash!(&Arc::new(order_hash.to_string()), metric_future);
+                            }
                             Ok(TransactionOutcome::Failure(None))
                         } else {
+                            let metric_future = build_metric_future(
+                                self.cloudwatch_client.clone(),
+                                DimensionValue::PriorityExecutor,
+                                CwMetrics::TxSucceeded(chain_id),
+                                1.0,
+                            );
+                            if let Some(metric_future) = metric_future {
+                                send_metric_with_order_hash!(&Arc::new(order_hash.to_string()), metric_future);
+                            }
                             Ok(TransactionOutcome::Success(receipt.block_number))
                         }
                     }

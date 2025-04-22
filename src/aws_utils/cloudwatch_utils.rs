@@ -90,7 +90,7 @@ pub enum CwMetrics {
 
     /// Balance for individual address
     Balance(String),
-    // positive is too early, negative is too late
+    // negative is too early, positive is too late
     TargetBlockDelta(u64),
 }
 impl From<CwMetrics> for String {

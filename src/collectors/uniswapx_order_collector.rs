@@ -122,7 +122,7 @@ impl Collector<UniswapXOrder> for UniswapXOrderCollector {
             "Starting UniswapX order collector stream"
         );
 
-        // stream that polls the UniswapX API every 5 seconds
+        // stream that polls the UniswapX API
         let stream = IntervalStream::new(tokio::time::interval(Duration::from_millis(
             POLL_INTERVAL_MS,
         )))
@@ -143,6 +143,7 @@ impl Collector<UniswapXOrder> for UniswapXOrderCollector {
                         return Err(anyhow::anyhow!("Failed to fetch orders: {}", e));
                     }
                 };
+
 
                 let data = match response.json::<UniswapXOrderResponse>().await {
                     Ok(data) => data,
