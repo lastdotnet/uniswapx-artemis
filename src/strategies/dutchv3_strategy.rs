@@ -210,10 +210,22 @@ impl UniswapXDutchV3Fill {
                     // Must be able to cover min gas cost
                     let sender_address = Address::from_str(&self.sender_address).unwrap();
                     req.set_from(sender_address);
-                    let gas_usage = self.client.estimate_gas(&req).await.unwrap_or_else(|err| {
-                        info!("Error estimating gas: {}", err);
-                        1_000_000
-                    });
+                    let gas_usage = self.client.estimate_gas(&req).await.map_or_else(
+                        |err| {
+                            info!("Error estimating gas: {}", err);
+                            if err.to_string().contains("execution reverted") {
+                                None
+                            } else {
+                                Some(1_000_000)
+                            }
+                        },
+                        Some,
+                    );
+
+                    if gas_usage.is_none() {
+                        return vec![];
+                    }
+                    let gas_usage = gas_usage.unwrap();
                     // Get the current min gas price
                     let min_gas_price = self
                         .get_arbitrum_min_gas_price(self.client.clone())
@@ -342,7 +354,7 @@ impl UniswapXDutchV3Fill {
                         .wrapping_add(amount_required);
                 }
             });
-        info!("Order batches: {:?}", order_batches);
+        
         order_batches
     }
 

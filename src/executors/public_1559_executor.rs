@@ -21,7 +21,7 @@ use crate::{
         build_metric_future, receipt_status_to_metric, CwMetrics, DimensionValue,
     }, 
     executors::reactor_error_code::ReactorErrorCode, 
-    shared::{send_metric_with_order_hash, u256},
+    shared::{send_metric_with_order_hash, u256, get_nonce_with_retry},
     strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
 };
 use crate::executors::reactor_error_code::get_revert_reason;
@@ -65,33 +65,6 @@ impl Public1559Executor {
         }
     }
 
-    async fn get_nonce_with_retry(
-        &self,
-        sender_client: &Arc<DynProvider<AnyNetwork>>,
-        address: Address,
-        order_hash: &str,
-        max_attempts: u32,
-    ) -> Result<u64> {
-        let mut attempts = 0;
-        loop {
-            match sender_client.get_transaction_count(address).await {
-                Ok(nonce) => break Ok(nonce),
-                Err(e) => {
-                    if attempts < max_attempts - 1 {
-                        attempts += 1;
-                    } else {
-                        return Err(anyhow::anyhow!(
-                            "{} - Failed to get nonce after {} attempts: {}",
-                            order_hash,
-                            max_attempts,
-                            e
-                        ));
-                    }
-                }
-            }
-        }
-    }
-
     async fn send_transaction(
         &self,
         wallet: &EthereumWallet,
@@ -102,6 +75,7 @@ impl Public1559Executor {
     ) -> Result<TransactionOutcome> {
         let tx_request_for_revert = tx_request.clone();
         let tx = tx_request.build(wallet).await?;
+        info!("{} - Sending transaction to RPC", order_hash);
         let result = self.sender_client.send_tx_envelope(tx).await;
 
         let metric_future = build_metric_future(
@@ -383,7 +357,7 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
             let sender_client = self.sender_client.clone();
 
             // Retry up to 3 times to get the nonce.
-            let mut nonce = self.get_nonce_with_retry(&sender_client, address, &order_hash, 3).await?;
+            let mut nonce = get_nonce_with_retry(&sender_client, address, &order_hash, 3).await?;
 
             // Set unique nonces for each transaction
             for tx_request in tx_requests.iter_mut() {
