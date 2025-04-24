@@ -17,8 +17,8 @@ use aws_sdk_cloudwatch::Client as CloudWatchClient;
 
 use crate::{
     aws_utils::cloudwatch_utils::{
-        build_metric_future, receipt_status_to_metric, CwMetrics, DimensionValue,
-    }, executors::reactor_error_code::ReactorErrorCode, send_metric, shared::get_nonce_with_retry, strategies::keystore::KeyStore
+        build_metric_future, receipt_status_to_metric, revert_code_to_metric, CwMetrics, DimensionValue
+    }, executors::reactor_error_code::{get_revert_reason, ReactorErrorCode}, send_metric, shared::get_nonce_with_retry, strategies::keystore::KeyStore
 };
 
 const GAS_LIMIT: u64 = 1_000_000;
@@ -190,6 +190,7 @@ impl Executor<SubmitTxToMempool> for ProtectExecutor {
             send_metric!(metric_future);
         }
 
+        let tx_request_for_revert = action.tx.clone();
         let tx = action.tx.build(&wallet).await?;
         let result = sender_client.send_tx_envelope(tx).await;
 
@@ -208,6 +209,34 @@ impl Executor<SubmitTxToMempool> for ProtectExecutor {
                             "receipt: tx_hash: {:?}, status: {}",
                             receipt.transaction_hash, status,
                         );
+
+                        if !status {
+                            info!("Attempting to get revert reason");
+                            // Parse revert reason
+                            let revert_reason = get_revert_reason(
+                                &self.sender_client,
+                                tx_request_for_revert,
+                                receipt.block_number.unwrap(),
+                            ).await;
+                            
+                            if let Ok(reason) = revert_reason {
+                                info!("Revert reason: {}", reason);
+                                let metric_future = build_metric_future(
+                                    self.cloudwatch_client.clone(),
+                                    DimensionValue::V3Executor,
+                                    revert_code_to_metric(chain_id, reason.to_string()),
+                                    1.0,
+                                );
+                                if let Some(metric_future) = metric_future {
+                                    // do not block current thread by awaiting in the background
+                                    send_metric!(metric_future);
+                                }
+                            }
+                            else {
+                                info!("Failed to get revert reason - error: {:?}", revert_reason.err().unwrap());
+                            }
+                        }
+
                         (Some(receipt), status)
                     }
                     Err(e) => {

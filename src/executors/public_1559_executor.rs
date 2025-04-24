@@ -18,10 +18,10 @@ use uniswapx_rs::order::BPS;
 
 use crate::{
     aws_utils::cloudwatch_utils::{
-        build_metric_future, receipt_status_to_metric, CwMetrics, DimensionValue,
+        build_metric_future, receipt_status_to_metric, revert_code_to_metric, CwMetrics, DimensionValue
     }, 
     executors::reactor_error_code::ReactorErrorCode, 
-    shared::{send_metric_with_order_hash, u256, get_nonce_with_retry},
+    shared::{get_nonce_with_retry, send_metric_with_order_hash, u256},
     strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
 };
 use crate::executors::reactor_error_code::get_revert_reason;
@@ -65,6 +65,31 @@ impl Public1559Executor {
         }
     }
 
+    fn increment_tx_metric(
+        &self,
+        order_hash: &Arc<String>,
+        chain_id: u64,
+        outcome: &Result<TransactionOutcome, anyhow::Error>,
+    ) {
+        if let Some(cloudwatch_client) = &self.cloudwatch_client {
+            let metric = match outcome {
+                Ok(TransactionOutcome::Success(_)) => CwMetrics::TxSucceeded(chain_id),
+                Ok(TransactionOutcome::Failure(_)) | Ok(TransactionOutcome::RetryableFailure) => CwMetrics::TxReverted(chain_id),
+                Err(_) => CwMetrics::TxStatusUnknown(chain_id),
+            };
+            
+            let metric_future = build_metric_future(
+                Some(cloudwatch_client.clone()),
+                DimensionValue::PriorityExecutor,
+                metric,
+                1.0,
+            );
+            if let Some(metric_future) = metric_future {
+                send_metric_with_order_hash!(&Arc::new(order_hash.to_string()), metric_future);
+            }
+        }
+    }
+
     async fn send_transaction(
         &self,
         wallet: &EthereumWallet,
@@ -77,16 +102,6 @@ impl Public1559Executor {
         let tx = tx_request.build(wallet).await?;
         info!("{} - Sending transaction to RPC", order_hash);
         let result = self.sender_client.send_tx_envelope(tx).await;
-
-        let metric_future = build_metric_future(
-            self.cloudwatch_client.clone(),
-            DimensionValue::PriorityExecutor,
-            CwMetrics::TxSubmitted(chain_id),
-            1.0,
-        );
-        if let Some(metric_future) = metric_future {
-            send_metric_with_order_hash!(&Arc::new(order_hash.to_string()), metric_future);
-        }
 
         match result {
             Ok(tx) => {
@@ -127,11 +142,21 @@ impl Public1559Executor {
                             let revert_reason = get_revert_reason(
                                 &self.sender_client,
                                 tx_request_for_revert,
-                                receipt.block_number.unwrap()
+                                receipt.block_number.unwrap(),
                             ).await;
                             
                             if let Ok(reason) = revert_reason {
                                 info!("{} - Revert reason: {}", order_hash, reason);
+                                let metric_future = build_metric_future(
+                                    self.cloudwatch_client.clone(),
+                                    DimensionValue::PriorityExecutor,
+                                    revert_code_to_metric(chain_id, reason.to_string()),
+                                    1.0,
+                                );
+                                if let Some(metric_future) = metric_future {
+                                    // do not block current thread by awaiting in the background
+                                    send_metric_with_order_hash!(&Arc::new(order_hash.to_string()), metric_future);
+                                }
                                 // Retry if the order isn't yet fillable
                                 if matches!(reason, ReactorErrorCode::OrderNotFillable) {
                                     return Ok(TransactionOutcome::RetryableFailure);
@@ -142,26 +167,8 @@ impl Public1559Executor {
                                 }
                             }
                             info!("{} - Failed to get revert reason - error: {:?}", order_hash, revert_reason.err().unwrap());
-                            let metric_future = build_metric_future(
-                                self.cloudwatch_client.clone(),
-                                DimensionValue::PriorityExecutor,
-                                CwMetrics::TxReverted(chain_id),
-                                1.0,
-                            );
-                            if let Some(metric_future) = metric_future {
-                                send_metric_with_order_hash!(&Arc::new(order_hash.to_string()), metric_future);
-                            }
                             Ok(TransactionOutcome::Failure(None))
                         } else {
-                            let metric_future = build_metric_future(
-                                self.cloudwatch_client.clone(),
-                                DimensionValue::PriorityExecutor,
-                                CwMetrics::TxSucceeded(chain_id),
-                                1.0,
-                            );
-                            if let Some(metric_future) = metric_future {
-                                send_metric_with_order_hash!(&Arc::new(order_hash.to_string()), metric_future);
-                            }
                             Ok(TransactionOutcome::Success(receipt.block_number))
                         }
                     }
@@ -374,6 +381,17 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
             
             // Retry tx submission on retryable failures if none of the transactions succeeded
             while attempts < MAX_RETRIES && !success && retryable_failure {
+
+                let metric_future = build_metric_future(
+                    self.cloudwatch_client.clone(),
+                    DimensionValue::PriorityExecutor,
+                    CwMetrics::TxSubmitted(chain_id),
+                    1.0,
+                );
+                if let Some(metric_future) = metric_future {
+                    send_metric_with_order_hash!(&Arc::new(order_hash.to_string()), metric_future);
+                }
+
                 // Create futures for all transactions
                 let futures: Vec<_> = tx_requests.iter().map(|tx_request| {
                     self.send_transaction(&wallet, tx_request.clone(), &order_hash, chain_id_u64, target_block.as_u64())
@@ -385,6 +403,7 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
                 // Check results
                 retryable_failure = false;
                 for (i, result) in results.iter().enumerate() {
+                    self.increment_tx_metric(&order_hash, chain_id, result);
                     match result {
                         Ok(TransactionOutcome::Success(result)) => {
                             success = true;
@@ -396,6 +415,8 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
                             if i == results.len() - 1 {
                                 block_number = *result;
                             }
+                            // Find the transaction that won the bid and compare the winning bid to our own bid
+                            
                         }
                         Ok(TransactionOutcome::RetryableFailure) => {
                             retryable_failure = true;
