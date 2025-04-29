@@ -365,6 +365,13 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
             // Retry up to 3 times to get the nonce.
             let mut nonce = get_nonce_with_retry(&sender_client, address, &order_hash, 3).await?;
 
+            // Sort transactions by max_priority_fee_per_gas in descending order so that the highest bid is first
+            tx_requests.sort_by(|a, b| {
+                let a_fee = a.max_priority_fee_per_gas().unwrap();
+                let b_fee = b.max_priority_fee_per_gas().unwrap();
+                b_fee.cmp(&a_fee)
+            });
+
             // Set unique nonces for each transaction
             for tx_request in tx_requests.iter_mut() {
                 tx_request.set_nonce(nonce);
