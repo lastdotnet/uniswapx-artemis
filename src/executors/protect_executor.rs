@@ -210,30 +210,26 @@ impl Executor<SubmitTxToMempool> for ProtectExecutor {
                             receipt.transaction_hash, status,
                         );
 
-                        if !status {
+                        if !status && receipt.block_number.is_some() {
                             info!("Attempting to get revert reason");
                             // Parse revert reason
-                            let revert_reason = get_revert_reason(
-                                &self.sender_client,
-                                tx_request_for_revert,
-                                receipt.block_number.unwrap(),
-                            ).await;
-                            
-                            if let Ok(reason) = revert_reason {
-                                info!("Revert reason: {}", reason);
-                                let metric_future = build_metric_future(
-                                    self.cloudwatch_client.clone(),
-                                    DimensionValue::V3Executor,
-                                    revert_code_to_metric(chain_id, reason.to_string()),
-                                    1.0,
-                                );
-                                if let Some(metric_future) = metric_future {
-                                    // do not block current thread by awaiting in the background
-                                    send_metric!(metric_future);
+                            match get_revert_reason(&self.sender_client, tx_request_for_revert, receipt.block_number.unwrap()).await {
+                                Ok(reason) => {
+                                    info!("Revert reason: {}", reason);
+                                    let metric_future = build_metric_future(
+                                        self.cloudwatch_client.clone(),
+                                        DimensionValue::V3Executor,
+                                        revert_code_to_metric(chain_id, reason.to_string()),
+                                        1.0,
+                                    );
+                                    if let Some(metric_future) = metric_future {
+                                        // do not block current thread by awaiting in the background
+                                        send_metric!(metric_future);
+                                    }
                                 }
-                            }
-                            else {
-                                info!("Failed to get revert reason - error: {:?}", revert_reason.err().unwrap());
+                                Err(e) => {
+                                    info!("Failed to get revert reason - error: {:?}", e);
+                                }
                             }
                         }
 

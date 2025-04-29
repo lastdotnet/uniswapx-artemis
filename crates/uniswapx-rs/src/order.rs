@@ -153,7 +153,6 @@ pub enum Order {
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[allow(dead_code)]
 pub enum TradeType {
     #[serde(rename = "exactIn")]
     ExactIn,
@@ -187,7 +186,10 @@ impl Order {
                 }
             }
             Order::V3DutchOrder(order) => {
-                if order.baseOutputs.iter().any(|o| o.curve.relativeAmounts.len() == 0 || *o.curve.relativeAmounts.last().unwrap() == I256::ZERO) {
+                if order.baseOutputs.iter().any(
+                    |o| o.curve.relativeAmounts.len() == 0 ||
+                    o.curve.relativeAmounts.iter().all(|&x| x.eq(&I256::ZERO))
+                ) {
                     TradeType::ExactOut
                 } else {
                     TradeType::ExactIn
