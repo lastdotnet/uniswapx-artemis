@@ -96,6 +96,7 @@ impl ExecutionMetadata {
         // exact_in: quote must be greater than amount_out_required
         if (self.exact_output && self.quote.ge(&self.amount_required)) ||
            (!self.exact_output && self.quote.le(&self.amount_required)) {
+            info!("{} - quote is not less than amount_required, skipping", self.order_hash);
             return None;
         }
 
@@ -107,12 +108,18 @@ impl ExecutionMetadata {
             self.quote.saturating_sub(self.amount_required)
         };
 
+        info!("{} - amount_required: {:?}", self.order_hash, self.amount_required);
+        info!("{} - quote: {:?}", self.order_hash, self.quote);
+        info!("{} - profit_quote: {:?}", self.order_hash, profit_quote);
+        info!("{} - bid_bps: {:?}", self.order_hash, bid_bps);
         let mps_of_improvement = profit_quote
             .saturating_mul(U256::from(MPS))
             .checked_div(self.amount_required)?;
+        info!("{} - mps_of_improvement: {:?}", self.order_hash, mps_of_improvement);
         let priority_fee = mps_of_improvement
             .checked_mul(U256::from(bid_bps))?
             .checked_div(U256::from(BPS))?;
+        info!("{} - priority_fee: {:?}", self.order_hash, priority_fee);
         Some(priority_fee)
     }
 
@@ -328,7 +335,7 @@ impl UniswapXPriorityFill {
                 info!("{} - Received {} order", order_hash, if order_data.order.is_exact_output() { "exact_out" } else { "exact_in" });
                 if let Some(route) = &order_data.route {
                     if !route.method_parameters.calldata.is_empty() {
-                        info!("{} - Received cached route for order", order_hash);
+                        info!("{} - Received cached route for order with quote: {}", order_hash, route.quote);
                     }
                 }
                 self.new_orders.insert(order_hash.clone(), order_data.clone());
@@ -471,12 +478,13 @@ impl UniswapXPriorityFill {
 
     fn get_order_batch(&self, order_data: &OrderData) -> OrderBatchData {
         let amount_in: Uint<256, 4> = order_data.resolved.input.amount;
+        info!("{} - outputs: {:?}", order_data.hash, order_data.resolved.outputs);
         let amount_out = order_data
             .resolved
             .outputs
             .iter()
             .fold(Uint::from(0), |sum, output| sum.wrapping_add(output.amount));
-
+        info!("{} - amount_out: {:?}", order_data.hash, amount_out);
         OrderBatchData {
             orders: vec![order_data.clone()],
             amount_in,
@@ -716,15 +724,7 @@ impl UniswapXPriorityFill {
                         }
 
                         let routed_order = RoutedOrder {
-                            request: OrderBatchData {
-                                orders: vec![order_data.value().clone()],
-                                amount_in: order_data.resolved.input.amount,
-                                amount_out: order_data.resolved.outputs[0].amount,
-                                amount_required: if order_data.order.is_exact_output() { order_data.resolved.input.amount } else { order_data.resolved.outputs[0].amount },
-                                token_in: order_data.resolved.input.token.clone(),
-                                token_out: order_data.resolved.outputs[0].token.clone(),
-                                chain_id: self.chain_id,
-                            },
+                            request: self.get_order_batch(order_data.value()),
                             route: OrderRoute {
                                 quote: order_data.route.as_ref().unwrap().quote.clone(),
                                 quote_gas_adjusted: order_data.route.as_ref().unwrap().quote_gas_adjusted.clone(),
@@ -1128,6 +1128,7 @@ mod tests {
             U256::from(1000),  // amount_in_required
             U256::from(99),   // gas_use_estimate_quote
             "test_hash",
+            None,
             None,
         );
         

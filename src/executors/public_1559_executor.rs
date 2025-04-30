@@ -33,7 +33,7 @@ static QUOTE_BASED_PRIORITY_BID_BUFFER: U256 = u256!(2);
 static GWEI_PER_ETH: U256 = u256!(1_000_000_000);
 const QUOTE_ETH_LOG10_THRESHOLD: usize = 8;
 // The number of bps to add to the base bid for each fallback bid
-const DEFAULT_FALLBACK_BID_SCALE_FACTOR: u64 = 100;
+const DEFAULT_FALLBACK_BID_SCALE_FACTOR: u64 = 50;
 
 /// An executor that sends transactions to the public mempool.
 pub struct Public1559Executor {
@@ -227,7 +227,7 @@ impl Public1559Executor {
         for i in 0..num_fallback_bids {
             // Check if the shift would cause overflow or if the result would be negative
             let bid_scale_factor = action.metadata.fallback_bid_scale_factor.unwrap_or(DEFAULT_FALLBACK_BID_SCALE_FACTOR);
-            let bid_reduction = U128::from(bid_scale_factor * (1 << i + 1));
+            let bid_reduction = U128::from(bid_scale_factor * (1 << i));
             if bid_reduction >= U128::from(BPS) {
                 // Stop generating more fallback bids
                 break;
@@ -237,8 +237,10 @@ impl Public1559Executor {
             let fallback_bid = action
                 .metadata
                 .calculate_priority_fee(bid_bps);
-            bid_priority_fees.push(fallback_bid);
-            debug!("{} - fallback_bid_{}: {:?}", order_hash, i, fallback_bid);
+            if let Some(bid) = fallback_bid {
+                bid_priority_fees.push(Some(bid));
+                debug!("{} - fallback_bid_{}: {:?}", order_hash, i, bid);
+            }
         }
 
         bid_priority_fees
