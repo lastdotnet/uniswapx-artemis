@@ -226,7 +226,7 @@ impl Public1559Executor {
         // 9950, 9900, 9800, 9600, 9200, ...
         for i in 0..num_fallback_bids {
             // Check if the shift would cause overflow or if the result would be negative
-            let bid_reduction = U128::from(BID_SCALE_FACTOR * (1 << i));
+            let bid_reduction = U128::from(BID_SCALE_FACTOR * (1 << i + 1));
             if bid_reduction >= U128::from(BPS) {
                 // Stop generating more fallback bids
                 break;
