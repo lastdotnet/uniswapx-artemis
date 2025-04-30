@@ -65,6 +65,7 @@ pub struct ExecutionMetadata {
     pub gas_use_estimate_quote: U256,
     pub order_hash: String,
     pub target_block: Option<U64>,
+    pub fallback_bid_scale_factor: Option<u64>,
 }
 
 impl ExecutionMetadata {
@@ -76,6 +77,7 @@ impl ExecutionMetadata {
         gas_use_estimate_quote: U256,
         order_hash: &str,
         target_block: Option<U64>,
+        fallback_bid_scale_factor: Option<u64>,
     ) -> Self {
         Self {
             quote,
@@ -85,6 +87,7 @@ impl ExecutionMetadata {
             gas_use_estimate_quote,
             order_hash: order_hash.to_owned(),
             target_block,
+            fallback_bid_scale_factor,
         }
     }
 
@@ -163,6 +166,7 @@ pub struct UniswapXPriorityFill {
     /// executor address
     executor_address: String,
     min_block_percentage_buffer: Option<u64>,
+    fallback_bid_scale_factor: Option<u64>,
     last_block_number: RwLock<u64>,
     last_block_timestamp: RwLock<u64>,
     // map of new order hashes to order data
@@ -192,6 +196,7 @@ impl UniswapXPriorityFill {
             cloudwatch_client,
             executor_address: config.executor_address,
             min_block_percentage_buffer: config.min_block_percentage_buffer,
+            fallback_bid_scale_factor: config.fallback_bid_scale_factor,
             last_block_number: RwLock::new(0),
             last_block_timestamp: RwLock::new(0),
             new_orders: Arc::new(DashMap::new()),
@@ -533,6 +538,7 @@ impl UniswapXPriorityFill {
                 gas_use_estimate_quote: U256::from_str_radix(&routed_order.route.gas_use_estimate_quote, 10).ok()?,
                 order_hash: routed_order.request.orders[0].hash.clone(),
                 target_block: routed_order.target_block.map(|b| U64::from(b)),
+                fallback_bid_scale_factor: self.fallback_bid_scale_factor.clone(),
             }
         })
     }
@@ -809,6 +815,7 @@ mod tests {
             U256::from(50),    // gas_use_estimate_quote
             "test_hash",
             None,
+            None,
         );
         
         let bid_bps = U128::from(5000); // 50%
@@ -828,6 +835,7 @@ mod tests {
             U256::from(50),    // gas_use_estimate_quote
             "test_hash",
             None,
+            None,
         );
         
         let result = metadata.calculate_priority_fee(bid_bps);
@@ -842,6 +850,7 @@ mod tests {
             U256::from(50),    // gas_use_estimate_quote
             "test_hash",
             None,
+            None,
         );
         
         let result = metadata.calculate_priority_fee(bid_bps);
@@ -855,6 +864,7 @@ mod tests {
             U256::from(800),   // amount_out_required
             U256::from(50),    // gas_use_estimate_quote
             "test_hash",
+            None,
             None,
         );
         
@@ -873,6 +883,7 @@ mod tests {
             U256::from(800),   // amount_out_required
             U256::from(50),    // gas_use_estimate_quote
             "test_hash",
+            None,
             None,
         );
         
@@ -894,6 +905,7 @@ mod tests {
             U256::from(50),    // gas_use_estimate_quote
             "test_hash",
             None,
+            None,
         );
         
         let bid_bps = U128::from(5000); // 50%
@@ -913,6 +925,7 @@ mod tests {
             U256::from(50),    // gas_use_estimate_quote
             "test_hash",
             None,
+            None
         );
         
         let result = metadata.calculate_priority_fee(bid_bps);
@@ -927,6 +940,7 @@ mod tests {
             U256::from(50),    // gas_use_estimate_quote
             "test_hash",
             None,
+            None,
         );
         
         let result = metadata.calculate_priority_fee(bid_bps);
@@ -940,6 +954,7 @@ mod tests {
             U256::from(1000),  // amount_in_required
             U256::from(50),    // gas_use_estimate_quote
             "test_hash",
+            None,
             None,
         );
         
@@ -958,6 +973,7 @@ mod tests {
             U256::from(1000),  // amount_in_required
             U256::from(50),    // gas_use_estimate_quote
             "test_hash",
+            None,
             None,
         );
         
@@ -978,6 +994,7 @@ mod tests {
             U256::from(50),    // gas_use_estimate_quote
             "test_hash",
             None,
+            None,
         );
         
         // With gas buffer of 2x
@@ -997,6 +1014,7 @@ mod tests {
             U256::from(1000000000),  // gas_use_estimate_quote
             "test_hash",
             None,
+            None,
         );
         
         // With gas buffer of 1x
@@ -1013,6 +1031,7 @@ mod tests {
             U256::from(900),   // amount_out_required
             U256::from(99),   // gas_use_estimate_quote
             "test_hash",
+            None,
             None,
         );
         
@@ -1033,6 +1052,7 @@ mod tests {
             U256::from(200),   // gas_use_estimate_quote
             "test_hash",
             None,
+            None,
         );
         
         // With gas buffer of 1x (900 + 200 > 1000)
@@ -1048,6 +1068,7 @@ mod tests {
             U256::from(800),   // amount_out_required
             U256::from(0),     // gas_use_estimate_quote
             "test_hash",
+            None,
             None,
         );
         
@@ -1071,6 +1092,7 @@ mod tests {
             U256::from(50),    // gas_use_estimate_quote
             "test_hash",
             None,
+            None,
         );
         
         // With gas buffer of 2x
@@ -1089,6 +1111,7 @@ mod tests {
             U256::from(1000),   // amount_in_required
             U256::from(2),      // gas_use_estimate_quote
             "test_hash",
+            None,
             None,
         );
         
@@ -1125,6 +1148,7 @@ mod tests {
             U256::from(200),   // gas_use_estimate_quote
             "test_hash",
             None,
+            None,
         );
         
         // With gas buffer of 1x (900 > 1000 - 200)
@@ -1140,6 +1164,7 @@ mod tests {
             U256::from(1000),  // amount_in_required
             U256::from(0),     // gas_use_estimate_quote
             "test_hash",
+            None,
             None,
         );
         

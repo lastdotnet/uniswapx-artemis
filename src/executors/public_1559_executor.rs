@@ -33,7 +33,7 @@ static QUOTE_BASED_PRIORITY_BID_BUFFER: U256 = u256!(2);
 static GWEI_PER_ETH: U256 = u256!(1_000_000_000);
 const QUOTE_ETH_LOG10_THRESHOLD: usize = 8;
 // The number of bps to add to the base bid for each fallback bid
-const BID_SCALE_FACTOR: u64 = 50;
+const DEFAULT_FALLBACK_BID_SCALE_FACTOR: u64 = 100;
 
 /// An executor that sends transactions to the public mempool.
 pub struct Public1559Executor {
@@ -226,7 +226,8 @@ impl Public1559Executor {
         // 9950, 9900, 9800, 9600, 9200, ...
         for i in 0..num_fallback_bids {
             // Check if the shift would cause overflow or if the result would be negative
-            let bid_reduction = U128::from(BID_SCALE_FACTOR * (1 << i + 1));
+            let bid_scale_factor = action.metadata.fallback_bid_scale_factor.unwrap_or(DEFAULT_FALLBACK_BID_SCALE_FACTOR);
+            let bid_reduction = U128::from(bid_scale_factor * (1 << i + 1));
             if bid_reduction >= U128::from(BPS) {
                 // Stop generating more fallback bids
                 break;
@@ -555,6 +556,7 @@ mod tests {
                 gas_use_estimate_quote: gas_estimate,
                 order_hash: "test_hash".to_string(),
                 target_block: target_block.map(|b| U64::from(b)),
+                fallback_bid_scale_factor: Some(DEFAULT_FALLBACK_BID_SCALE_FACTOR),
             },
         };
         action
