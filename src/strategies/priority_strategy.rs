@@ -108,18 +108,12 @@ impl ExecutionMetadata {
             self.quote.saturating_sub(self.amount_required)
         };
 
-        info!("{} - amount_required: {:?}", self.order_hash, self.amount_required);
-        info!("{} - quote: {:?}", self.order_hash, self.quote);
-        info!("{} - profit_quote: {:?}", self.order_hash, profit_quote);
-        info!("{} - bid_bps: {:?}", self.order_hash, bid_bps);
         let mps_of_improvement = profit_quote
             .saturating_mul(U256::from(MPS))
             .checked_div(self.amount_required)?;
-        info!("{} - mps_of_improvement: {:?}", self.order_hash, mps_of_improvement);
         let priority_fee = mps_of_improvement
             .checked_mul(U256::from(bid_bps))?
             .checked_div(U256::from(BPS))?;
-        info!("{} - priority_fee: {:?}", self.order_hash, priority_fee);
         Some(priority_fee)
     }
 

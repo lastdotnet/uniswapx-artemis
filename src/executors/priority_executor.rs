@@ -36,7 +36,7 @@ const QUOTE_ETH_LOG10_THRESHOLD: usize = 8;
 const DEFAULT_FALLBACK_BID_SCALE_FACTOR: u64 = 50;
 
 /// An executor that sends transactions to the public mempool.
-pub struct Public1559Executor {
+pub struct PriorityExecutor {
     client: Arc<DynProvider<AnyNetwork>>,
     sender_client: Arc<DynProvider<AnyNetwork>>,
     key_store: Arc<KeyStore>,
@@ -50,7 +50,7 @@ enum TransactionOutcome {
     RetryableFailure,
 }
 
-impl Public1559Executor {
+impl PriorityExecutor {
     pub fn new(
         client: Arc<DynProvider<AnyNetwork>>,
         sender_client: Arc<DynProvider<AnyNetwork>>,
@@ -248,7 +248,7 @@ impl Public1559Executor {
 }
 
 #[async_trait]
-impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
+impl Executor<SubmitTxToMempoolWithExecutionMetadata> for PriorityExecutor {
     /// Send a transaction to the mempool.
     async fn execute(&self, mut action: SubmitTxToMempoolWithExecutionMetadata) -> Result<()> {
         info!("{} - Executing transaction", action.metadata.order_hash);
@@ -557,7 +557,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_bids_for_order_small_quote() {
-        let executor = Public1559Executor::new(
+        let executor = PriorityExecutor::new(
             Arc::new(DynProvider::new(MockProvider)),
             Arc::new(DynProvider::new(MockProvider)),
             Arc::new(KeyStore::new()),
@@ -579,7 +579,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_bids_for_order_large_quote() {
-        let executor = Public1559Executor::new(
+        let executor = PriorityExecutor::new(
             Arc::new(DynProvider::new(MockProvider)),
             Arc::new(DynProvider::new(MockProvider)),
             Arc::new(KeyStore::new()),
@@ -600,7 +600,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_bids_for_order_exact_output() {
-        let executor = Public1559Executor::new(
+        let executor = PriorityExecutor::new(
             Arc::new(DynProvider::new(MockProvider)),
             Arc::new(DynProvider::new(MockProvider)),
             Arc::new(KeyStore::new()),
@@ -622,7 +622,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_bids_for_order_no_gas_estimate() {
-        let executor = Public1559Executor::new(
+        let executor = PriorityExecutor::new(
             Arc::new(DynProvider::new(MockProvider)),
             Arc::new(DynProvider::new(MockProvider)),
             Arc::new(KeyStore::new()),
@@ -643,7 +643,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_bids_for_order_too_little_quote() {
-        let executor = Public1559Executor::new(
+        let executor = PriorityExecutor::new(
             Arc::new(DynProvider::new(MockProvider)),
             Arc::new(DynProvider::new(MockProvider)),
             Arc::new(KeyStore::new()),
@@ -664,7 +664,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_extremely_large_quote() {
-        let executor = Public1559Executor::new(
+        let executor = PriorityExecutor::new(
             Arc::new(DynProvider::new(MockProvider)),
             Arc::new(DynProvider::new(MockProvider)),
             Arc::new(KeyStore::new()),

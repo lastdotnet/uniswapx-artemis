@@ -1,4 +1,4 @@
-use crate::executors::public_1559_executor::Public1559Executor;
+use crate::executors::priority_executor::PriorityExecutor;
 use crate::strategies::keystore::KeyStore;
 use crate::strategies::types::SubmitTxToMempoolWithExecutionMetadata;
 use alloy::{network::AnyNetwork, providers::DynProvider};
@@ -36,7 +36,7 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for QueuedExecutor {
         &self,
         action: SubmitTxToMempoolWithExecutionMetadata,
     ) -> Result<(), anyhow::Error> {
-        let public_executor = Public1559Executor::new(
+        let public_executor = PriorityExecutor::new(
             self.provider.clone(),
             self.sender_client.clone(),
             self.key_store.clone(),

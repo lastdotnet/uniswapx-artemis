@@ -2,13 +2,16 @@ use alloy::{
     network::AnyNetwork,
     primitives::{BlockHash, BlockNumber, BlockTimestamp},
     providers::{DynProvider, Provider},
+    rpc::types::eth::{BlockTransactionsKind, BlockNumberOrTag},
 };
 use anyhow::Result;
 use artemis_core::types::{Collector, CollectorStream};
 use async_trait::async_trait;
 use std::sync::Arc;
 use tokio_stream::StreamExt;
-use tracing::{error, info};
+use tokio::time::Duration;
+
+const BLOCK_POLLING_INTERVAL: Duration = Duration::from_secs(1);
 
 /// A collector that listens for new blocks, and generates a stream of
 /// [events](NewBlock) which contain the block number and hash.
@@ -35,26 +38,42 @@ impl BlockCollector {
 #[async_trait]
 impl Collector<NewBlock> for BlockCollector {
     async fn get_event_stream(&self) -> Result<CollectorStream<'_, NewBlock>> {
-        // Initial block number to start tracking from
-        let start_block = match self.provider.get_block_number().await {
-            Ok(num) => num,
-            Err(e) => {
-                error!("Failed to get initial block number: {}", e);
-                return Err(e.into());
-            }
-        };
-
-        info!("Starting BlockCollector from block number: {}", start_block);
-
         let provider = self.provider.clone();
 
-        let sub = provider.subscribe_blocks().await?;
-        let stream = sub.into_stream().map(|header| NewBlock {
-            hash: header.hash,
-            number: header.number,
-            timestamp: header.timestamp,
-        });
-
-        Ok(Box::pin(stream))
+        // First try to subscribe to blocks
+        match provider.subscribe_blocks().await {
+            Ok(sub) => {
+                
+                let stream = sub.into_stream().map(|header| NewBlock {
+                    hash: header.hash,
+                    number: header.number,
+                    timestamp: header.timestamp,
+                });
+                Ok(Box::pin(stream))
+            }
+            Err(_) => {
+                // Fallback to polling
+                let stream = tokio_stream::wrappers::IntervalStream::new(tokio::time::interval(BLOCK_POLLING_INTERVAL))
+                    .then(move |_| {
+                        let provider = provider.clone();
+                        async move {
+                            match provider.get_block_by_number(BlockNumberOrTag::Latest, BlockTransactionsKind::Full).await {
+                                Ok(Some(block)) => {
+                                    let header = &block.header;
+                                    Some(NewBlock {
+                                        hash: header.hash,
+                                        number: header.number,
+                                        timestamp: header.timestamp,
+                                    })
+                                }
+                                Ok(None) => None,
+                                Err(_) => None,
+                            }
+                        }
+                    })
+                    .filter_map(|x| x);
+                Ok(Box::pin(stream))
+            }
+        }
     }
 }
