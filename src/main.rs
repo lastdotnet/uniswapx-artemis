@@ -52,8 +52,8 @@ pub mod strategies;
 ))]
 pub struct Args {
     /// Ethereum node WSS endpoint.
-    #[arg(long, required = true)]
-    pub wss: String,
+    #[arg(long, required = false)]
+    pub wss: Option<String>,
 
     /// Ethereum node HTTP endpoint.
     #[arg(long, required = false)]
@@ -155,26 +155,40 @@ async fn main() -> Result<()> {
 
     // Set up ethers provider.
     let chain_id = args.chain_id;
+    let mut client = None;
+    let mut sender_client = None;
+    
+    if let Some(wss) = args.wss {
+        let ws = WsConnect::new(wss.as_str());
+        let retry_ws = RetryWsConnect(ws);
+        let wss_client = ClientBuilder::default().pubsub(retry_ws).await?;
 
-    let ws = WsConnect::new(args.wss.as_str());
-    let retry_ws = RetryWsConnect(ws);
-    let wss_client = ClientBuilder::default().pubsub(retry_ws).await?;
-
-    let wss_provider = Arc::new(DynProvider::<AnyNetwork>::new(
-        ProviderBuilder::new()
-            .network::<AnyNetwork>()
-            .on_client(wss_client)
-    ));
+        let wss_provider = Arc::new(DynProvider::<AnyNetwork>::new(
+            ProviderBuilder::new()
+                .network::<AnyNetwork>()
+                .on_client(wss_client)
+        ));
+        client = Some(wss_provider.clone());
+        sender_client = Some(wss_provider.clone());
+    }
 
     // Initialize HTTP provider if specified
-    let mut sender_client = wss_provider.clone();
     if let Some(http_endpoint) = args.http {
         let http_client = ClientBuilder::default().http(http_endpoint.parse()?);
-        sender_client = Arc::new(DynProvider::<AnyNetwork>::new(
+        let http_provider = Arc::new(DynProvider::<AnyNetwork>::new(
             ProviderBuilder::new()
                 .network::<AnyNetwork>()
                 .on_client(http_client)
         ));
+        // prefer http provider for sending txs
+        sender_client = Some(http_provider.clone());
+        // prefer wss provider for fetching blocks
+        if !client.is_some() {
+            client = Some(http_provider.clone());
+        }
+    }
+    if !client.is_some() {
+        panic!("No provider found. Please provide either a WSS endpoint (--wss) or an HTTP endpoint (--http).");
     }
 
     let mut key_store = Arc::new(KeyStore::new());
@@ -218,7 +232,7 @@ async fn main() -> Result<()> {
     let mut engine = Engine::default();
 
     // Set up block collector.
-    let block_collector = Box::new(BlockCollector::new(wss_provider.clone()));
+    let block_collector = Box::new(BlockCollector::new(client.clone().unwrap()));
     let block_collector = CollectorMap::new(block_collector, Event::NewBlock);
     engine.add_collector(Box::new(block_collector));
 
@@ -265,7 +279,7 @@ async fn main() -> Result<()> {
     match &args.order_type {
         OrderType::DutchV2 => {
             let uniswapx_strategy = UniswapXUniswapFill::new(
-                wss_provider.clone(),
+                client.clone().unwrap(),
                 config.clone(),
                 batch_sender,
                 route_receiver,
@@ -276,7 +290,7 @@ async fn main() -> Result<()> {
         }
         OrderType::DutchV3 => {
             let uniswapx_strategy = UniswapXDutchV3Fill::new(
-                wss_provider.clone(),
+                client.clone().unwrap(),
                 config.clone(),
                 batch_sender,
                 route_receiver,
@@ -287,7 +301,7 @@ async fn main() -> Result<()> {
         }
         OrderType::Priority => {
             let priority_strategy = UniswapXPriorityFill::new(
-                wss_provider.clone(),
+                client.clone().unwrap(),
                 cloudwatch_client.clone(),
                 config.clone(),
                 batch_sender,
@@ -300,8 +314,8 @@ async fn main() -> Result<()> {
     }
 
     let queued_executor = Box::new(QueuedExecutor::new(
-        wss_provider.clone(),
-        sender_client.clone(),
+        client.clone().unwrap(),
+        sender_client.clone().unwrap(),
         key_store.clone(),
         cloudwatch_client.clone(),
     ));
@@ -312,8 +326,8 @@ async fn main() -> Result<()> {
     });
 
     let protect_executor = Box::new(DutchExecutor::new(
-        wss_provider.clone(),
-        sender_client.clone(),
+        client.clone().unwrap(),
+        sender_client.clone().unwrap(),
         key_store.clone(),
         cloudwatch_client.clone(),
     ));
