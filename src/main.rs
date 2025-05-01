@@ -18,7 +18,7 @@ use alloy::{
     signers::local::PrivateKeySigner,
     transports::{impl_future, TransportResult},
 };
-use executors::protect_executor::ProtectExecutor;
+use executors::dutch_executor::DutchExecutor;
 use executors::queued_executor::QueuedExecutor;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -311,7 +311,7 @@ async fn main() -> Result<()> {
         _ => None,
     });
 
-    let protect_executor = Box::new(ProtectExecutor::new(
+    let protect_executor = Box::new(DutchExecutor::new(
         wss_provider.clone(),
         sender_client.clone(),
         key_store.clone(),

@@ -24,14 +24,14 @@ use crate::{
 const GAS_LIMIT: u64 = 1_000_000;
 
 /// An executor that sends transactions to the mempool.
-pub struct ProtectExecutor {
+pub struct DutchExecutor {
     client: Arc<DynProvider<AnyNetwork>>,
     sender_client: Arc<DynProvider<AnyNetwork>>,
     key_store: Arc<KeyStore>,
     cloudwatch_client: Option<Arc<CloudWatchClient>>,
 }
 
-impl ProtectExecutor {
+impl DutchExecutor {
     pub fn new(
         client: Arc<DynProvider<AnyNetwork>>,
         sender_client: Arc<DynProvider<AnyNetwork>>,
@@ -48,7 +48,7 @@ impl ProtectExecutor {
 }
 
 #[async_trait]
-impl Executor<SubmitTxToMempool> for ProtectExecutor {
+impl Executor<SubmitTxToMempool> for DutchExecutor {
     /// Send a transaction to the mempool.
     async fn execute(&self, mut action: SubmitTxToMempool) -> Result<()> {
         let chain_id = action
