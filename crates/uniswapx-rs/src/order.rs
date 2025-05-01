@@ -6,6 +6,7 @@ use alloy_primitives::I256;
 use alloy_primitives::U256;
 use alloy_sol_types::sol;
 use anyhow::Result;
+use serde::Serialize;
 
 use crate::sol_math::MulDiv;
 
@@ -151,6 +152,14 @@ pub enum Order {
     V3DutchOrder(V3DutchOrder),
 }
 
+#[derive(Serialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum TradeType {
+    #[serde(rename = "exactIn")]
+    ExactIn,
+    #[serde(rename = "exactOut")]
+    ExactOut,
+}
+
 impl Order {
     pub fn encode(&self) -> Vec<u8> {
         match self {
@@ -158,6 +167,39 @@ impl Order {
             Order::PriorityOrder(order) => order.encode_inner(),
             Order::V3DutchOrder(order) => order.encode_inner(),
         }
+    }
+
+    pub fn trade_type(&self) -> TradeType {
+        match self {
+            Order::V2DutchOrder(order) => {
+                if order.baseOutputs.iter().any(|o| o.startAmount == o.endAmount) {
+                    TradeType::ExactOut
+                } else {
+                    TradeType::ExactIn
+                }
+            }
+            Order::PriorityOrder(order) => {
+                if order.outputs.iter().any(|o| o.mpsPerPriorityFeeWei == U256::from(0)) {
+                    TradeType::ExactOut
+                } else {
+                    TradeType::ExactIn
+                }
+            }
+            Order::V3DutchOrder(order) => {
+                if order.baseOutputs.iter().any(
+                    |o| o.curve.relativeAmounts.len() == 0 ||
+                    o.curve.relativeAmounts.iter().all(|&x| x.eq(&I256::ZERO))
+                ) {
+                    TradeType::ExactOut
+                } else {
+                    TradeType::ExactIn
+                }
+            }
+        }
+    }
+
+    pub fn is_exact_output(&self) -> bool {
+        matches!(self.trade_type(), TradeType::ExactOut)
     }
 }
 
@@ -268,7 +310,7 @@ impl PriorityOrder {
         PriorityOrder::abi_encode(self)
     }
 
-    pub fn resolve(&self, block_number: u64, block_timestamp: u64, block_time_ms: u64, priority_fee: U256, ) -> OrderResolution {
+    pub fn resolve(&self, block_number: u64, block_timestamp: u64, block_time_ms: u64, priority_fee: U256, min_block_percentage_buffer: u64) -> OrderResolution {
         let block_time = block_time_ms / 1000;
         let next_block_timestamp = U256::from(block_timestamp) + U256::from(block_time);
 
@@ -294,7 +336,7 @@ impl PriorityOrder {
             block_timestamp,
             block_time_ms
         );
-        let time_buffer_ms = block_time_ms * 1300 / 1000; // TODO: fine tune
+        let time_buffer_ms = block_time_ms * min_block_percentage_buffer / 100;
         if U256::from(current_timestamp_ms() + time_buffer_ms).lt(&target_block_ms) {
             return OrderResolution::NotFillableYet(ResolvedOrder { input, outputs });
         }

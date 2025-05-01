@@ -7,7 +7,7 @@ use reqwest::header::ORIGIN;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{error, info};
-use uniswapx_rs::order::{Order, ResolvedOrder};
+use uniswapx_rs::order::{Order, ResolvedOrder, TradeType};
 
 use artemis_core::types::{Collector, CollectorStream};
 use async_trait::async_trait;
@@ -40,18 +40,10 @@ pub struct OrderBatchData {
     pub orders: Vec<OrderData>,
     pub chain_id: u64,
     pub amount_in: Uint<256, 4>,
-    pub amount_out_required: Uint<256, 4>,
+    pub amount_out: Uint<256, 4>,
+    pub amount_required: Uint<256, 4>,
     pub token_in: String,
     pub token_out: String,
-}
-
-#[derive(Serialize, Debug)]
-#[allow(dead_code)]
-enum TradeType {
-    #[serde(rename = "exactIn")]
-    ExactIn,
-    #[serde(rename = "exactOut")]
-    ExactOut,
 }
 
 #[derive(Serialize, Debug)]
@@ -85,6 +77,16 @@ pub struct TokenInRoute {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[allow(dead_code)]
+pub struct V4Route {
+    address: String,
+    token_in: TokenInRoute,
+    token_out: TokenInRoute,
+    fee: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct V3Route {
     address: String,
     token_in: TokenInRoute,
@@ -104,6 +106,8 @@ pub struct V2Route {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "type")]
 pub enum Route {
+    #[serde(rename = "v4-pool")]
+    V4(V4Route),
     #[serde(rename = "v3-pool")]
     V3(V3Route),
     #[serde(rename = "v2-pool")]
@@ -128,6 +132,7 @@ pub struct RouteOrderParams {
     pub token_out: String,
     pub amount: String,
     pub recipient: String,
+    pub trade_type: TradeType,
 }
 
 #[derive(Clone, Debug)]
@@ -177,13 +182,12 @@ impl UniswapXRouteCollector {
         params: RouteOrderParams,
         order_hash: String,
     ) -> Result<OrderRoute> {
-        // TODO: support exactOutput
         let query = RoutingApiQuery {
             token_in_address: resolve_address(params.token_in),
             token_out_address: resolve_address(params.token_out),
             token_in_chain_id: params.chain_id,
             token_out_chain_id: params.chain_id,
-            trade_type: TradeType::ExactIn,
+            trade_type: params.trade_type,
             amount: params.amount,
             recipient: params.recipient,
             slippage_tolerance: SLIPPAGE_TOLERANCE.to_string(),
@@ -192,7 +196,7 @@ impl UniswapXRouteCollector {
             protocols: "v2,v3,v4,mixed".to_string(),
         };
 
-        let query_string = serde_qs::to_string(&query).unwrap();
+        let query_string = serde_qs::to_string(&query)?;
         let full_query = format!("{}?{}", ROUTING_API, query_string);
         info!("{} - full query: {}", order_hash, full_query);
         let client = reqwest::Client::new();
@@ -202,6 +206,7 @@ impl UniswapXRouteCollector {
             .get(format!("{}?{}", ROUTING_API, query_string))
             .header(ORIGIN, "https://app.uniswap.org")
             .header("x-request-source", "uniswap-web")
+            .header("x-universal-router-version", "2.0")
             .send()
             .await
             .map_err(|e| anyhow!("Quote request failed with error: {}", e))?;
@@ -218,10 +223,14 @@ impl UniswapXRouteCollector {
         }
 
         match response.status() {
-            StatusCode::OK => Ok(response
-                .json::<OrderRoute>()
-                .await
-                .map_err(|e| anyhow!("{} - Failed to parse response: {}", order_hash, e))?),
+            StatusCode::OK => {
+                let order_route = response
+                    .json::<OrderRoute>()
+                    .await
+                    .map_err(|e| anyhow!("{} - Failed to parse response: {}", order_hash, e))?;
+                info!("{} - Received route: {:?}", order_hash, order_route);
+                Ok(order_route)
+            }
             StatusCode::BAD_REQUEST => Err(anyhow!(
                 "{} - Bad request: {}",
                 order_hash,
@@ -292,20 +301,24 @@ impl Collector<RoutedOrder> for UniswapXRouteCollector {
 
                 for batch in all_requests {
                     let order_hash = batch.orders[0].hash.clone();
-                    let OrderBatchData { token_in, token_out, amount_in, .. } = batch.clone();
+                    let OrderBatchData { token_in, token_out, amount_in, amount_out, .. } = batch.clone();
                     info!(
-                        "{} - Routing order, token in: {}, token out: {}",
+                        "{} - Routing order, token in: {}, token out: {}, amount in: {}, amount out: {}",
                         order_hash,
-                        token_in, token_out
+                        token_in, token_out, amount_in, amount_out
                     );
-
                     let future = async move {
                         let route_result = self.route_order(RouteOrderParams {
                             chain_id: self.chain_id,
                             token_in: token_in.clone(),
                             token_out: token_out.clone(),
-                            amount: amount_in.to_string(),
+                            amount: if batch.orders[0].order.is_exact_output() {
+                                amount_out.to_string()
+                            } else {
+                                amount_in.to_string()
+                            },
                             recipient: self.executor_address.clone(),
+                            trade_type: batch.orders[0].order.trade_type(),
                         }, order_hash).await;
                         (batch, route_result)
                     };

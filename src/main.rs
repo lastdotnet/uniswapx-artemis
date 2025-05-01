@@ -69,8 +69,19 @@ pub struct Args {
     pub aws_secret_arn: Option<String>,
 
     /// Percentage of profit to pay in gas.
-    #[arg(long, required = true)]
-    pub bid_percentage: u128,
+    #[arg(long, required = false)]
+    pub bid_percentage: Option<u128>,
+
+    /// Determines how aggressive to scale the fallback bids
+    /// 100 (default) = 1% of the profit
+    #[arg(long, required = false)]
+    pub fallback_bid_scale_factor: Option<u64>,
+
+    /// Minimum block percentage buffer for priority orders.
+    /// This determines how much time to wait before the target block to submit the fill transaction.
+    /// Example: 120 = 120% of the block time which would be 2.4 seconds with a block time of 2 seconds.
+    #[arg(long, required = false)]
+    pub min_block_percentage_buffer: Option<u64>,
 
     /// Private key for sending txs.
     #[arg(long, required = true)]
@@ -233,6 +244,8 @@ async fn main() -> Result<()> {
 
     let config = Config {
         bid_percentage: args.bid_percentage,
+        fallback_bid_scale_factor: args.fallback_bid_scale_factor,
+        min_block_percentage_buffer: args.min_block_percentage_buffer,
         executor_address: args.executor_address,
     };
 

@@ -31,8 +31,10 @@ pub enum Action {
 /// Configuration for variables we need to pass to the strategy.
 #[derive(Debug, Clone)]
 pub struct Config {
-    pub bid_percentage: u128,
+    pub bid_percentage: Option<u128>,
     pub executor_address: String,
+    pub min_block_percentage_buffer: Option<u64>,
+    pub fallback_bid_scale_factor: Option<u64>,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]

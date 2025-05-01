@@ -114,12 +114,23 @@ pub trait UniswapXStrategy {
 
     fn get_profit_eth(&self, RoutedOrder { request, route, .. }: &RoutedOrder) -> Option<U256> {
         let quote = U256::from_str_radix(&route.quote, 10).ok()?;
-        let amount_out_required =
-            U256::from_str_radix(&request.amount_out_required.to_string(), 10).ok()?;
-        if quote.le(&amount_out_required) {
-            return None;
-        }
-        let profit_quote = quote.saturating_sub(amount_out_required);
+        let amount_required =
+            U256::from_str_radix(&request.amount_required.to_string(), 10).ok()?;
+        
+        // exact_out: quote must be less than amount_in_required
+        // exact_in: quote must be greater than amount_out_required
+        if (request.orders.first().unwrap().order.is_exact_output() && quote.ge(&amount_required)) ||
+            (!request.orders.first().unwrap().order.is_exact_output() && quote.le(&amount_required)) {
+             return None;
+         }
+
+        // exact_out: profit = amount_in_required - quote
+        // exact_in: profit = quote - amount_out_required
+        let profit_quote = if request.orders.first().unwrap().order.is_exact_output() {
+            amount_required.saturating_sub(quote)
+        } else {
+            quote.saturating_sub(amount_required)
+        };
 
         if request.token_out.to_lowercase() == WETH_ADDRESS.to_lowercase() {
             return Some(profit_quote);
@@ -129,6 +140,35 @@ pub trait UniswapXStrategy {
             .ok()?
             .saturating_mul(U256::from_str_radix(&route.gas_price_wei, 10).ok()?);
         profit_quote
+            .saturating_mul(gas_use_eth)
+            .checked_div(U256::from_str_radix(&route.gas_use_estimate_quote, 10).ok()?)
+    }
+
+    /// Converts the quote amount to ETH equivalent value
+    /// 
+    /// For WETH output tokens, returns the quote directly since it's already in ETH.
+    /// For non-WETH output tokens, converts using the following formula:
+    /// quote_eth = quote * gas_wei / gas_in_quote
+    /// 
+    /// # Arguments
+    /// * `request` - The order request containing token information
+    /// * `route` - The route containing quote and gas estimates
+    /// 
+    /// # Returns
+    /// * `Some(U256)` - The quote value in ETH
+    /// * `None` - If any conversion fails or division by zero would occur
+    fn get_quote_eth(&self, RoutedOrder { request, route, .. }: &RoutedOrder) -> Option<U256> {
+        let quote = U256::from_str_radix(&route.quote, 10).ok()?;
+
+        // If output token is WETH, quote is already in ETH
+        if request.token_out.to_lowercase() == WETH_ADDRESS.to_lowercase() {
+            return Some(quote);
+        }
+
+        let gas_use_eth = U256::from_str_radix(&route.gas_use_estimate, 10)
+            .ok()?
+            .saturating_mul(U256::from_str_radix(&route.gas_price_wei, 10).ok()?);
+        quote
             .saturating_mul(gas_use_eth)
             .checked_div(U256::from_str_radix(&route.gas_use_estimate_quote, 10).ok()?)
     }

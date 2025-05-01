@@ -1,9 +1,9 @@
-use alloy_primitives::{utils::format_units, U128};
-use std::sync::Arc;
+use alloy_primitives::{utils::format_units, Address, U128};
+use std::{str::FromStr, sync::Arc};
 use tracing::{info, warn};
 
 use alloy::{
-    network::{AnyNetwork, ReceiptResponse, TransactionBuilder},
+    network::{AnyNetwork, EthereumWallet, ReceiptResponse, TransactionBuilder},
     providers::{DynProvider, Provider},
     rpc::types::TransactionReceipt,
     serde::WithOtherFields,
@@ -17,12 +17,11 @@ use aws_sdk_cloudwatch::Client as CloudWatchClient;
 
 use crate::{
     aws_utils::cloudwatch_utils::{
-        build_metric_future, receipt_status_to_metric, CwMetrics, DimensionValue,
-    },
-    executors::reactor_error_code::ReactorErrorCode,
-    send_metric,
-    strategies::keystore::KeyStore,
+        build_metric_future, receipt_status_to_metric, revert_code_to_metric, CwMetrics, DimensionValue
+    }, executors::reactor_error_code::{get_revert_reason, ReactorErrorCode}, send_metric, shared::get_nonce_with_retry, strategies::keystore::KeyStore
 };
+
+const GAS_LIMIT: u64 = 1_000_000;
 
 /// An executor that sends transactions to the mempool.
 pub struct ProtectExecutor {
@@ -70,12 +69,12 @@ impl Executor<SubmitTxToMempool> for ProtectExecutor {
         }
 
         // Acquire a key from the key store
-        let (public_address, private_key) = self
+        let (addr, private_key) = self
             .key_store
             .acquire_key()
             .await
             .expect("Failed to acquire key");
-        info!("Acquired key: {}", public_address);
+        info!("Acquired key: {}", addr);
 
         let chain_id = u64::from_str_radix(
             &action
@@ -87,13 +86,22 @@ impl Executor<SubmitTxToMempool> for ProtectExecutor {
         )
         .expect("Failed to parse chain ID");
 
-        let wallet: PrivateKeySigner = private_key
-            .as_str()
-            .parse::<PrivateKeySigner>()
-            .unwrap()
-            .with_chain_id(Some(chain_id));
-        let address = wallet.address();
+
+        let wallet = EthereumWallet::from(
+            private_key
+                .as_str()
+                .parse::<PrivateKeySigner>()
+                .unwrap()
+                .with_chain_id(Some(chain_id)),
+        );
+        let address = Address::from_str(&addr).unwrap();
         action.tx.set_from(address);
+
+
+        // Retry up to 3 times to get the nonce.
+        let nonce = get_nonce_with_retry(&self.sender_client, address, "", 3).await?;
+        action.tx.set_nonce(nonce);
+        action.tx.set_gas_limit(GAS_LIMIT);
 
         let gas_usage_result = self.client.estimate_gas(&action.tx).await.or_else(|err| {
             if let Some(raw) = &err.as_error_resp().unwrap().data {
@@ -182,7 +190,9 @@ impl Executor<SubmitTxToMempool> for ProtectExecutor {
             send_metric!(metric_future);
         }
 
-        let result = sender_client.send_transaction(action.tx).await;
+        let tx_request_for_revert = action.tx.clone();
+        let tx = action.tx.build(&wallet).await?;
+        let result = sender_client.send_tx_envelope(tx).await;
 
         // Block on pending transaction getting confirmations
         let (receipt, status) = match result {
@@ -199,6 +209,30 @@ impl Executor<SubmitTxToMempool> for ProtectExecutor {
                             "receipt: tx_hash: {:?}, status: {}",
                             receipt.transaction_hash, status,
                         );
+
+                        if !status && receipt.block_number.is_some() {
+                            info!("Attempting to get revert reason");
+                            // Parse revert reason
+                            match get_revert_reason(&self.sender_client, tx_request_for_revert, receipt.block_number.unwrap()).await {
+                                Ok(reason) => {
+                                    info!("Revert reason: {}", reason);
+                                    let metric_future = build_metric_future(
+                                        self.cloudwatch_client.clone(),
+                                        DimensionValue::V3Executor,
+                                        revert_code_to_metric(chain_id, reason.to_string()),
+                                        1.0,
+                                    );
+                                    if let Some(metric_future) = metric_future {
+                                        // do not block current thread by awaiting in the background
+                                        send_metric!(metric_future);
+                                    }
+                                }
+                                Err(e) => {
+                                    info!("Failed to get revert reason - error: {:?}", e);
+                                }
+                            }
+                        }
+
                         (Some(receipt), status)
                     }
                     Err(e) => {
@@ -213,9 +247,9 @@ impl Executor<SubmitTxToMempool> for ProtectExecutor {
             }
         };
 
-        match self.key_store.release_key(public_address.clone()).await {
+        match self.key_store.release_key(addr.clone()).await {
             Ok(_) => {
-                info!("Released key: {}", public_address);
+                info!("Released key: {}", addr);
             }
             Err(e) => {
                 info!("Failed to release key: {}", e);

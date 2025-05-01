@@ -79,7 +79,9 @@ impl UniswapXDutchV3Fill {
         Self {
             client,
             executor_address: config.executor_address,
-            bid_percentage: config.bid_percentage,
+            bid_percentage: config
+                .bid_percentage
+                .expect("Config missing bid_percentage: cannot initialize UniswapXDutchV3Fill"),
             last_block_number: 0,
             last_block_timestamp: 0,
             open_orders: HashMap::new(),
@@ -164,7 +166,7 @@ impl UniswapXDutchV3Fill {
 
         let OrderBatchData {
             orders,
-            amount_out_required,
+            amount_required,
             ..
         } = &event.request;
 
@@ -178,12 +180,14 @@ impl UniswapXDutchV3Fill {
             return vec![];
         }
 
+        let amount_required_u256 = U256::from_str_radix(&amount_required.to_string(), 10).ok();
+        info!("Quote: {:?}, Amount required: {:?}", event.route.quote_gas_adjusted, amount_required_u256);
         if let Some(profit) = self.get_profit_eth(event) {
             info!(
                 "Sending trade: num trades: {} routed quote: {}, batch needs: {}, profit: {} wei",
                 filtered_orders.len(),
                 event.route.quote_gas_adjusted,
-                amount_out_required,
+                amount_required.to_string(),
                 profit
             );
             let signed_orders = self
@@ -206,10 +210,22 @@ impl UniswapXDutchV3Fill {
                     // Must be able to cover min gas cost
                     let sender_address = Address::from_str(&self.sender_address).unwrap();
                     req.set_from(sender_address);
-                    let gas_usage = self.client.estimate_gas(&req).await.unwrap_or_else(|err| {
-                        info!("Error estimating gas: {}", err);
-                        1_000_000
-                    });
+                    let gas_usage = self.client.estimate_gas(&req).await.map_or_else(
+                        |err| {
+                            info!("Error estimating gas: {}", err);
+                            if err.to_string().contains("execution reverted") {
+                                None
+                            } else {
+                                Some(1_000_000)
+                            }
+                        },
+                        Some,
+                    );
+
+                    if gas_usage.is_none() {
+                        return vec![];
+                    }
+                    let gas_usage = gas_usage.unwrap();
                     // Get the current min gas price
                     let min_gas_price = self
                         .get_arbitrum_min_gas_price(self.client.clone())
@@ -219,7 +235,7 @@ impl UniswapXDutchV3Fill {
                     // gas price at which we'd break even, meaning 100% of profit goes to validator
                     let breakeven_gas_price = profit / U256::from(gas_usage);
                     // gas price corresponding to bid percentage
-                    let bid_gas_price = breakeven_gas_price
+                    let bid_gas_price: Uint<256, 4> = breakeven_gas_price
                         .mul(U256::from(self.bid_percentage))
                         .div(U256::from(100));
                     if bid_gas_price < min_gas_price {
@@ -294,7 +310,7 @@ impl UniswapXDutchV3Fill {
     fn get_order_batches(&self) -> HashMap<TokenInTokenOut, OrderBatchData> {
         let mut order_batches: HashMap<TokenInTokenOut, OrderBatchData> = HashMap::new();
 
-        // group orders by token in and token out
+        // group orders by token in, token out, and order type (exact_in or exact_out)
         self.open_orders
             .iter()
             .filter(|(_, order_data)| !self.processing_orders.contains(&order_data.hash))
@@ -311,6 +327,11 @@ impl UniswapXDutchV3Fill {
                     .iter()
                     .fold(Uint::from(0), |sum, output| sum.wrapping_add(output.amount));
 
+                let amount_required = if order_data.order.is_exact_output() {
+                    amount_in
+                } else {
+                    amount_out
+                };
                 // insert new order and update total amount out
                 if let std::collections::hash_map::Entry::Vacant(e) =
                     order_batches.entry(token_in_token_out.clone())
@@ -318,7 +339,8 @@ impl UniswapXDutchV3Fill {
                     e.insert(OrderBatchData {
                         orders: vec![order_data.clone()],
                         amount_in,
-                        amount_out_required: amount_out,
+                        amount_out,
+                        amount_required,
                         token_in: order_data.resolved.input.token.clone(),
                         token_out: order_data.resolved.outputs[0].token.clone(),
                         chain_id: self.chain_id,
@@ -327,11 +349,12 @@ impl UniswapXDutchV3Fill {
                     let order_batch_data = order_batches.get_mut(&token_in_token_out).unwrap();
                     order_batch_data.orders.push(order_data.clone());
                     order_batch_data.amount_in = order_batch_data.amount_in.wrapping_add(amount_in);
-                    order_batch_data.amount_out_required = order_batch_data
-                        .amount_out_required
-                        .wrapping_add(amount_out);
+                    order_batch_data.amount_required = order_batch_data
+                        .amount_required
+                        .wrapping_add(amount_required);
                 }
             });
+        
         order_batches
     }
 

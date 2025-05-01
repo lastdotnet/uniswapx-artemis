@@ -36,7 +36,7 @@ use tokio::sync::{
     RwLock,
 };
 use tracing::{debug, error, info, warn};
-use uniswapx_rs::order::{Order, OrderResolution, PriorityOrder, MPS};
+use uniswapx_rs::order::{Order, OrderResolution, PriorityOrder, BPS, MPS};
 
 use super::types::{Action, Event};
 
@@ -57,41 +57,101 @@ fn get_block_time_ms(chain_id: u64) -> u64 {
 pub struct ExecutionMetadata {
     // amount of quote token we can get
     pub quote: U256,
+    pub quote_eth: Option<U256>,
+    // whether the order is an exact output order
+    pub exact_output: bool,
     // amount of quote token needed to fill the order
-    pub amount_out_required: U256,
+    pub amount_required: U256,
+    pub gas_use_estimate_quote: U256,
     pub order_hash: String,
     pub target_block: Option<U64>,
+    pub fallback_bid_scale_factor: Option<u64>,
 }
 
 impl ExecutionMetadata {
     pub fn new(
         quote: U256,
-        amount_out_required: U256,
+        quote_eth: Option<U256>,
+        exact_output: bool,
+        amount_required: U256,
+        gas_use_estimate_quote: U256,
         order_hash: &str,
         target_block: Option<U64>,
+        fallback_bid_scale_factor: Option<u64>,
     ) -> Self {
         Self {
             quote,
-            amount_out_required,
+            quote_eth,
+            exact_output,
+            amount_required,
+            gas_use_estimate_quote,
             order_hash: order_hash.to_owned(),
             target_block,
+            fallback_bid_scale_factor,
         }
     }
 
-    pub fn calculate_priority_fee(&self, bid_percentage: U128) -> Option<U256> {
-        if self.quote.le(&self.amount_out_required) {
+    pub fn calculate_priority_fee(&self, bid_bps: U128) -> Option<U256> {
+        // exact_out: quote must be less than amount_in_required
+        // exact_in: quote must be greater than amount_out_required
+        if (self.exact_output && self.quote.ge(&self.amount_required)) ||
+           (!self.exact_output && self.quote.le(&self.amount_required)) {
+            info!("{} - quote is not less than amount_required, skipping", self.order_hash);
             return None;
         }
 
-        let profit_quote = self.quote.saturating_sub(self.amount_out_required);
+        // exact_out: profit = amount_in_required - quote
+        // exact_in: profit = quote - amount_out_required
+        let profit_quote = if self.exact_output {
+            self.amount_required.saturating_sub(self.quote)
+        } else {
+            self.quote.saturating_sub(self.amount_required)
+        };
+
+        info!("{} - amount_required: {:?}", self.order_hash, self.amount_required);
+        info!("{} - quote: {:?}", self.order_hash, self.quote);
+        info!("{} - profit_quote: {:?}", self.order_hash, profit_quote);
+        info!("{} - bid_bps: {:?}", self.order_hash, bid_bps);
+        let mps_of_improvement = profit_quote
+            .saturating_mul(U256::from(MPS))
+            .checked_div(self.amount_required)?;
+        info!("{} - mps_of_improvement: {:?}", self.order_hash, mps_of_improvement);
+        let priority_fee = mps_of_improvement
+            .checked_mul(U256::from(bid_bps))?
+            .checked_div(U256::from(BPS))?;
+        info!("{} - priority_fee: {:?}", self.order_hash, priority_fee);
+        Some(priority_fee)
+    }
+
+    // Uses the gas_use_estimate_quote to calculate the maximum priority fee we can bid
+    // @param gas_buffer: The buffer to multiply the gas use estimate by
+    pub fn calculate_priority_fee_from_gas_use_estimate(&self, gas_buffer: U256) -> Option<U256> {
+        let gas_with_buffer = U256::from(self.gas_use_estimate_quote).checked_mul(gas_buffer)?;
+
+        // exact_out: quote must be less than amount_in_required - gas_with_buffer
+        // exact_in: quote must be greater than amount_out_required + gas_with_buffer
+        if (self.exact_output && self.quote.ge(&self.amount_required.checked_sub(gas_with_buffer)?)) ||
+           (!self.exact_output && self.quote.le(&self.amount_required.checked_add(gas_with_buffer)?)) {
+            return None;
+        }
+
+        // exact_out: profit = amount_in_required - gas - quote
+        // exact_in: profit = quote - gas - amount_out_required
+        let profit_quote = if self.exact_output {
+            self.amount_required
+                .saturating_sub(gas_with_buffer)
+                .saturating_sub(self.quote)
+        } else {
+            self.quote
+                .saturating_sub(gas_with_buffer)
+                .saturating_sub(self.amount_required)
+        };
 
         let mps_of_improvement = profit_quote
             .saturating_mul(U256::from(MPS))
-            .checked_div(self.amount_out_required)?;
-        let priority_fee = mps_of_improvement
-            .checked_mul(U256::from(bid_percentage))?
-            .checked_div(U256::from(100))?;
-        Some(priority_fee)
+            .checked_div(self.amount_required)?;
+
+        Some(mps_of_improvement)
     }
 }
 
@@ -112,8 +172,8 @@ pub struct UniswapXPriorityFill {
     cloudwatch_client: Option<Arc<CloudWatchClient>>,
     /// executor address
     executor_address: String,
-    /// Amount of profits to bid in gas
-    bid_percentage: u128,
+    min_block_percentage_buffer: Option<u64>,
+    fallback_bid_scale_factor: Option<u64>,
     last_block_number: RwLock<u64>,
     last_block_timestamp: RwLock<u64>,
     // map of new order hashes to order data
@@ -142,7 +202,8 @@ impl UniswapXPriorityFill {
             client,
             cloudwatch_client,
             executor_address: config.executor_address,
-            bid_percentage: config.bid_percentage,
+            min_block_percentage_buffer: config.min_block_percentage_buffer,
+            fallback_bid_scale_factor: config.fallback_bid_scale_factor,
             last_block_number: RwLock::new(0),
             last_block_timestamp: RwLock::new(0),
             new_orders: Arc::new(DashMap::new()),
@@ -209,6 +270,7 @@ impl UniswapXPriorityFill {
             *self.last_block_timestamp.read().await,
             get_block_time_ms(self.chain_id),
             Uint::from(0),
+            self.min_block_percentage_buffer.unwrap_or(100)
         );
         let order_status = match resolved_order {
             OrderResolution::Expired | OrderResolution::Invalid => OrderStatus::Done,
@@ -270,9 +332,10 @@ impl UniswapXPriorityFill {
                     encoded_order: None,
                     route: event.route.clone(),
                 };
+                info!("{} - Received {} order", order_hash, if order_data.order.is_exact_output() { "exact_out" } else { "exact_in" });
                 if let Some(route) = &order_data.route {
                     if !route.method_parameters.calldata.is_empty() {
-                        info!("{} - Received cached route for order", order_hash);
+                        info!("{} - Received cached route for order with quote: {}", order_hash, route.quote);
                     }
                 }
                 self.new_orders.insert(order_hash.clone(), order_data.clone());
@@ -415,16 +478,18 @@ impl UniswapXPriorityFill {
 
     fn get_order_batch(&self, order_data: &OrderData) -> OrderBatchData {
         let amount_in: Uint<256, 4> = order_data.resolved.input.amount;
+        info!("{} - outputs: {:?}", order_data.hash, order_data.resolved.outputs);
         let amount_out = order_data
             .resolved
             .outputs
             .iter()
             .fold(Uint::from(0), |sum, output| sum.wrapping_add(output.amount));
-
+        info!("{} - amount_out: {:?}", order_data.hash, amount_out);
         OrderBatchData {
             orders: vec![order_data.clone()],
             amount_in,
-            amount_out_required: amount_out,
+            amount_out,
+            amount_required: if order_data.order.is_exact_output() { amount_in } else { amount_out },
             token_in: order_data.resolved.input.token.clone(),
             token_out: order_data.resolved.outputs[0].token.clone(),
             chain_id: self.chain_id,
@@ -466,27 +531,22 @@ impl UniswapXPriorityFill {
     ///     - we return the data needed to calculate the maximum MPS of improvement we can offer from our quote and the order specs
     fn get_execution_metadata(
         &self,
-        RoutedOrder {
-            request,
-            route,
-            target_block,
-            ..
-        }: &RoutedOrder,
+        routed_order: &RoutedOrder,
     ) -> Option<ExecutionMetadata> {
-        let quote = U256::from_str_radix(&route.quote, 10).ok()?;
-        let amount_out_required =
-            U256::from_str_radix(&request.amount_out_required.to_string(), 10).ok()?;
-        if quote.le(&amount_out_required) {
-            info!("{} - Quote is less than amount out required", request.orders[0].hash);
-            return None;
-        }
-
+        let quote = U256::from_str_radix(&routed_order.route.quote, 10).ok()?;
+        let amount_required =
+            U256::from_str_radix(&routed_order.request.amount_required.to_string(), 10).ok()?;
+        info!("{} - quote_eth: {:?}", routed_order.request.orders[0].hash, self.get_quote_eth(&routed_order));
         Some({
             ExecutionMetadata {
                 quote,
-                amount_out_required,
-                order_hash: request.orders[0].hash.clone(),
-                target_block: target_block.map(|b| U64::from(b)),
+                quote_eth: self.get_quote_eth(&routed_order),
+                exact_output: routed_order.request.orders[0].order.is_exact_output(),
+                amount_required,
+                gas_use_estimate_quote: U256::from_str_radix(&routed_order.route.gas_use_estimate_quote, 10).ok()?,
+                order_hash: routed_order.request.orders[0].hash.clone(),
+                target_block: routed_order.target_block.map(|b| U64::from(b)),
+                fallback_bid_scale_factor: self.fallback_bid_scale_factor.clone(),
             }
         })
     }
@@ -651,16 +711,20 @@ impl UniswapXPriorityFill {
                             self.processing_orders.insert(order_hash.clone(), order_data.value().clone());
                         }
 
+                        // If EXACT_OUT, quote should be less than amount_required
+                        let quote = U256::from_str_radix(&order_data.route.as_ref().unwrap().quote, 10).unwrap();
+                        if order_data.order.is_exact_output() && quote.ge(&order_data.resolved.input.amount) {
+                            info!("{} - Quote indicates more input than swapper is willing to give, skipping", order_hash);
+                            continue;
+                        }
+                        // If EXACT_IN, quote should be greater than amount_required
+                        else if !order_data.order.is_exact_output() && quote.le(&order_data.resolved.outputs[0].amount) {
+                            info!("{} - Quote indicates less output than swapper is willing to receive, skipping", order_hash);
+                            continue;
+                        }
+
                         let routed_order = RoutedOrder {
-                            request: OrderBatchData {
-                                orders: vec![order_data.value().clone()],
-                                amount_in: order_data.resolved.input.amount,
-                                amount_out_required: order_data.resolved.outputs.iter()
-                                    .fold(Uint::from(0), |sum, output| sum.wrapping_add(output.amount)),
-                                token_in: order_data.resolved.input.token.clone(),
-                                token_out: order_data.resolved.outputs[0].token.clone(),
-                                chain_id: self.chain_id,
-                            },
+                            request: self.get_order_batch(order_data.value()),
                             route: OrderRoute {
                                 quote: order_data.route.as_ref().unwrap().quote.clone(),
                                 quote_gas_adjusted: order_data.route.as_ref().unwrap().quote_gas_adjusted.clone(),
@@ -694,8 +758,8 @@ impl UniswapXPriorityFill {
                                                 execution: SubmitTxToMempool {
                                                     tx: fill_tx_request.clone(),
                                                     gas_bid_info: Some(GasBidInfo {
-                                                        bid_percentage: U128::from(self.bid_percentage),
-                                                        // this field is not used for priority orders
+                                                        // these fields are not used for priority orders
+                                                        bid_percentage: U128::from(0),
                                                         total_profit: U128::from(0),
                                                     }),
                                                 },
@@ -732,5 +796,385 @@ impl UniswapXPriorityFill {
         }
 
         actions
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+
+    #[test]
+    fn test_calculate_priority_fee_exact_in() {
+        // Test case 1: Normal case with profit
+        let metadata = ExecutionMetadata::new(
+            U256::from(1000),  // quote
+            Some(U256::from(1000)),  // quote_eth
+            false,
+            U256::from(800),   // amount_out_required
+            U256::from(50),    // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        let bid_bps = U128::from(5000); // 50%
+        let result = metadata.calculate_priority_fee(bid_bps);
+        assert!(result.is_some());
+        // profit = 200
+        // mps_improvement = (200 * MPS) / 800 = 2_500_000
+        // priority_fee = (2_500_000 * 5000) / MPS = 1_250_000
+        assert_eq!(result.unwrap(), U256::from(1_250_000));
+
+        // Test case 2: Quote equals amount required (no profit)
+        let metadata = ExecutionMetadata::new(
+            U256::from(800),   // quote equals amount_out_required
+            Some(U256::from(800)),   // quote_eth
+            false,
+            U256::from(800),   // amount_out_required
+            U256::from(50),    // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        let result = metadata.calculate_priority_fee(bid_bps);
+        assert!(result.is_none());
+
+        // Test case 3: Quote less than amount required
+        let metadata = ExecutionMetadata::new(
+            U256::from(700),   // quote less than amount_out_required
+            Some(U256::from(700)),   // quote_eth
+            false,
+            U256::from(800),   // amount_out_required
+            U256::from(50),    // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        let result = metadata.calculate_priority_fee(bid_bps);
+        assert!(result.is_none());
+
+        // Test case 4: Minimal profit case
+        let metadata = ExecutionMetadata::new(
+            U256::from(801),   // quote just above amount_out_required
+            Some(U256::from(801)),   // quote_eth
+            false,
+            U256::from(800),   // amount_out_required
+            U256::from(50),    // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        let result = metadata.calculate_priority_fee(bid_bps);
+        assert!(result.is_some());
+        // profit = 1
+        // mps_improvement = (1 * MPS) / 800 = 12,500
+        // priority_fee = (12,500 * 5000) / MPS = 6,250
+        assert_eq!(result.unwrap(), U256::from(6_250));
+
+        // Test case 5: Zero bid_bps
+        let metadata = ExecutionMetadata::new(
+            U256::from(1000),  // quote
+            Some(U256::from(1000)),  // quote_eth
+            false,
+            U256::from(800),   // amount_out_required
+            U256::from(50),    // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        let zero_bid_bps = U128::from(0);
+        let result = metadata.calculate_priority_fee(zero_bid_bps);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), U256::from(0));
+    }
+
+
+    #[test]
+    fn test_calculate_priority_fee_exact_out() {
+        // Test case 1: Normal case with profit
+        let metadata = ExecutionMetadata::new(
+            U256::from(800),   // quote
+            Some(U256::from(800)),   // quote_eth
+            true,              // exact_output = true
+            U256::from(1000),  // amount_in_required
+            U256::from(50),    // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        let bid_bps = U128::from(5000); // 50%
+        let result = metadata.calculate_priority_fee(bid_bps);
+        assert!(result.is_some());
+        // profit = 200
+        // mps_improvement = (200 * MPS) / 1000 = 2_000_000
+        // priority_fee = (2_000_000 * 5000) / BPS = 1_000_000
+        assert_eq!(result.unwrap(), U256::from(1_000_000));
+
+        // Test case 2: Quote equals amount required (no profit)
+        let metadata = ExecutionMetadata::new(
+            U256::from(1000),  // quote equals amount_in_required
+            Some(U256::from(1000)),  // quote_eth
+            true,              // exact_output = true
+            U256::from(1000),  // amount_in_required
+            U256::from(50),    // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None
+        );
+        
+        let result = metadata.calculate_priority_fee(bid_bps);
+        assert!(result.is_none());
+
+        // Test case 3: Quote greater than amount required
+        let metadata = ExecutionMetadata::new(
+            U256::from(1100),  // quote greater than amount_in_required
+            Some(U256::from(1100)),  // quote_eth
+            true,              // exact_output = true
+            U256::from(1000),  // amount_in_required
+            U256::from(50),    // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        let result = metadata.calculate_priority_fee(bid_bps);
+        assert!(result.is_none());
+
+        // Test case 4: Minimal profit case
+        let metadata = ExecutionMetadata::new(
+            U256::from(999),   // quote just below amount_in_required
+            Some(U256::from(999)),   // quote_eth
+            true,              // exact_output = true
+            U256::from(1000),  // amount_in_required
+            U256::from(50),    // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        let result = metadata.calculate_priority_fee(bid_bps);
+        assert!(result.is_some());
+        // profit = 1
+        // mps_improvement = (1 * MPS) / 1000 = 10,000
+        // priority_fee = (10,000 * 5000) / BPS = 5,000
+        assert_eq!(result.unwrap(), U256::from(5_000));
+
+        // Test case 5: Zero bid_bps
+        let metadata = ExecutionMetadata::new(
+            U256::from(800),   // quote
+            Some(U256::from(800)),   // quote_eth
+            true,              // exact_output = true
+            U256::from(1000),  // amount_in_required
+            U256::from(50),    // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        let zero_bid_bps = U128::from(0);
+        let result = metadata.calculate_priority_fee(zero_bid_bps);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), U256::from(0));
+    }
+
+    #[test]
+    fn test_calculate_priority_fee_from_gas_use_estimate_exact_in() {
+        // Test case 1: Normal case with profit
+        let metadata = ExecutionMetadata::new(
+            U256::from(1000),  // quote
+            Some(U256::from(1000)),  // quote_eth
+            false,
+            U256::from(800),   // amount_out_required
+            U256::from(50),    // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        // With gas buffer of 2x
+        let mut gas_buffer = U256::from(2);
+        let result = metadata.calculate_priority_fee_from_gas_use_estimate(gas_buffer);
+        assert!(result.is_some());
+        // profit = 100, MPS = 10_000_000
+        // bid: (100 * 10_000_000) / 800 = 1_250_000
+        assert_eq!(result.unwrap(), U256::from(1_250_000));
+
+        // Test case 2: No profit after gas and required amount
+        let metadata = ExecutionMetadata::new(
+            U256::from(1000),  // quote
+            Some(U256::from(1000)),   // quote_eth
+            false,
+            U256::from(100),   // amount_out_required
+            U256::from(1000000000),  // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        // With gas buffer of 1x
+        gas_buffer = U256::from(1);
+        let result = metadata.calculate_priority_fee_from_gas_use_estimate(gas_buffer);
+        assert!(result.is_none());
+
+
+        // Test case 3: 1 profit after gas and required amount
+        let metadata = ExecutionMetadata::new(
+            U256::from(1000),  // quote
+            Some(U256::from(1000)),   // quote_eth
+            false,
+            U256::from(900),   // amount_out_required
+            U256::from(99),   // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        // With gas buffer of 1x
+        gas_buffer = U256::from(1);
+        let result = metadata.calculate_priority_fee_from_gas_use_estimate(gas_buffer);
+        assert!(result.is_some());
+        // profit = 1, MPS = 10_000_000
+        // bid: (1 * 10_000_000) / 900 = 11,111
+        assert_eq!(result.unwrap(), U256::from(11_111));
+
+        // Test case 4: Quote less than required amount plus gas
+        let metadata = ExecutionMetadata::new(
+            U256::from(1000),  // quote
+            Some(U256::from(1000)),   // quote_eth
+            false,
+            U256::from(900),   // amount_out_required
+            U256::from(200),   // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        // With gas buffer of 1x (900 + 200 > 1000)
+        gas_buffer = U256::from(1);
+        let result = metadata.calculate_priority_fee_from_gas_use_estimate(gas_buffer);
+        assert!(result.is_none());
+
+        // Test case 5: Edge case with zero gas estimate
+        let metadata = ExecutionMetadata::new(
+            U256::from(1000),  // quote
+            Some(U256::from(1000)),   // quote_eth
+            false,
+            U256::from(800),   // amount_out_required
+            U256::from(0),     // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        // With gas buffer of 2x
+        gas_buffer = U256::from(2);
+        let result = metadata.calculate_priority_fee_from_gas_use_estimate(gas_buffer);
+        assert!(result.is_some());
+        // profit = 2000, MPS = 10_000_000
+        // bid: (2000 * 10_000_000) / 800 = 2_500_000
+        assert_eq!(result.unwrap(), U256::from(2_500_000));
+    }
+
+    #[test]
+    fn test_calculate_priority_fee_from_gas_use_estimate_exact_out() {
+        // Test case 1: Normal case with profit
+        let metadata = ExecutionMetadata::new(
+            U256::from(800),   // quote
+            Some(U256::from(800)),   // quote_eth
+            true,              // exact_output = true
+            U256::from(1000),  // amount_in_required
+            U256::from(50),    // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        // With gas buffer of 2x
+        let mut gas_buffer = U256::from(2);
+        let result = metadata.calculate_priority_fee_from_gas_use_estimate(gas_buffer);
+        assert!(result.is_some());
+        // profit = 100
+        // bid: (100 * MPS) / 1000 = 1_000_000
+        assert_eq!(result.unwrap(), U256::from(1_000_000));
+
+        // Test case 2: No profit after gas and required amount
+        let metadata = ExecutionMetadata::new(
+            U256::from(999),    // quote just below required
+            Some(U256::from(999)),    // quote_eth
+            true,               // exact_output = true
+            U256::from(1000),   // amount_in_required
+            U256::from(2),      // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        // With gas buffer of 1x (999 > 1000 - 2)
+        gas_buffer = U256::from(1);
+        let result = metadata.calculate_priority_fee_from_gas_use_estimate(gas_buffer);
+        assert!(result.is_none());
+
+        // Test case 3: 1 wei profit after gas and required amount
+        let metadata = ExecutionMetadata::new(
+            U256::from(900),   // quote
+            Some(U256::from(900)),   // quote_eth
+            true,              // exact_output = true
+            U256::from(1000),  // amount_in_required
+            U256::from(99),   // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        // With gas buffer of 1x (900 < 1000 - 99)
+        gas_buffer = U256::from(1);
+        let result = metadata.calculate_priority_fee_from_gas_use_estimate(gas_buffer);
+        assert!(result.is_some());
+        // profit = 1
+        // bid: (1 * MPS) / 1000 = 10,000
+        assert_eq!(result.unwrap(), U256::from(10_000));
+
+        // Test case 4: Quote greater than required amount minus gas
+        let metadata = ExecutionMetadata::new(
+            U256::from(900),   // quote
+            Some(U256::from(900)),   // quote_eth
+            true,              // exact_output = true
+            U256::from(1000),  // amount_in_required
+            U256::from(200),   // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        // With gas buffer of 1x (900 > 1000 - 200)
+        gas_buffer = U256::from(1);
+        let result = metadata.calculate_priority_fee_from_gas_use_estimate(gas_buffer);
+        assert!(result.is_none());
+
+        // Test case 5: Edge case with zero gas estimate
+        let metadata = ExecutionMetadata::new(
+            U256::from(800),   // quote
+            Some(U256::from(800)),   // quote_eth
+            true,              // exact_output = true
+            U256::from(1000),  // amount_in_required
+            U256::from(0),     // gas_use_estimate_quote
+            "test_hash",
+            None,
+            None,
+        );
+        
+        // With gas buffer of 2x
+        gas_buffer = U256::from(2);
+        let result = metadata.calculate_priority_fee_from_gas_use_estimate(gas_buffer);
+        assert!(result.is_some());
+        // profit = 200
+        // bid: (200 * MPS) / 1000 = 2_000_000
+        assert_eq!(result.unwrap(), U256::from(2_000_000));
     }
 }

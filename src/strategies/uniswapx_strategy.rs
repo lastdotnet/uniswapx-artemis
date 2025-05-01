@@ -74,7 +74,9 @@ impl UniswapXUniswapFill {
         Self {
             client,
             executor_address: config.executor_address,
-            bid_percentage: config.bid_percentage,
+            bid_percentage: config
+                .bid_percentage
+                .expect("Config missing bid_percentage: cannot initialize UniswapXUniswapFill"),
             last_block_number: 0,
             last_block_timestamp: 0,
             open_orders: HashMap::new(),
@@ -149,7 +151,7 @@ impl UniswapXUniswapFill {
         let OrderBatchData {
             // orders,
             orders,
-            amount_out_required,
+            amount_required: amount_out_required,
             ..
         } = &event.request;
 
@@ -277,6 +279,11 @@ impl UniswapXUniswapFill {
                 .iter()
                 .fold(Uint::from(0), |sum, output| sum.wrapping_add(output.amount));
 
+            let amount_required = if order_data.order.is_exact_output() {
+                amount_in
+            } else {
+                amount_out
+            };
             // insert new order and update total amount out
             if let std::collections::hash_map::Entry::Vacant(e) =
                 order_batches.entry(token_in_token_out.clone())
@@ -284,7 +291,8 @@ impl UniswapXUniswapFill {
                 e.insert(OrderBatchData {
                     orders: vec![order_data.clone()],
                     amount_in,
-                    amount_out_required: amount_out,
+                    amount_out,
+                    amount_required,
                     token_in: order_data.resolved.input.token.clone(),
                     token_out: order_data.resolved.outputs[0].token.clone(),
                     chain_id: self.chain_id,
@@ -293,9 +301,9 @@ impl UniswapXUniswapFill {
                 let order_batch_data = order_batches.get_mut(&token_in_token_out).unwrap();
                 order_batch_data.orders.push(order_data.clone());
                 order_batch_data.amount_in = order_batch_data.amount_in.wrapping_add(amount_in);
-                order_batch_data.amount_out_required = order_batch_data
-                    .amount_out_required
-                    .wrapping_add(amount_out);
+                order_batch_data.amount_required = order_batch_data
+                    .amount_required
+                    .wrapping_add(amount_required);
             }
         });
         order_batches

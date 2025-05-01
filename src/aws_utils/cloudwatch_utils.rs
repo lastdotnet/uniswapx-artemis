@@ -26,6 +26,9 @@ pub const EXECUTION_ATTEMPTED_METRIC: &str = "ExecutionAttempted";
 pub const EXECUTION_SKIPPED_ALREADY_FILLED_METRIC: &str = "ExecutionSkippedAlreadyFilled";
 pub const EXECUTION_SKIPPED_PAST_DEADLINE_METRIC: &str = "ExecutionSkippedPastDeadline";
 pub const UNPROFITABLE_METRIC: &str = "Unprofitable";
+pub const TARGET_BLOCK_DELTA: &str = "TargetBlockDelta";
+pub const REVERT_CODE_METRIC: &str = "RevertCode";
+
 pub enum DimensionName {
     Service,
 }
@@ -85,9 +88,12 @@ pub enum CwMetrics {
     TxSubmitted(u64),
     TxStatusUnknown(u64),
     LatestBlock(u64),
+    RevertCode(u64, String), // chain_id and revert code string
 
     /// Balance for individual address
     Balance(String),
+    // negative is too early, positive is too late
+    TargetBlockDelta(u64),
 }
 impl From<CwMetrics> for String {
     fn from(metric: CwMetrics) -> Self {
@@ -111,6 +117,8 @@ impl From<CwMetrics> for String {
             }
             CwMetrics::Balance(val) => format!("Bal-{}", val),
             CwMetrics::LatestBlock(chain_id) => format!("{}-{}", chain_id, LATEST_BLOCK),
+            CwMetrics::TargetBlockDelta(chain_id) => format!("{}-{}", chain_id, TARGET_BLOCK_DELTA),
+            CwMetrics::RevertCode(chain_id, code) => format!("{}-{}-{}", chain_id, REVERT_CODE_METRIC, code),
         }
     }
 }
@@ -165,6 +173,10 @@ pub fn receipt_status_to_metric(status: bool, chain_id: u64) -> CwMetrics {
         true => CwMetrics::TxSucceeded(chain_id),
         false => CwMetrics::TxReverted(chain_id),
     }
+}
+
+pub fn revert_code_to_metric(chain_id: u64, revert_code: String) -> CwMetrics {
+    CwMetrics::RevertCode(chain_id, revert_code)
 }
 
 pub fn build_metric_future(

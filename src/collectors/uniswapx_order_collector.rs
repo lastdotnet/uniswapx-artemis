@@ -122,7 +122,7 @@ impl Collector<UniswapXOrder> for UniswapXOrderCollector {
             "Starting UniswapX order collector stream"
         );
 
-        // stream that polls the UniswapX API every 5 seconds
+        // stream that polls the UniswapX API
         let stream = IntervalStream::new(tokio::time::interval(Duration::from_millis(
             POLL_INTERVAL_MS,
         )))
@@ -133,31 +133,45 @@ impl Collector<UniswapXOrder> for UniswapXOrderCollector {
             async move {
                 tracing::debug!("Polling UniswapX API for new orders");
                 
-                let response = match client.get(url.clone())
-                    .header("x-api-key", api_key)
-                    .send()
-                    .await {
-                    Ok(resp) => resp,
-                    Err(e) => {
-                        tracing::error!(error = %e, "Failed to fetch orders from UniswapX API");
-                        return Err(anyhow::anyhow!("Failed to fetch orders: {}", e));
+                #[allow(unused_assignments)]
+                let mut last_error = None;
+                loop {
+                    match client.get(url.clone())
+                        .header("x-api-key", api_key.clone())
+                        .send()
+                        .await {
+                        Ok(resp) => {
+                            match resp.json::<UniswapXOrderResponse>().await {
+                                Ok(data) => {
+                                    tracing::debug!(
+                                        num_orders = data.orders.len(),
+                                        "Successfully fetched orders from UniswapX API"
+                                    );
+                                    return Ok(data.orders);
+                                },
+                                Err(e) => {
+                                    last_error = Some(e.to_string());
+                                    tracing::warn!(
+                                        error = %e,
+                                        "Failed to parse UniswapX API response, retrying..."
+                                    );
+                                }
+                            }
+                        },
+                        Err(e) => {
+                            last_error = Some(e.to_string());
+                            tracing::warn!(
+                                error = %e,
+                                "Failed to fetch orders from UniswapX API, retrying..."
+                            );
+                        }
                     }
-                };
-
-                let data = match response.json::<UniswapXOrderResponse>().await {
-                    Ok(data) => data,
-                    Err(e) => {
-                        tracing::error!(error = %e, "Failed to parse UniswapX API response");
-                        return Err(anyhow::anyhow!("Failed to parse response: {}", e));
+                    
+                    if let Some(err) = last_error {
+                        tracing::warn!(error = %err, "Error in order stream, retrying...");
+                        tokio::time::sleep(Duration::from_millis(1000)).await;
                     }
-                };
-
-                tracing::debug!(
-                    num_orders = data.orders.len(),
-                    "Successfully fetched orders from UniswapX API"
-                );
-                
-                Ok(data.orders)
+                }
             }
         })
         .flat_map(
@@ -268,6 +282,7 @@ mod tests {
         } else {
             encoded_order
         };
+        tracing::info!("encoded_order: {:?}", encoded_order);
         let order_hex: Vec<u8> = hex::decode(encoded_order).unwrap();
 
         let result = V2DutchOrder::decode_inner(&order_hex, false);
