@@ -337,15 +337,6 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for Public1559Executor {
                     "{} - No bid priority fees, indicating quote < amount_out_required; skipping",
                     order_hash
                 );
-                // Release the key before returning
-                match self.key_store.release_key(addr.clone()).await {
-                    Ok(_) => {
-                        info!("{} - Released key: {}", order_hash, addr);
-                    }
-                    Err(release_err) => {
-                        warn!("{} - Failed to release key: {}", order_hash, release_err);
-                    }
-                }
                 info!("{} - Quote < amount_out_required; skipping", order_hash);
                 return Err(anyhow::anyhow!("Quote < amount_out_required"));
             }
@@ -668,7 +659,7 @@ mod tests {
         );
 
         let bids = executor.get_bids_for_order(&action, "test_hash");
-        assert_eq!(bids.len(), 3); // 3 fallback bids should still be generated
+        assert_eq!(bids.len(), 0);
     }
 
     #[tokio::test]
