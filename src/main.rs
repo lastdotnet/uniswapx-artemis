@@ -55,6 +55,10 @@ pub struct Args {
     #[arg(long, required = true)]
     pub wss: String,
 
+    /// Ethereum node HTTP endpoint.
+    #[arg(long, required = false)]
+    pub http: Option<String>,
+
     /// Private key for sending txs.
     #[arg(long, group = "key_source")]
     pub private_key: Option<String>,
@@ -154,13 +158,24 @@ async fn main() -> Result<()> {
 
     let ws = WsConnect::new(args.wss.as_str());
     let retry_ws = RetryWsConnect(ws);
-    let client = ClientBuilder::default().pubsub(retry_ws).await?;
+    let wss_client = ClientBuilder::default().pubsub(retry_ws).await?;
 
-    let provider = DynProvider::<AnyNetwork>::new(
+    let wss_provider = Arc::new(DynProvider::<AnyNetwork>::new(
         ProviderBuilder::new()
             .network::<AnyNetwork>()
-            .on_client(client)
-    );
+            .on_client(wss_client)
+    ));
+
+    // Initialize HTTP provider if specified
+    let mut sender_client = wss_provider.clone();
+    if let Some(http_endpoint) = args.http {
+        let http_client = ClientBuilder::default().http(http_endpoint.parse()?);
+        sender_client = Arc::new(DynProvider::<AnyNetwork>::new(
+            ProviderBuilder::new()
+                .network::<AnyNetwork>()
+                .on_client(http_client)
+        ));
+    }
 
     let mut key_store = Arc::new(KeyStore::new());
 
@@ -199,13 +214,11 @@ async fn main() -> Result<()> {
     }
     info!("Key store initialized with {} keys", key_store.len());
 
-    let provider = Arc::new(provider);
-
     // Set up engine.
     let mut engine = Engine::default();
 
     // Set up block collector.
-    let block_collector = Box::new(BlockCollector::new(provider.clone()));
+    let block_collector = Box::new(BlockCollector::new(wss_provider.clone()));
     let block_collector = CollectorMap::new(block_collector, Event::NewBlock);
     engine.add_collector(Box::new(block_collector));
 
@@ -252,7 +265,7 @@ async fn main() -> Result<()> {
     match &args.order_type {
         OrderType::DutchV2 => {
             let uniswapx_strategy = UniswapXUniswapFill::new(
-                provider.clone(),
+                wss_provider.clone(),
                 config.clone(),
                 batch_sender,
                 route_receiver,
@@ -263,7 +276,7 @@ async fn main() -> Result<()> {
         }
         OrderType::DutchV3 => {
             let uniswapx_strategy = UniswapXDutchV3Fill::new(
-                provider.clone(),
+                wss_provider.clone(),
                 config.clone(),
                 batch_sender,
                 route_receiver,
@@ -274,7 +287,7 @@ async fn main() -> Result<()> {
         }
         OrderType::Priority => {
             let priority_strategy = UniswapXPriorityFill::new(
-                provider.clone(),
+                wss_provider.clone(),
                 cloudwatch_client.clone(),
                 config.clone(),
                 batch_sender,
@@ -287,8 +300,8 @@ async fn main() -> Result<()> {
     }
 
     let queued_executor = Box::new(QueuedExecutor::new(
-        provider.clone(),
-        provider.clone(),
+        wss_provider.clone(),
+        sender_client.clone(),
         key_store.clone(),
         cloudwatch_client.clone(),
     ));
@@ -299,8 +312,8 @@ async fn main() -> Result<()> {
     });
 
     let protect_executor = Box::new(ProtectExecutor::new(
-        provider.clone(),
-        provider.clone(),
+        wss_provider.clone(),
+        sender_client.clone(),
         key_store.clone(),
         cloudwatch_client.clone(),
     ));
