@@ -99,7 +99,7 @@ impl Executor<SubmitTxToMempool> for DutchExecutor {
 
 
         // Retry up to 3 times to get the nonce.
-        let nonce = get_nonce_with_retry(&self.sender_client, address, "", 3).await?;
+        let nonce = get_nonce_with_retry(&self.client, address, "", 3).await?;
         action.tx.set_nonce(nonce);
         action.tx.set_gas_limit(GAS_LIMIT);
 
@@ -169,8 +169,6 @@ impl Executor<SubmitTxToMempool> for DutchExecutor {
         info!("bid_gas_price: {}", bid_gas_price);
         action.tx.set_gas_price(bid_gas_price.to());
 
-        let sender_client = self.sender_client.clone();
-
         info!("Executing tx {:?}", action.tx);
         let chain_id = action
             .tx
@@ -192,7 +190,7 @@ impl Executor<SubmitTxToMempool> for DutchExecutor {
 
         let tx_request_for_revert = action.tx.clone();
         let tx = action.tx.build(&wallet).await?;
-        let result = sender_client.send_tx_envelope(tx).await;
+        let result = self.sender_client.send_tx_envelope(tx).await;
 
         // Block on pending transaction getting confirmations
         let (receipt, status) = match result {
@@ -213,7 +211,7 @@ impl Executor<SubmitTxToMempool> for DutchExecutor {
                         if !status && receipt.block_number.is_some() {
                             info!("Attempting to get revert reason");
                             // Parse revert reason
-                            match get_revert_reason(&self.sender_client, tx_request_for_revert, receipt.block_number.unwrap()).await {
+                            match get_revert_reason(&self.client, tx_request_for_revert, receipt.block_number.unwrap()).await {
                                 Ok(reason) => {
                                     info!("Revert reason: {}", reason);
                                     let metric_future = build_metric_future(

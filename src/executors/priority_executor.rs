@@ -139,7 +139,7 @@ impl PriorityExecutor {
                         if !status && receipt.block_number.is_some() {
                             info!("{} - Attempting to get revert reason", order_hash);
                             // Parse revert reason
-                            match get_revert_reason(&self.sender_client, tx_request_for_revert, receipt.block_number.unwrap()).await {
+                            match get_revert_reason(&self.client, tx_request_for_revert, receipt.block_number.unwrap()).await {
                             
                                 Ok(reason) => {
                                     info!("{} - Revert reason: {}", order_hash, reason);
@@ -354,10 +354,8 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for PriorityExecutor {
                 }
             }
 
-            let sender_client = self.sender_client.clone();
-
             // Retry up to 3 times to get the nonce.
-            let mut nonce = get_nonce_with_retry(&sender_client, address, &order_hash, 3).await?;
+            let mut nonce = get_nonce_with_retry(&self.client, address, &order_hash, 3).await?;
 
             // Sort transactions by max_priority_fee_per_gas in descending order so that the highest bid is first
             tx_requests.sort_by(|a, b| {
