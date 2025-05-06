@@ -1,8 +1,12 @@
 use std::sync::Arc;
 
-use alloy::{network::AnyNetwork, providers::{DynProvider, Provider}};
-use alloy_primitives::Address;
+use alloy::{network::{AnyNetwork, EthereumWallet, TransactionBuilder, ReceiptResponse}, providers::{DynProvider, Provider}, rpc::types::TransactionRequest, serde::WithOtherFields};
+use alloy_primitives::{Address, U256};
 use serde::Deserialize;
+
+const NONCE_BURN_GAS_MULTIPLIER: u128 = 10;
+const NONCE_BURN_PRIORITY_FEE: u128 = 100000; // 0.0001 gwei
+const ETH_TRANSFER_GAS: u64 = 21000;
 
 macro_rules! send_metric_with_order_hash {
     ($order_hash: expr, $future: expr) => {
@@ -70,6 +74,75 @@ pub async fn get_nonce_with_retry(
                     ));
                 }
             }
+        }
+    }
+}
+
+/// @notice Burns a specific nonce by sending a 0 ETH transaction to self with a high gas price.
+/// @dev This function is used to invalidate a nonce by creating a dummy transaction.
+/// @param provider The Ethereum provider used to send the transaction.
+/// @param wallet The wallet used to sign the transaction.
+/// @param address The address whose nonce will be burned.
+/// @param nonce The specific nonce to burn.
+/// @param order_hash A string identifier for logging and tracing purposes.
+/// @return Returns Ok(()) if the transaction is sent and confirmed, or an error otherwise.
+pub async fn burn_nonce(
+    provider: &Arc<DynProvider<AnyNetwork>>,
+    wallet: &EthereumWallet,
+    address: Address,
+    nonce: u64,
+    order_hash: &str,
+) -> Result<(), anyhow::Error> {
+    let base_fee = provider
+        .get_gas_price()
+        .await?;
+
+    // Create a dummy transaction that sends 0 ETH to self with high gas price
+    let tx_request = WithOtherFields::new(TransactionRequest {
+        from: Some(address),
+        to: Some(address.into()),
+        value: Some(U256::ZERO),
+        nonce: Some(nonce),
+        gas: Some(ETH_TRANSFER_GAS), // Standard ETH transfer gas
+        gas_price: Some(base_fee * NONCE_BURN_GAS_MULTIPLIER),
+        max_fee_per_gas: Some(base_fee * NONCE_BURN_GAS_MULTIPLIER),
+        max_priority_fee_per_gas: Some(NONCE_BURN_PRIORITY_FEE),
+        ..Default::default()
+    });
+
+    // Sign and send the transaction
+    let tx = tx_request.build(wallet).await?;
+    let result = provider.send_tx_envelope(tx).await;
+
+    match result {
+        Ok(tx) => {
+            tracing::info!("{} - Waiting for confirmations", order_hash);
+            let receipt = tx
+                .with_required_confirmations(0)
+                .get_receipt()
+                .await
+                .map_err(|e| {
+                    anyhow::anyhow!("{} - Error waiting for confirmations: {}", order_hash, e)
+                });
+                
+            match receipt {
+                Ok(receipt) => {
+                    let status = receipt.status();
+                    tracing::info!(
+                        "{} - Nonce burn: tx_hash: {:?}, status: {}",
+                        order_hash, receipt.transaction_hash, status,
+                    );
+                    Ok(())
+                }
+                Err(e) => {
+                    tracing::error!("{} - Error burning nonce: {}", order_hash, e);
+                    return Err(anyhow::anyhow!("{} - Error burning nonce: {}", order_hash, e));
+                }
+            }
+        }
+        Err(e) => {
+            tracing::error!("{} - Error sending nonce burn transaction: {}", order_hash, e);
+            return Err(anyhow::anyhow!("{} - Error sending nonce burn transaction: {}", order_hash, e));
         }
     }
 }

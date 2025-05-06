@@ -297,6 +297,23 @@ impl UniswapXPriorityFill {
             );
             return self.check_orders_for_submission().await;
         }
+        if let Some(cw) = &self.cloudwatch_client {
+            let metric_future = cw
+                .put_metric_data()
+                .namespace(ARTEMIS_NAMESPACE)
+                .metric_data(
+                    MetricBuilder::new(CwMetrics::OrderReceived(self.chain_id))
+                        .add_dimension(DimensionName::Service.as_ref(), DimensionValue::PriorityExecutor.as_ref())
+                        .with_value(1.0)
+                        .build(),
+                )
+                .send();
+            tokio::spawn(async move {
+                if let Err(e) = metric_future.await {
+                    warn!("Error sending order received metric: {:?}", e);
+                }
+            });
+        }
 
         let order = self
             .decode_order(&event.encoded_order)

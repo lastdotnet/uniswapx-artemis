@@ -170,10 +170,12 @@ async fn main() -> Result<()> {
         ));
         client = Some(wss_provider.clone());
         sender_client = Some(wss_provider.clone());
+        info!("Using WSS provider: {}", wss);
     }
 
     // Initialize HTTP provider if specified
     if let Some(http_endpoint) = args.http {
+        info!("Using HTTP provider: {}", http_endpoint);
         let http_client = ClientBuilder::default().http(http_endpoint.parse()?);
         let http_provider = Arc::new(DynProvider::<AnyNetwork>::new(
             ProviderBuilder::new()

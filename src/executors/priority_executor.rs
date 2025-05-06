@@ -21,7 +21,7 @@ use crate::{
         build_metric_future, receipt_status_to_metric, revert_code_to_metric, CwMetrics, DimensionValue
     }, 
     executors::reactor_error_code::ReactorErrorCode, 
-    shared::{get_nonce_with_retry, send_metric_with_order_hash, u256},
+    shared::{burn_nonce, get_nonce_with_retry, send_metric_with_order_hash, u256},
     strategies::{keystore::KeyStore, types::SubmitTxToMempoolWithExecutionMetadata}
 };
 use crate::executors::reactor_error_code::get_revert_reason;
@@ -34,6 +34,7 @@ static GWEI_PER_ETH: U256 = u256!(1_000_000_000);
 const QUOTE_ETH_LOG10_THRESHOLD: usize = 8;
 // The number of bps to add to the base bid for each fallback bid
 const DEFAULT_FALLBACK_BID_SCALE_FACTOR: u64 = 50;
+const CONFIRMATION_TIMEOUT: u64 = 30;
 
 /// An executor that sends transactions to the public mempool.
 pub struct PriorityExecutor {
@@ -106,13 +107,18 @@ impl PriorityExecutor {
         match result {
             Ok(tx) => {
                 info!("{} - Waiting for confirmations", order_hash);
-                let receipt = tx
-                    .with_required_confirmations(0)
-                    .get_receipt()
-                    .await
-                    .map_err(|e| {
+                let receipt = match tokio::time::timeout(
+                    std::time::Duration::from_secs(CONFIRMATION_TIMEOUT),
+                    tx.with_required_confirmations(0).get_receipt()
+                ).await {
+                    Ok(receipt_result) => receipt_result.map_err(|e| {
                         anyhow::anyhow!("{} - Error waiting for confirmations: {}", order_hash, e)
-                    });
+                    }),
+                    Err(_) => {
+                        warn!("{} - Timed out waiting for transaction receipt", order_hash);
+                        return Ok(TransactionOutcome::Failure(None));
+                    }
+                };
                 
 
                 match receipt {
@@ -179,6 +185,17 @@ impl PriorityExecutor {
             }
             Err(e) => {
                 warn!("{} - Error sending transaction: {}", order_hash, e);
+                // If the nonce is already used, burn the nonce for the next transaction
+                if e.to_string().contains("replacement transaction underpriced") {
+                    info!("{} - Nonce already used, burning nonce for next transaction", order_hash);
+                    burn_nonce(
+                        &self.sender_client,
+                        wallet,
+                        tx_request_for_revert.from.unwrap(),
+                        tx_request_for_revert.nonce.unwrap(),
+                        order_hash
+                    ).await?;
+                }
                 Ok(TransactionOutcome::Failure(None))
             }
         }
@@ -356,6 +373,7 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for PriorityExecutor {
 
             // Retry up to 3 times to get the nonce.
             let mut nonce = get_nonce_with_retry(&self.client, address, &order_hash, 3).await?;
+            info!("{} - Nonce: {}", order_hash, nonce);
 
             // Sort transactions by max_priority_fee_per_gas in descending order so that the highest bid is first
             tx_requests.sort_by(|a, b| {
@@ -370,6 +388,15 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for PriorityExecutor {
                 nonce += 1;
             }
 
+            let metric_future = build_metric_future(
+                self.cloudwatch_client.clone(),
+                DimensionValue::PriorityExecutor,
+                CwMetrics::OrderBid(chain_id_u64),
+                1.0,
+            );
+            if let Some(metric_future) = metric_future {
+                send_metric_with_order_hash!(&order_hash, metric_future);
+            }
             info!("{} - Executing {} transactions in parallel from {:?}", order_hash, tx_requests.len(), address);
 
             let mut attempts = 0;
@@ -406,6 +433,16 @@ impl Executor<SubmitTxToMempoolWithExecutionMetadata> for PriorityExecutor {
                         Ok(TransactionOutcome::Success(result)) => {
                             success = true;
                             block_number = *result;
+
+                            let metric_future = build_metric_future(
+                                self.cloudwatch_client.clone(),
+                                DimensionValue::PriorityExecutor,
+                                CwMetrics::OrderFilled(chain_id_u64),
+                                1.0,
+                            );
+                            if let Some(metric_future) = metric_future {
+                                send_metric_with_order_hash!(&order_hash, metric_future);
+                            }
                             info!("{} - Transaction {} succeeded at block {}", order_hash, i, block_number.unwrap());
                             break;
                         }
