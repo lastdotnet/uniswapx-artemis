@@ -34,7 +34,7 @@ static GWEI_PER_ETH: U256 = u256!(1_000_000_000);
 const QUOTE_ETH_LOG10_THRESHOLD: usize = 8;
 // The number of bps to add to the base bid for each fallback bid
 const DEFAULT_FALLBACK_BID_SCALE_FACTOR: u64 = 50;
-const CONFIRMATION_TIMEOUT: u64 = 30;
+const CONFIRMATION_TIMEOUT_SEC: u64 = 10;
 
 /// An executor that sends transactions to the public mempool.
 pub struct PriorityExecutor {
@@ -108,7 +108,7 @@ impl PriorityExecutor {
             Ok(tx) => {
                 info!("{} - Waiting for confirmations", order_hash);
                 let receipt = match tokio::time::timeout(
-                    std::time::Duration::from_secs(CONFIRMATION_TIMEOUT),
+                    std::time::Duration::from_secs(CONFIRMATION_TIMEOUT_SEC),
                     tx.with_required_confirmations(0).get_receipt()
                 ).await {
                     Ok(receipt_result) => receipt_result.map_err(|e| {
