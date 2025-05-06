@@ -3,12 +3,11 @@ use super::{
     types::{Config, OrderStatus, TokenInTokenOut},
 };
 use crate::{
-    collectors::{
+    aws_utils::cloudwatch_utils::{CwMetrics, DimensionName, DimensionValue, MetricBuilder, ARTEMIS_NAMESPACE}, collectors::{
         block_collector::NewBlock,
         uniswapx_order_collector::UniswapXOrder,
         uniswapx_route_collector::{OrderBatchData, OrderData, RoutedOrder},
-    },
-    shared::RouteInfo,
+    }, shared::RouteInfo
 };
 use alloy::{
     hex,
@@ -21,6 +20,7 @@ use anyhow::Result;
 use artemis_core::executors::mempool_executor::{GasBidInfo, SubmitTxToMempool};
 use artemis_core::types::Strategy;
 use async_trait::async_trait;
+use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use bindings_uniswapx::basereactor::BaseReactor::SignedOrder;
 
 use std::str::FromStr;
@@ -34,7 +34,7 @@ use std::{
     sync::Arc,
 };
 use tokio::sync::mpsc::{Receiver, Sender};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use uniswapx_rs::order::{Order, OrderResolution, V3DutchOrder};
 
 use super::types::{Action, Event};
@@ -47,6 +47,8 @@ const REACTOR_ADDRESS: &str = "0xB274d5F4b833b61B340b654d600A864fB604a87c";
 pub struct UniswapXDutchV3Fill {
     /// Ethers client.
     client: Arc<DynProvider<AnyNetwork>>,
+    // AWS Cloudwatch CLient for metrics propagation
+    cloudwatch_client: Option<Arc<CloudWatchClient>>,
     /// executor address
     executor_address: String,
     /// Amount of profits to bid in gas
@@ -68,6 +70,7 @@ pub struct UniswapXDutchV3Fill {
 impl UniswapXDutchV3Fill {
     pub fn new(
         client: Arc<DynProvider<AnyNetwork>>,
+        cloudwatch_client: Option<Arc<CloudWatchClient>>,
         config: Config,
         sender: Sender<Vec<OrderBatchData>>,
         receiver: Receiver<RoutedOrder>,
@@ -78,6 +81,7 @@ impl UniswapXDutchV3Fill {
 
         Self {
             client,
+            cloudwatch_client,
             executor_address: config.executor_address,
             bid_percentage: config
                 .bid_percentage
@@ -457,18 +461,37 @@ impl UniswapXDutchV3Fill {
                 }
                 if !self.open_orders.contains_key(order_hash) {
                     info!("{} - Adding new order", order_hash);
+                    
+                    if let Some(cw) = &self.cloudwatch_client {
+                        let metric_future = cw
+                            .put_metric_data()
+                            .namespace(ARTEMIS_NAMESPACE)
+                            .metric_data(
+                                MetricBuilder::new(CwMetrics::OrderReceived(self.chain_id))
+                                    .add_dimension(DimensionName::Service.as_ref(), DimensionValue::V3Executor.as_ref())
+                                    .with_value(1.0)
+                                    .build(),
+                            )
+                            .send();
+                        tokio::spawn(async move {
+                            if let Err(e) = metric_future.await {
+                                warn!("Error sending order received metric: {:?}", e);
+                            }
+                        });
+                    }
+
+                    self.open_orders.insert(
+                        order_hash.clone(),
+                        OrderData {
+                            order: Order::V3DutchOrder(order.inner),
+                            hash: order_hash.clone(),
+                            signature: signature.to_string(),
+                            resolved: resolved_order,
+                            encoded_order: Some(order.encoded_order),
+                            route: route.cloned(),
+                        },
+                    );
                 }
-                self.open_orders.insert(
-                    order_hash.clone(),
-                    OrderData {
-                        order: Order::V3DutchOrder(order.inner),
-                        hash: order_hash.clone(),
-                        signature: signature.to_string(),
-                        resolved: resolved_order,
-                        encoded_order: Some(order.encoded_order),
-                        route: route.cloned(),
-                    },
-                );
             }
             // Noop
             _ => {}

@@ -177,16 +177,20 @@ impl Executor<SubmitTxToMempool> for DutchExecutor {
             .to_string()
             .parse::<u64>()
             .unwrap();
-        let metric_future = build_metric_future(
-            self.cloudwatch_client.clone(),
-            DimensionValue::V3Executor,
-            CwMetrics::TxSubmitted(chain_id),
-            1.0,
-        );
-        if let Some(metric_future) = metric_future {
-            // do not block current thread by awaiting in the background
-            send_metric!(metric_future);
-        }
+
+        let send_metric_if_some = |metric| {
+            if let Some(metric_future) = build_metric_future(
+                self.cloudwatch_client.clone(),
+                DimensionValue::V3Executor,
+                metric,
+                1.0,
+            ) {
+                send_metric!(metric_future);
+            }
+        };
+
+        send_metric_if_some(CwMetrics::OrderBid(chain_id));
+        send_metric_if_some(CwMetrics::TxSubmitted(chain_id));
 
         let tx_request_for_revert = action.tx.clone();
         let tx = action.tx.build(&wallet).await?;
@@ -229,6 +233,22 @@ impl Executor<SubmitTxToMempool> for DutchExecutor {
                                     info!("Failed to get revert reason - error: {:?}", e);
                                 }
                             }
+                        }
+                        else {
+                            let send_metric_if_some = |metric| {
+                                if let Some(metric_future) = build_metric_future(
+                                    self.cloudwatch_client.clone(),
+                                    DimensionValue::V3Executor,
+                                    metric,
+                                    1.0,
+                                ) {
+                                    send_metric!(metric_future);
+                                }
+                            };
+
+                            send_metric_if_some(CwMetrics::OrderFilled(chain_id));
+                            send_metric_if_some(CwMetrics::TxSucceeded(chain_id));
+                            info!("Transaction succeeded");
                         }
 
                         (Some(receipt), status)

@@ -293,6 +293,7 @@ async fn main() -> Result<()> {
         OrderType::DutchV3 => {
             let uniswapx_strategy = UniswapXDutchV3Fill::new(
                 client.clone().unwrap(),
+                cloudwatch_client.clone(),
                 config.clone(),
                 batch_sender,
                 route_receiver,
