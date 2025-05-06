@@ -20,6 +20,9 @@ pub const ROUTING_MS: &str = "RoutingMs";
 pub const TX_SUCCEEDED_METRIC: &str = "TransactionSucceeded";
 pub const TX_REVERTED_METRIC: &str = "TransactionReverted";
 pub const TX_SUBMITTED_METRIC: &str = "TransactionSubmitted";
+pub const ORDER_RECEIVED_METRIC: &str = "OrderReceived";
+pub const ORDER_BID_METRIC: &str = "OrderBid";
+pub const ORDER_FILLED_METRIC: &str = "OrderFilled";
 pub const TX_STATUS_UNKNOWN_METRIC: &str = "TransactionStatusUnknown";
 pub const LATEST_BLOCK: &str = "LatestBlock";
 pub const EXECUTION_ATTEMPTED_METRIC: &str = "ExecutionAttempted";
@@ -86,6 +89,9 @@ pub enum CwMetrics {
     TxSucceeded(u64),
     TxReverted(u64),
     TxSubmitted(u64),
+    OrderReceived(u64),
+    OrderBid(u64),
+    OrderFilled(u64),
     TxStatusUnknown(u64),
     LatestBlock(u64),
     RevertCode(u64, String), // chain_id and revert code string
@@ -112,6 +118,9 @@ impl From<CwMetrics> for String {
             CwMetrics::TxSucceeded(chain_id) => format!("{}-{}", chain_id, TX_SUCCEEDED_METRIC),
             CwMetrics::TxReverted(chain_id) => format!("{}-{}", chain_id, TX_REVERTED_METRIC),
             CwMetrics::TxSubmitted(chain_id) => format!("{}-{}", chain_id, TX_SUBMITTED_METRIC),
+            CwMetrics::OrderReceived(chain_id) => format!("{}-{}", chain_id, ORDER_RECEIVED_METRIC),
+            CwMetrics::OrderBid(chain_id) => format!("{}-{}", chain_id, ORDER_BID_METRIC),
+            CwMetrics::OrderFilled(chain_id) => format!("{}-{}", chain_id, ORDER_FILLED_METRIC),
             CwMetrics::TxStatusUnknown(chain_id) => {
                 format!("{}-{}", chain_id, TX_STATUS_UNKNOWN_METRIC)
             }
