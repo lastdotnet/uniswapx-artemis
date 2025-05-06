@@ -5,7 +5,7 @@ use alloy_primitives::{Address, U256};
 use serde::Deserialize;
 
 const NONCE_BURN_GAS_MULTIPLIER: u128 = 10;
-const NONCE_BURN_PRIORITY_FEE: u128 = 100000; // 0.0001 gwei
+const NONCE_BURN_PRIORITY_FEE: u128 = 1e7 as u128; // 0.01 gwei (max priority bid possible)
 const ETH_TRANSFER_GAS: u64 = 21000;
 
 macro_rules! send_metric_with_order_hash {
