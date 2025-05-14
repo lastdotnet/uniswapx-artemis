@@ -19,4 +19,4 @@
 [submodule "lib/artemis-light"]
 	path = lib/artemis-light
 	url = git@github.com:lastdotnet/artemis-light.git
-	branch = legacy/v0.1.0
+	branch = adhoc/some-cleanup

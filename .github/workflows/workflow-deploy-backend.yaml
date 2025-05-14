@@ -72,4 +72,4 @@ jobs:
         with:
           account: ${{ inputs.account }}
           region: ${{ inputs.region }}
-          stacks: hypurr-uniswapx-filler
+          stacks: hypurr-pawswapx-filler

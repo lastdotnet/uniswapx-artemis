@@ -36,8 +36,8 @@ use super::types::{Action, Event};
 
 const BLOCK_TIME: u64 = 12;
 const DONE_EXPIRY: u64 = 300;
-const REACTOR_ADDRESS: &str = "0x236dD05591AB7265C43CAe2c8AD73ee6a5ba4de4";
-
+const REACTOR_ADDRESS: &str = "0x236dD05591AB7265C43CAe2c8AD73ee6a5ba4de4"; // TESTNET
+// const REACTOR_ADDRESS: &str = "0xaeBe208C626DB7e80aF4C9d56e9e509f60E365B9"; // MAINNET
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct UniswapXUniswapFill {
