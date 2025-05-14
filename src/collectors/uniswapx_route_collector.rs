@@ -1,6 +1,6 @@
 use std::{collections::HashSet, sync::Arc};
 
-use alloy_primitives::{Uint, U256};
+use alloy::primitives::{Uint, U256};
 use anyhow::{anyhow, Result};
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use reqwest::header::ORIGIN;
@@ -9,7 +9,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{error, info};
 use uniswapx_rs::order::{Order, ResolvedOrder, TradeType};
 
-use artemis_core::types::{Collector, CollectorStream};
+use artemis_light::types::{Collector, CollectorStream};
 use async_trait::async_trait;
 use futures::lock::Mutex;
 use futures::stream::FuturesUnordered;
@@ -18,7 +18,7 @@ use reqwest::{Client, StatusCode};
 
 use crate::{
     aws_utils::cloudwatch_utils::{build_metric_future, CwMetrics, DimensionValue},
-    shared::{send_metric_with_order_hash, RouteInfo, MethodParameters},
+    shared::{send_metric_with_order_hash, MethodParameters, RouteInfo},
 };
 
 const ROUTING_API: &str = "https://api.uniswap.org/v1/quote";
@@ -197,13 +197,13 @@ impl UniswapXRouteCollector {
         };
 
         let query_string = serde_qs::to_string(&query)?;
-        let full_query = format!("{}?{}", ROUTING_API, query_string);
+        let full_query = format!("{ROUTING_API}?{query_string}");
         info!("{} - full query: {}", order_hash, full_query);
         let client = reqwest::Client::new();
         let start = std::time::Instant::now();
 
         let response = client
-            .get(format!("{}?{}", ROUTING_API, query_string))
+            .get(format!("{ROUTING_API}?{query_string}"))
             .header(ORIGIN, "https://app.uniswap.org")
             .header("x-request-source", "uniswap-web")
             .header("x-universal-router-version", "2.0")

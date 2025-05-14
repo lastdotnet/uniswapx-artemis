@@ -3,13 +3,6 @@ use anyhow::Result;
 use backoff::ExponentialBackoff;
 use clap::{ArgGroup, Parser};
 
-use artemis_core::engine::Engine;
-use artemis_core::types::{CollectorMap, ExecutorMap};
-use collectors::uniswapx_order_collector::OrderType;
-use collectors::{
-    block_collector::BlockCollector, uniswapx_order_collector::UniswapXOrderCollector,
-    uniswapx_route_collector::UniswapXRouteCollector,
-};
 use alloy::{
     hex,
     network::AnyNetwork,
@@ -17,6 +10,13 @@ use alloy::{
     pubsub::{ConnectionHandle, PubSubConnect},
     signers::local::PrivateKeySigner,
     transports::{impl_future, TransportResult},
+};
+use artemis_light::engine::Engine;
+use artemis_light::types::{CollectorMap, ExecutorMap};
+use collectors::uniswapx_order_collector::OrderType;
+use collectors::{
+    block_collector::BlockCollector, uniswapx_order_collector::UniswapXOrderCollector,
+    uniswapx_route_collector::UniswapXRouteCollector,
 };
 use executors::dutch_executor::DutchExecutor;
 use executors::queued_executor::QueuedExecutor;
@@ -74,7 +74,7 @@ pub struct Args {
 
     /// Percentage of profit to pay in gas.
     #[arg(long, required = false)]
-    pub bid_percentage: Option<u128>,
+    pub bid_percentage: Option<u64>,
 
     /// Determines how aggressive to scale the fallback bids
     /// 100 (default) = 1% of the profit
@@ -136,7 +136,7 @@ impl PubSubConnect for RetryWsConnect {
 async fn main() -> Result<()> {
     // Set up tracing and parse args.
     let filter = filter::Targets::new()
-        .with_target("artemis_core", Level::INFO)
+        .with_target("artemis_light", Level::INFO)
         .with_target("uniswapx_artemis", Level::INFO);
 
     tracing_subscriber::registry()
@@ -157,7 +157,7 @@ async fn main() -> Result<()> {
     let chain_id = args.chain_id;
     let mut client = None;
     let mut sender_client = None;
-    
+
     if let Some(wss) = args.wss {
         let ws = WsConnect::new(wss.as_str());
         let retry_ws = RetryWsConnect(ws);
@@ -166,7 +166,7 @@ async fn main() -> Result<()> {
         let wss_provider = Arc::new(DynProvider::<AnyNetwork>::new(
             ProviderBuilder::new()
                 .network::<AnyNetwork>()
-                .on_client(wss_client)
+                .on_client(wss_client),
         ));
         client = Some(wss_provider.clone());
         sender_client = Some(wss_provider.clone());
@@ -180,16 +180,16 @@ async fn main() -> Result<()> {
         let http_provider = Arc::new(DynProvider::<AnyNetwork>::new(
             ProviderBuilder::new()
                 .network::<AnyNetwork>()
-                .on_client(http_client)
+                .on_client(http_client),
         ));
         // prefer http provider for sending txs
         sender_client = Some(http_provider.clone());
         // prefer wss provider for fetching blocks
-        if !client.is_some() {
+        if client.is_none() {
             client = Some(http_provider.clone());
         }
     }
-    if !client.is_some() {
+    if client.is_none() {
         panic!("No provider found. Please provide either a WSS endpoint (--wss) or an HTTP endpoint (--http).");
     }
 
@@ -324,7 +324,7 @@ async fn main() -> Result<()> {
     ));
 
     let queued_executor = ExecutorMap::new(queued_executor, |action| match action {
-        Action::SubmitPublicTx(tx) => Some(tx),
+        Action::SubmitPublicTx(tx) => Some(*tx),
         _ => None,
     });
 
@@ -336,11 +336,10 @@ async fn main() -> Result<()> {
     ));
 
     let protect_executor = ExecutorMap::new(protect_executor, |action| match action {
-        Action::SubmitTx(tx) => Some(tx),
+        Action::SubmitTx(tx) => Some(*tx),
         // No op for public transactions
         _ => None,
     });
-
 
     engine.add_executor(Box::new(queued_executor));
     engine.add_executor(Box::new(protect_executor));
