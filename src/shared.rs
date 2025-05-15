@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use alloy::{network::{AnyNetwork, EthereumWallet, TransactionBuilder, ReceiptResponse}, providers::{DynProvider, Provider}, rpc::types::TransactionRequest, serde::WithOtherFields};
+use alloy::{network::{AnyNetwork, EthereumWallet, TransactionBuilder}, providers::{DynProvider, Provider}, rpc::types::TransactionRequest, serde::WithOtherFields};
 use alloy_primitives::{Address, U256};
 use serde::Deserialize;
 
@@ -116,29 +116,9 @@ pub async fn burn_nonce(
 
     match result {
         Ok(tx) => {
-            tracing::info!("{} - Waiting for confirmations", order_hash);
-            let receipt = tx
-                .with_required_confirmations(0)
-                .get_receipt()
-                .await
-                .map_err(|e| {
-                    anyhow::anyhow!("{} - Error waiting for confirmations: {}", order_hash, e)
-                });
-                
-            match receipt {
-                Ok(receipt) => {
-                    let status = receipt.status();
-                    tracing::info!(
-                        "{} - Nonce burn: tx_hash: {:?}, status: {}",
-                        order_hash, receipt.transaction_hash, status,
-                    );
-                    Ok(())
-                }
-                Err(e) => {
-                    tracing::error!("{} - Error burning nonce: {}", order_hash, e);
-                    return Err(anyhow::anyhow!("{} - Error burning nonce: {}", order_hash, e));
-                }
-            }
+            // Don't wait for confirmations
+            tracing::info!("{} - Nonce burn transaction sent: {:?}", order_hash, tx.tx_hash());
+            Ok(())
         }
         Err(e) => {
             tracing::error!("{} - Error sending nonce burn transaction: {}", order_hash, e);
