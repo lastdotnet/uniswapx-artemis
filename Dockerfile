@@ -38,16 +38,17 @@ RUN apt-get clean && \
     update-ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
+WORKDIR /app
+
+
 # Copy the executable from the "build" stage.
-COPY --from=build /bin/server /bin/
+COPY --from=build /bin/server /app/uniswapx-artemis
 
 # Expose the port that the application listens on.
 EXPOSE 1559
 
-# Add Tini
-# Tini helps with the problem of accidentally created zombie processes, and also makes sure that the signal handlers work
-# see https://github.com/krallin/tini for detail
-ENV TINI_VERSION=v0.19.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
-RUN chmod +x /tini
-ENTRYPOINT ["/tini", "--"]
+# Make the binary executable
+RUN chmod +x /app/uniswapx-artemis
+
+# Change to CMD to allow override from ECS
+CMD ["/app/uniswapx-artemis"]

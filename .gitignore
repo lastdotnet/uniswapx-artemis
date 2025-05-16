@@ -1,3 +1,29 @@
 /target
 .env
 logs*
+
+# files
+.DS_Store
+node_modules
+
+
+# foundry
+out
+cache
+
+# hardhat
+artifacts
+
+# typechain
+typechain
+
+/crates/*-bindings
+
+# Added by cargo
+
+/target
+
+.DS_store
+
+cdk.out/*
+node_modules/*
