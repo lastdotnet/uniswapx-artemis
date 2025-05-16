@@ -8,19 +8,44 @@
 
 ARG RUST_VERSION=1.81
 ARG APP_NAME=uniswapx-artemis
+# Set the target platform explicitly
+ARG TARGETPLATFORM=linux/amd64
+
 
 ################################################################################
 # Create a stage for building the application.
 
-FROM public.ecr.aws/docker/library/rust:${RUST_VERSION}-bookworm AS build
+FROM --platform=${TARGETPLATFORM} public.ecr.aws/docker/library/rust:${RUST_VERSION}-bookworm AS build
 ARG APP_NAME
+ARG TARGETPLATFORM
 WORKDIR /app
 
+# Install cross-compilation tools if needed
+RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ]; then \
+        rustup target add x86_64-unknown-linux-gnu; \
+        echo "Building for x86_64"; \
+        export TARGET="x86_64-unknown-linux-gnu"; \
+    elif [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
+        rustup target add aarch64-unknown-linux-gnu; \
+        apt-get update && apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu; \
+        echo "Building for aarch64"; \
+        export TARGET="aarch64-unknown-linux-gnu"; \
+    else \
+        echo "Building for host architecture"; \
+    fi
 
 # AWS CodeBuild doesn't seem to support buildkit so can't use --mount
 COPY . .
-RUN cargo build --locked --release && \
-cp ./target/release/$APP_NAME /bin/server
+RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ]; then \
+        cargo build --locked --release --target x86_64-unknown-linux-gnu && \
+        cp ./target/x86_64-unknown-linux-gnu/release/$APP_NAME /bin/server; \
+    elif [ "${TARGETPLATFORM}" = "linux/arm64" ]; then \
+        cargo build --locked --release --target aarch64-unknown-linux-gnu && \
+        cp ./target/aarch64-unknown-linux-gnu/release/$APP_NAME /bin/server; \
+    else \
+        cargo build --locked --release && \
+        cp ./target/release/$APP_NAME /bin/server; \
+    fi
 
 ################################################################################
 # Create a new stage for running the application that contains the minimal
@@ -28,7 +53,7 @@ cp ./target/release/$APP_NAME /bin/server
 # image from the build stage where the necessary files are copied from the build
 # stage.
 #
-FROM public.ecr.aws/debian/debian:bookworm-slim AS final
+FROM --platform=${TARGETPLATFORM} public.ecr.aws/debian/debian:bookworm-slim AS final
 RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get update -y && \
@@ -39,7 +64,6 @@ RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
 
 # Copy the executable from the "build" stage.
 COPY --from=build /bin/server /app/uniswapx-artemis

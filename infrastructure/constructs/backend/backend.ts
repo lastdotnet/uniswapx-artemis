@@ -86,7 +86,7 @@ export class Backend extends Construct {
         ...props.containerEnvironment,
         WS: "wss://rpc.purroofgroup.com",
         BID_PERCENTAGE: "1",
-        ORDER_TYPE: "DutchV2",
+        ORDER_TYPE: "Dutch_V2",
         CHAIN_ID: "999",
         RUST_LOG: "INFO",
         EXECUTOR_ADDRESS: "0x9304a794665d748cA940EdA8026a2BF243F6e267",
@@ -100,7 +100,7 @@ export class Backend extends Construct {
       command: [
         "/bin/sh",
         "-c",
-        "/app/uniswapx-artemis --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --ws $WS --bid-percentage $BID_PERCENTAGE --order-type $ORDER_TYPE --executor-address $EXECUTOR_ADDRESS",
+        "/app/uniswapx-artemis --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --wss $WS --bid-percentage $BID_PERCENTAGE --order-type $ORDER_TYPE --executor-address $EXECUTOR_ADDRESS",
       ],
       portMappings: [{ containerPort: 1559 }],
       logging: ecs.LogDriver.awsLogs({
