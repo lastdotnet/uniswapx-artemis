@@ -1,12 +1,8 @@
 use std::error::Error;
 
-use alloy_dyn_abi::SolType;
-use alloy_primitives::Uint;
-use alloy_primitives::I256;
-use alloy_primitives::U256;
-use alloy_sol_types::sol;
+use alloy::{dyn_abi::SolType, primitives::{Uint, I256, U256}, sol};
 use anyhow::Result;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::sol_math::MulDiv;
 
@@ -18,7 +14,7 @@ fn current_timestamp_ms() -> u64 {
 }
 
 sol! {
-    #[derive(Debug)]
+    #[derive(Debug, Deserialize)]
     struct OrderInfo {
         address reactor;
         address swapper;
@@ -28,7 +24,7 @@ sol! {
         bytes additionalValidationData;
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Deserialize)]
     struct DutchOutput {
         address token;
         uint256 startAmount;
@@ -36,14 +32,14 @@ sol! {
         address recipient;
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Deserialize)]
     struct DutchInput {
         address token;
         uint256 startAmount;
         uint256 endAmount;
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Deserialize)]
     struct CosignerData {
         uint256 decayStartTime;
         uint256 decayEndTime;
@@ -53,7 +49,7 @@ sol! {
         uint256[] outputAmounts;
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Deserialize)]
     struct V2DutchOrder {
         OrderInfo info;
         address cosigner;
@@ -63,14 +59,14 @@ sol! {
         bytes cosignature;
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Deserialize)]
     struct PriorityInput {
         address token;
         uint256 amount;
         uint256 mpsPerPriorityFeeWei;
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Deserialize)]
     struct PriorityOutput {
         address token;
         uint256 amount;
@@ -78,12 +74,12 @@ sol! {
         address recipient;
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Deserialize)]
     struct PriorityCosignerData {
         uint256 auctionTargetBlock;
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Deserialize)]
     struct PriorityOrder {
         OrderInfo info;
         address cosigner;
@@ -95,7 +91,7 @@ sol! {
         bytes cosignature;
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Deserialize)]
     struct V3DutchOrder {
         OrderInfo info;
         address cosigner;
@@ -106,7 +102,7 @@ sol! {
         bytes cosignature;
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Deserialize)]
     struct V3CosignerData {
         uint256 decayStartBlock;
         address exclusiveFiller;
@@ -115,13 +111,13 @@ sol! {
         uint256[] outputAmounts;
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Deserialize)]
     struct NonlinearDutchDecay {
         uint256 relativeBlocks;
         int256[] relativeAmounts;
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Deserialize)]
     struct V3DutchInput {
         address token;
         uint256 startAmount;
@@ -130,7 +126,7 @@ sol! {
         uint256 adjustmentPerGweiBaseFee;
     }
     
-    #[derive(Debug)]
+    #[derive(Debug, Deserialize)]
     struct V3DutchOutput {
         address token;
         uint256 startAmount;
@@ -145,7 +141,7 @@ pub const MPS: u64 = 1e7 as u64;
 pub const BPS: U256 = Uint::from_limbs([10000, 0, 0, 0]);
 const PACKED_UINT16_ARRAY_LENGTH: usize = 256 / 16;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub enum Order {
     V2DutchOrder(V2DutchOrder),
     PriorityOrder(PriorityOrder),
@@ -203,20 +199,20 @@ impl Order {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ResolvedInput {
     pub token: String,
     pub amount: U256,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ResolvedOutput {
     pub token: String,
     pub amount: U256,
     pub recipient: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ResolvedOrder {
     pub input: ResolvedInput,
     pub outputs: Vec<ResolvedOutput>,
@@ -231,8 +227,8 @@ pub enum OrderResolution {
 }
 
 impl V2DutchOrder {
-    pub fn decode_inner(order_hex: &[u8], validate: bool) -> Result<Self, Box<dyn Error>> {
-        Ok(V2DutchOrder::abi_decode(order_hex, validate)?)
+    pub fn decode_inner(order_hex: &[u8], _validate: bool) -> Result<Self, Box<dyn Error>> {
+        Ok(V2DutchOrder::abi_decode(order_hex)?)
     }
 
     pub fn encode_inner(&self) -> Vec<u8> {
@@ -302,8 +298,8 @@ pub fn projected_target_block_ms(current_block: u64, target_block: u64, block_ti
 }
 
 impl PriorityOrder {
-    pub fn decode_inner(order_hex: &[u8], validate: bool) -> Result<Self, Box<dyn Error>> {
-        Ok(PriorityOrder::abi_decode(order_hex, validate)?)
+    pub fn decode_inner(order_hex: &[u8], _validate: bool) -> Result<Self, Box<dyn Error>> {
+        Ok(PriorityOrder::abi_decode(order_hex)?)
     }
 
     pub fn encode_inner(&self) -> Vec<u8> {
@@ -367,8 +363,8 @@ impl PriorityOutput {
 }
 
 impl V3DutchOrder {
-    pub fn decode_inner(order_hex: &[u8], validate: bool) -> Result<Self, Box<dyn Error>> {
-        Ok(V3DutchOrder::abi_decode(order_hex, validate)?)
+    pub fn decode_inner(order_hex: &[u8], _validate: bool) -> Result<Self, Box<dyn Error>> {
+        Ok(V3DutchOrder::abi_decode(order_hex)?)
     }
 
     pub fn encode_inner(&self) -> Vec<u8> {

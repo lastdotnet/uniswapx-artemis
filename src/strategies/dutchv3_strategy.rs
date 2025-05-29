@@ -3,25 +3,29 @@ use super::{
     types::{Config, OrderStatus, TokenInTokenOut},
 };
 use crate::{
-    aws_utils::cloudwatch_utils::{CwMetrics, DimensionName, DimensionValue, MetricBuilder, ARTEMIS_NAMESPACE}, collectors::{
+    aws_utils::cloudwatch_utils::{
+        CwMetrics, DimensionName, DimensionValue, MetricBuilder, PAWSWAP_NAMESPACE,
+    },
+    collectors::{
         block_collector::NewBlock,
         uniswapx_order_collector::UniswapXOrder,
         uniswapx_route_collector::{OrderBatchData, OrderData, RoutedOrder},
-    }, shared::RouteInfo
+    },
+    shared::RouteInfo,
 };
 use alloy::{
     hex,
     network::{AnyNetwork, TransactionBuilder},
-    primitives::{Address, Bytes, Uint, U128, U256},
+    primitives::{Address, Bytes, Uint, U256},
     providers::{DynProvider, Provider},
     rpc::types::Filter,
 };
 use anyhow::Result;
-use artemis_core::executors::mempool_executor::{GasBidInfo, SubmitTxToMempool};
-use artemis_core::types::Strategy;
+use artemis_light::executors::mempool_executor::{GasBidInfo, SubmitTxToMempool};
+use artemis_light::types::Strategy;
 use async_trait::async_trait;
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
-use bindings_uniswapx::basereactor::BaseReactor::SignedOrder;
+use bindings_uniswapx::base_reactor::BaseReactor::SignedOrder;
 
 use std::str::FromStr;
 use std::{
@@ -40,7 +44,6 @@ use uniswapx_rs::order::{Order, OrderResolution, V3DutchOrder};
 use super::types::{Action, Event};
 
 const DONE_EXPIRY: u64 = 300;
-const REACTOR_ADDRESS: &str = "0xB274d5F4b833b61B340b654d600A864fB604a87c";
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -52,7 +55,7 @@ pub struct UniswapXDutchV3Fill {
     /// executor address
     executor_address: String,
     /// Amount of profits to bid in gas
-    bid_percentage: u128,
+    bid_percentage: u64,
     last_block_number: u64,
     last_block_timestamp: u64,
     // map of open order hashes to order data
@@ -65,6 +68,7 @@ pub struct UniswapXDutchV3Fill {
     route_receiver: Receiver<RoutedOrder>,
     sender_address: String,
     chain_id: u64,
+    reactor_address: Address,
 }
 
 impl UniswapXDutchV3Fill {
@@ -76,6 +80,7 @@ impl UniswapXDutchV3Fill {
         receiver: Receiver<RoutedOrder>,
         sender_address: String,
         chain_id: u64,
+        reactor_address: Address,
     ) -> Self {
         info!("syncing state");
 
@@ -95,6 +100,7 @@ impl UniswapXDutchV3Fill {
             route_receiver: receiver,
             sender_address,
             chain_id,
+            reactor_address,
         }
     }
 }
@@ -153,7 +159,12 @@ impl UniswapXDutchV3Fill {
                 inner: order,
                 encoded_order: event.encoded_order.clone(),
             };
-            self.update_order_state(wrapper, &event.signature, &event.order_hash, event.route.as_ref());
+            self.update_order_state(
+                wrapper,
+                &event.signature,
+                &event.order_hash,
+                event.route.as_ref(),
+            );
         }
         vec![]
     }
@@ -185,7 +196,10 @@ impl UniswapXDutchV3Fill {
         }
 
         let amount_required_u256 = U256::from_str_radix(&amount_required.to_string(), 10).ok();
-        info!("Quote: {:?}, Amount required: {:?}", event.route.quote_gas_adjusted, amount_required_u256);
+        info!(
+            "Quote: {:?}, Amount required: {:?}",
+            event.route.quote_gas_adjusted, amount_required_u256
+        );
         if let Some(profit) = self.get_profit_eth(event) {
             info!(
                 "Sending trade: num trades: {} routed quote: {}, batch needs: {}, profit: {} wei",
@@ -214,17 +228,21 @@ impl UniswapXDutchV3Fill {
                     // Must be able to cover min gas cost
                     let sender_address = Address::from_str(&self.sender_address).unwrap();
                     req.set_from(sender_address);
-                    let gas_usage = self.client.estimate_gas(&req).await.map_or_else(
-                        |err| {
-                            info!("Error estimating gas: {}", err);
-                            if err.to_string().contains("execution reverted") {
-                                None
-                            } else {
-                                Some(1_000_000)
-                            }
-                        },
-                        Some,
-                    );
+                    let gas_usage = self
+                        .client
+                        .estimate_gas(req.clone().into())
+                        .await
+                        .map_or_else(
+                            |err| {
+                                info!("Error estimating gas: {}", err);
+                                if err.to_string().contains("execution reverted") {
+                                    None
+                                } else {
+                                    Some(1_000_000)
+                                }
+                            },
+                            Some,
+                        );
 
                     if gas_usage.is_none() {
                         return vec![];
@@ -253,13 +271,13 @@ impl UniswapXDutchV3Fill {
                     for order in filtered_orders.iter() {
                         self.processing_orders.insert(order.hash.clone());
                     }
-                    return vec![Action::SubmitTx(SubmitTxToMempool {
+                    return vec![Action::SubmitTx(Box::new(SubmitTxToMempool {
                         tx: req,
                         gas_bid_info: Some(GasBidInfo {
-                            bid_percentage: U128::from(self.bid_percentage),
-                            total_profit: U128::from(profit),
+                            bid_percentage: self.bid_percentage,
+                            total_profit: profit.to(),
                         }),
-                    })];
+                    }))];
                 }
                 Err(e) => {
                     error!("Error building fill: {}", e);
@@ -358,15 +376,14 @@ impl UniswapXDutchV3Fill {
                         .wrapping_add(amount_required);
                 }
             });
-        
+
         order_batches
     }
 
     async fn handle_fills(&mut self) -> Result<()> {
-        let reactor_address = REACTOR_ADDRESS.parse::<Address>().unwrap();
         let filter = Filter::new()
             .select(self.last_block_number)
-            .address(reactor_address)
+            .address(self.reactor_address)
             .event("Fill(bytes32,address,address,uint256)");
 
         // early return on error
@@ -461,14 +478,17 @@ impl UniswapXDutchV3Fill {
                 }
                 if !self.open_orders.contains_key(order_hash) {
                     info!("{} - Adding new order", order_hash);
-                    
+
                     if let Some(cw) = &self.cloudwatch_client {
                         let metric_future = cw
                             .put_metric_data()
-                            .namespace(ARTEMIS_NAMESPACE)
+                            .namespace(PAWSWAP_NAMESPACE)
                             .metric_data(
                                 MetricBuilder::new(CwMetrics::OrderReceived(self.chain_id))
-                                    .add_dimension(DimensionName::Service.as_ref(), DimensionValue::V3Executor.as_ref())
+                                    .add_dimension(
+                                        DimensionName::Service.as_ref(),
+                                        DimensionValue::V3Executor.as_ref(),
+                                    )
                                     .with_value(1.0)
                                     .build(),
                             )
