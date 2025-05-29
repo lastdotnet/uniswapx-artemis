@@ -1,14 +1,14 @@
+use super::priority_strategy::ExecutionMetadata;
 use crate::collectors::{
     block_collector::NewBlock, uniswapx_order_collector::UniswapXOrder,
     uniswapx_route_collector::RoutedOrder,
 };
-use artemis_core::executors::mempool_executor::SubmitTxToMempool;
+use artemis_light::executors::mempool_executor::SubmitTxToMempool;
+use serde::Deserialize;
 use uniswapx_rs::order::ResolvedOrder;
 
-use super::priority_strategy::ExecutionMetadata;
-
 /// Core Event enum for the current strategy.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub enum Event {
     NewBlock(NewBlock),
     UniswapXOrder(Box<UniswapXOrder>),
@@ -24,14 +24,14 @@ pub struct SubmitTxToMempoolWithExecutionMetadata {
 /// Core Action enum for the current strategy.
 #[derive(Debug, Clone)]
 pub enum Action {
-    SubmitTx(SubmitTxToMempool),
-    SubmitPublicTx(SubmitTxToMempoolWithExecutionMetadata),
+    SubmitTx(Box<SubmitTxToMempool>),
+    SubmitPublicTx(Box<SubmitTxToMempoolWithExecutionMetadata>),
 }
 
 /// Configuration for variables we need to pass to the strategy.
 #[derive(Debug, Clone)]
 pub struct Config {
-    pub bid_percentage: Option<u128>,
+    pub bid_percentage: Option<u64>,
     pub executor_address: String,
     pub min_block_percentage_buffer: Option<u64>,
     pub fallback_bid_scale_factor: Option<u64>,

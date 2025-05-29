@@ -13,3 +13,9 @@
 [submodule "contracts/lib/openzeppelin-contracts"]
 	path = contracts/lib/openzeppelin-contracts
 	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "lib/UniswapX"]
+	path = lib/UniswapX
+	url = git@github.com:Uniswap/UniswapX.git
+[submodule "lib/artemis-light"]
+	path = lib/artemis-light
+	url = git@github.com:lastdotnet/artemis-light.git

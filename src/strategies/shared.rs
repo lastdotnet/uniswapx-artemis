@@ -2,18 +2,16 @@ use crate::collectors::uniswapx_route_collector::RoutedOrder;
 use alloy::{
     hex,
     network::{AnyNetwork, TransactionBuilder},
-    primitives::{Address, U256},
+    primitives::{Address, Bytes, U256},
     providers::{DynProvider, Provider},
     rpc::types::TransactionRequest,
-    serde::WithOtherFields,
     sol,
 };
-use alloy_primitives::Bytes;
 use anyhow::Result;
 use async_trait::async_trait;
 use bindings_uniswapx::{
-    basereactor::BaseReactor::SignedOrder, erc20::ERC20,
-    universalrouterexecutor::UniversalRouterExecutor,
+    base_reactor::BaseReactor::SignedOrder, erc20::ERC20,
+    universal_router_executor::UniversalRouterExecutor,
 };
 use ethabi::{ethereum_types::H160, Token};
 use std::{
@@ -44,7 +42,7 @@ pub trait UniswapXStrategy {
         executor_address: &str,
         signed_orders: Vec<SignedOrder>,
         RoutedOrder { request, route, .. }: &RoutedOrder,
-    ) -> Result<WithOtherFields<TransactionRequest>> {
+    ) -> Result<TransactionRequest> {
         let chain_id = client.get_chain_id().await?;
         let fill_contract =
             UniversalRouterExecutor::new(Address::from_str(executor_address)?, client.clone());
@@ -78,7 +76,12 @@ pub trait UniswapXStrategy {
             })
             .collect();
         let call = fill_contract.executeBatch(orders, Bytes::from(encoded_calldata));
-        Ok(call.into_transaction_request().with_chain_id(chain_id))
+
+        Ok(call
+            .into_transaction_request()
+            .with_chain_id(chain_id)
+            .inner()
+            .clone())
     }
 
     fn current_timestamp(&self) -> Result<u64> {
@@ -105,7 +108,7 @@ pub trait UniswapXStrategy {
             .call()
             .await
             .expect("Failed to get allowance");
-        if allowance._0 < U256::MAX / U256::from(2) {
+        if allowance < U256::MAX / U256::from(2) {
             Ok(vec![Token::Address(H160(token.0 .0))])
         } else {
             Ok(vec![])
@@ -116,13 +119,15 @@ pub trait UniswapXStrategy {
         let quote = U256::from_str_radix(&route.quote, 10).ok()?;
         let amount_required =
             U256::from_str_radix(&request.amount_required.to_string(), 10).ok()?;
-        
+
         // exact_out: quote must be less than amount_in_required
         // exact_in: quote must be greater than amount_out_required
-        if (request.orders.first().unwrap().order.is_exact_output() && quote.ge(&amount_required)) ||
-            (!request.orders.first().unwrap().order.is_exact_output() && quote.le(&amount_required)) {
-             return None;
-         }
+        if (request.orders.first().unwrap().order.is_exact_output() && quote.ge(&amount_required))
+            || (!request.orders.first().unwrap().order.is_exact_output()
+                && quote.le(&amount_required))
+        {
+            return None;
+        }
 
         // exact_out: profit = amount_in_required - quote
         // exact_in: profit = quote - amount_out_required
@@ -145,15 +150,15 @@ pub trait UniswapXStrategy {
     }
 
     /// Converts the quote amount to ETH equivalent value
-    /// 
+    ///
     /// For WETH output tokens, returns the quote directly since it's already in ETH.
     /// For non-WETH output tokens, converts using the following formula:
     /// quote_eth = quote * gas_wei / gas_in_quote
-    /// 
+    ///
     /// # Arguments
     /// * `request` - The order request containing token information
     /// * `route` - The route containing quote and gas estimates
-    /// 
+    ///
     /// # Returns
     /// * `Some(U256)` - The quote value in ETH
     /// * `None` - If any conversion fails or division by zero would occur
@@ -181,7 +186,7 @@ pub trait UniswapXStrategy {
     ) -> Result<U256> {
         let precompile_address = ARBITRUM_GAS_PRECOMPILE.parse::<Address>()?;
         let gas_precompile = GasPrecompileContract::new(precompile_address, client.clone());
-        let gas_info = gas_precompile.getMinimumGasPrice().call().await?._0;
+        let gas_info = gas_precompile.getMinimumGasPrice().call().await?;
 
         Ok(gas_info)
     }

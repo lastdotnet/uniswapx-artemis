@@ -1,7 +1,12 @@
 use std::sync::Arc;
 
-use alloy::{network::{AnyNetwork, EthereumWallet, TransactionBuilder}, providers::{DynProvider, Provider}, rpc::types::TransactionRequest, serde::WithOtherFields};
-use alloy_primitives::{Address, U256};
+use alloy::{
+    network::{AnyNetwork, EthereumWallet, TransactionBuilder},
+    primitives::{Address, U256},
+    providers::{DynProvider, Provider},
+    rpc::types::TransactionRequest,
+    serde::WithOtherFields,
+};
 use serde::Deserialize;
 
 const NONCE_BURN_GAS_MULTIPLIER: u128 = 10;
@@ -21,7 +26,7 @@ macro_rules! send_metric_with_order_hash {
 
 macro_rules! u256 {
     ($($limb:expr),*) => {
-        alloy_primitives::Uint::from_limbs([$($limb, 0, 0, 0),*])
+        alloy::primitives::Uint::from_limbs([$($limb, 0, 0, 0),*])
     };
 }
 
@@ -50,7 +55,6 @@ pub struct RouteInfo {
     #[serde(rename = "methodParameters")]
     pub method_parameters: MethodParameters,
 }
-
 
 pub async fn get_nonce_with_retry(
     sender_client: &Arc<DynProvider<AnyNetwork>>,
@@ -93,9 +97,7 @@ pub async fn burn_nonce(
     nonce: u64,
     order_hash: &str,
 ) -> Result<(), anyhow::Error> {
-    let base_fee = provider
-        .get_gas_price()
-        .await?;
+    let base_fee = provider.get_gas_price().await?;
 
     // Create a dummy transaction that sends 0 ETH to self with high gas price
     let tx_request = WithOtherFields::new(TransactionRequest {
@@ -117,12 +119,24 @@ pub async fn burn_nonce(
     match result {
         Ok(tx) => {
             // Don't wait for confirmations
-            tracing::info!("{} - Nonce burn transaction sent: {:?}", order_hash, tx.tx_hash());
+            tracing::info!(
+                "{} - Nonce burn transaction sent: {:?}",
+                order_hash,
+                tx.tx_hash()
+            );
             Ok(())
         }
         Err(e) => {
-            tracing::error!("{} - Error sending nonce burn transaction: {}", order_hash, e);
-            return Err(anyhow::anyhow!("{} - Error sending nonce burn transaction: {}", order_hash, e));
+            tracing::error!(
+                "{} - Error sending nonce burn transaction: {}",
+                order_hash,
+                e
+            );
+            Err(anyhow::anyhow!(
+                "{} - Error sending nonce burn transaction: {}",
+                order_hash,
+                e
+            ))
         }
     }
 }

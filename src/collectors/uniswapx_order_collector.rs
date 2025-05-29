@@ -1,5 +1,6 @@
+use crate::shared::RouteInfo;
 use anyhow::Result;
-use artemis_core::types::{Collector, CollectorStream};
+use artemis_light::types::{Collector, CollectorStream};
 use async_trait::async_trait;
 use futures::{stream, StreamExt};
 use reqwest::Client;
@@ -9,9 +10,6 @@ use std::str::FromStr;
 use std::string::ToString;
 use tokio::time::Duration;
 use tokio_stream::wrappers::IntervalStream;
-use crate::shared::RouteInfo;
-
-static UNISWAPX_API_URL: &str = "https://api.uniswap.org/v2";
 static POLL_INTERVAL_MS: u64 = 250;
 
 #[derive(Debug)]
@@ -93,11 +91,17 @@ pub struct UniswapXOrderCollector {
 }
 
 impl UniswapXOrderCollector {
-    pub fn new(chain_id: u64, order_type: OrderType, execute_address: String, api_key: Option<String>) -> Self {
+    pub fn new(
+        chain_id: u64,
+        order_type: OrderType,
+        execute_address: String,
+        api_key: Option<String>,
+        base_url: String,
+    ) -> Self {
         Self {
             client: Client::new(),
-            base_url: UNISWAPX_API_URL.to_string(),
-            api_key: api_key.unwrap_or_else(|| "".to_string()),
+            base_url,
+            api_key: api_key.unwrap_or_default(),
             chain_id,
             order_type,
             execute_address,
@@ -112,7 +116,7 @@ impl UniswapXOrderCollector {
 impl Collector<UniswapXOrder> for UniswapXOrderCollector {
     async fn get_event_stream(&self) -> Result<CollectorStream<'_, UniswapXOrder>> {
         let url = format!(
-            "{}/orders?orderStatus=open&chainId={}&orderType={}&limit=500&executeAddress={}",
+            "{}/dutch-auction/orders?orderStatus=open&chainId={}&orderType={}&limit=500&executeAddress={}",
             self.base_url, self.chain_id, self.order_type, self.execute_address,
         );
 
@@ -132,30 +136,30 @@ impl Collector<UniswapXOrder> for UniswapXOrderCollector {
             let api_key = self.api_key.clone();
             async move {
                 tracing::debug!("Polling UniswapX API for new orders");
-                
+
                 #[allow(unused_assignments)]
                 let mut last_error = None;
                 loop {
-                    match client.get(url.clone())
+                    match client
+                        .get(url.clone())
                         .header("x-api-key", api_key.clone())
                         .send()
-                        .await {
-                        Ok(resp) => {
-                            match resp.json::<UniswapXOrderResponse>().await {
-                                Ok(data) => {
-                                    tracing::debug!(
-                                        num_orders = data.orders.len(),
-                                        "Successfully fetched orders from UniswapX API"
-                                    );
-                                    return Ok(data.orders);
-                                },
-                                Err(e) => {
-                                    last_error = Some(e.to_string());
-                                    tracing::warn!(
-                                        error = %e,
-                                        "Failed to parse UniswapX API response, retrying..."
-                                    );
-                                }
+                        .await
+                    {
+                        Ok(resp) => match resp.json::<UniswapXOrderResponse>().await {
+                            Ok(data) => {
+                                tracing::debug!(
+                                    num_orders = data.orders.len(),
+                                    "Successfully fetched orders from UniswapX API"
+                                );
+                                return Ok(data.orders);
+                            }
+                            Err(e) => {
+                                last_error = Some(e.to_string());
+                                tracing::warn!(
+                                    error = %e,
+                                    "Failed to parse UniswapX API response, retrying..."
+                                );
                             }
                         },
                         Err(e) => {
@@ -166,7 +170,7 @@ impl Collector<UniswapXOrder> for UniswapXOrderCollector {
                             );
                         }
                     }
-                    
+
                     if let Some(err) = last_error {
                         tracing::warn!(error = %err, "Error in order stream, retrying...");
                         tokio::time::sleep(Duration::from_millis(1000)).await;
@@ -180,7 +184,7 @@ impl Collector<UniswapXOrder> for UniswapXOrderCollector {
                 Err(e) => {
                     tracing::warn!(error = %e, "Error in order stream, skipping batch");
                     stream::once(async { Err(e) }).right_stream()
-                },
+                }
             },
         )
         .filter_map(|result| async {
@@ -201,12 +205,10 @@ impl Collector<UniswapXOrder> for UniswapXOrderCollector {
 mod tests {
     use crate::collectors::uniswapx_order_collector::UniswapXOrderCollector;
     use alloy::hex;
-    use artemis_core::types::Collector;
+    use artemis_light::types::Collector;
     use futures::StreamExt;
     use mockito::{Mock, Server, ServerGuard};
-    use uniswapx_rs::order::{
-        V2DutchOrder, V3DutchOrder,
-    };
+    use uniswapx_rs::order::{V2DutchOrder, V3DutchOrder};
 
     use super::OrderType;
 
@@ -231,7 +233,7 @@ mod tests {
             base_url: url.clone(),
             api_key: "test-key".to_string(),
             chain_id: 1,
-            order_type: order_type,
+            order_type,
             // Inconsequential query parameter because we mock the order service response
             execute_address: "0x0000000000000000000000000000000000000000".to_string(),
         };
@@ -286,9 +288,8 @@ mod tests {
         let order_hex: Vec<u8> = hex::decode(encoded_order).unwrap();
 
         let result = V2DutchOrder::decode_inner(&order_hex, false);
-        match result {
-            Err(e) => panic!("Error decoding order: {:?}", e),
-            _ => (),
+        if let Err(e) = result {
+            panic!("Error decoding order: {e:?}")
         }
     }
 
@@ -314,9 +315,8 @@ mod tests {
         let order_hex: Vec<u8> = hex::decode(encoded_order).unwrap();
 
         let result = V3DutchOrder::decode_inner(&order_hex, false);
-        match result {
-            Err(e) => panic!("Error decoding order: {:?}", e),
-            _ => (),
+        if let Err(e) = result {
+            panic!("Error decoding order: {e:?}")
         }
     }
 }
