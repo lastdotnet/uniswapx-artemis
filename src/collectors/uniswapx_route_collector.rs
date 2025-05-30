@@ -1,6 +1,6 @@
 use std::{collections::HashSet, sync::Arc};
 
-use alloy_primitives::{Uint, U256};
+use alloy::primitives::{Uint, U256};
 use anyhow::{anyhow, Result};
 use aws_sdk_cloudwatch::Client as CloudWatchClient;
 use reqwest::header::ORIGIN;
@@ -9,7 +9,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{error, info};
 use uniswapx_rs::order::{Order, ResolvedOrder, TradeType};
 
-use artemis_core::types::{Collector, CollectorStream};
+use artemis_light::types::{Collector, CollectorStream};
 use async_trait::async_trait;
 use futures::lock::Mutex;
 use futures::stream::FuturesUnordered;
@@ -18,14 +18,13 @@ use reqwest::{Client, StatusCode};
 
 use crate::{
     aws_utils::cloudwatch_utils::{build_metric_future, CwMetrics, DimensionValue},
-    shared::{send_metric_with_order_hash, RouteInfo, MethodParameters},
+    shared::{send_metric_with_order_hash, MethodParameters, RouteInfo},
 };
 
-const ROUTING_API: &str = "https://api.uniswap.org/v1/quote";
 const SLIPPAGE_TOLERANCE: &str = "2.5";
 const DEADLINE: u64 = 1000;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct OrderData {
     pub order: Order,
     pub encoded_order: Option<String>,
@@ -35,7 +34,7 @@ pub struct OrderData {
     pub route: Option<RouteInfo>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct OrderBatchData {
     pub orders: Vec<OrderData>,
     pub chain_id: u64,
@@ -135,7 +134,7 @@ pub struct RouteOrderParams {
     pub trade_type: TradeType,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct RoutedOrder {
     pub route: OrderRoute,
     pub request: OrderBatchData,
@@ -157,6 +156,7 @@ pub struct UniswapXRouteCollector {
     pub route_sender: Sender<RoutedOrder>,
     pub executor_address: String,
     pub cloudwatch_client: Option<Arc<CloudWatchClient>>,
+    pub base_url: String,
 }
 
 impl UniswapXRouteCollector {
@@ -166,6 +166,7 @@ impl UniswapXRouteCollector {
         route_sender: Sender<RoutedOrder>,
         executor_address: String,
         cloudwatch_client: Option<Arc<CloudWatchClient>>,
+        base_url: String,
     ) -> Self {
         Self {
             client: Client::new(),
@@ -174,6 +175,7 @@ impl UniswapXRouteCollector {
             route_sender,
             executor_address,
             cloudwatch_client,
+            base_url,
         }
     }
 
@@ -197,14 +199,14 @@ impl UniswapXRouteCollector {
         };
 
         let query_string = serde_qs::to_string(&query)?;
-        let full_query = format!("{}?{}", ROUTING_API, query_string);
+        let full_query = format!("{}?{query_string}", self.base_url);
         info!("{} - full query: {}", order_hash, full_query);
         let client = reqwest::Client::new();
         let start = std::time::Instant::now();
 
         let response = client
-            .get(format!("{}?{}", ROUTING_API, query_string))
-            .header(ORIGIN, "https://app.uniswap.org")
+            .get(format!("{}/v1/quote?{query_string}", self.base_url))
+            .header(ORIGIN, self.base_url.clone())
             .header("x-request-source", "uniswap-web")
             .header("x-universal-router-version", "2.0")
             .send()

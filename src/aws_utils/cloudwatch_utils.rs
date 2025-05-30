@@ -104,35 +104,37 @@ pub enum CwMetrics {
 impl From<CwMetrics> for String {
     fn from(metric: CwMetrics) -> Self {
         match metric {
-            CwMetrics::RoutingMs(chain_id) => format!("{}-{}", chain_id, ROUTING_MS),
-            CwMetrics::Unprofitable(chain_id) => format!("{}-{}", chain_id, UNPROFITABLE_METRIC),
+            CwMetrics::RoutingMs(chain_id) => format!("{chain_id}-{ROUTING_MS}"),
+            CwMetrics::Unprofitable(chain_id) => format!("{chain_id}-{UNPROFITABLE_METRIC}"),
             CwMetrics::ExecutionAttempted(chain_id) => {
-                format!("{}-{}", chain_id, EXECUTION_ATTEMPTED_METRIC)
+                format!("{chain_id}-{EXECUTION_ATTEMPTED_METRIC}")
             }
             CwMetrics::ExecutionSkippedAlreadyFilled(chain_id) => {
-                format!("{}-{}", chain_id, EXECUTION_SKIPPED_ALREADY_FILLED_METRIC)
+                format!("{chain_id}-{EXECUTION_SKIPPED_ALREADY_FILLED_METRIC}")
             }
             CwMetrics::ExecutionSkippedPastDeadline(chain_id) => {
-                format!("{}-{}", chain_id, EXECUTION_SKIPPED_PAST_DEADLINE_METRIC)
+                format!("{chain_id}-{EXECUTION_SKIPPED_PAST_DEADLINE_METRIC}")
             }
-            CwMetrics::TxSucceeded(chain_id) => format!("{}-{}", chain_id, TX_SUCCEEDED_METRIC),
-            CwMetrics::TxReverted(chain_id) => format!("{}-{}", chain_id, TX_REVERTED_METRIC),
-            CwMetrics::TxSubmitted(chain_id) => format!("{}-{}", chain_id, TX_SUBMITTED_METRIC),
-            CwMetrics::OrderReceived(chain_id) => format!("{}-{}", chain_id, ORDER_RECEIVED_METRIC),
-            CwMetrics::OrderBid(chain_id) => format!("{}-{}", chain_id, ORDER_BID_METRIC),
-            CwMetrics::OrderFilled(chain_id) => format!("{}-{}", chain_id, ORDER_FILLED_METRIC),
+            CwMetrics::TxSucceeded(chain_id) => format!("{chain_id}-{TX_SUCCEEDED_METRIC}"),
+            CwMetrics::TxReverted(chain_id) => format!("{chain_id}-{TX_REVERTED_METRIC}"),
+            CwMetrics::TxSubmitted(chain_id) => format!("{chain_id}-{TX_SUBMITTED_METRIC}"),
+            CwMetrics::OrderReceived(chain_id) => format!("{chain_id}-{ORDER_RECEIVED_METRIC}"),
+            CwMetrics::OrderBid(chain_id) => format!("{chain_id}-{ORDER_BID_METRIC}"),
+            CwMetrics::OrderFilled(chain_id) => format!("{chain_id}-{ORDER_FILLED_METRIC}"),
             CwMetrics::TxStatusUnknown(chain_id) => {
-                format!("{}-{}", chain_id, TX_STATUS_UNKNOWN_METRIC)
+                format!("{chain_id}-{TX_STATUS_UNKNOWN_METRIC}")
             }
-            CwMetrics::Balance(val) => format!("Bal-{}", val),
-            CwMetrics::LatestBlock(chain_id) => format!("{}-{}", chain_id, LATEST_BLOCK),
-            CwMetrics::TargetBlockDelta(chain_id) => format!("{}-{}", chain_id, TARGET_BLOCK_DELTA),
-            CwMetrics::RevertCode(chain_id, code) => format!("{}-{}-{}", chain_id, REVERT_CODE_METRIC, code),
+            CwMetrics::Balance(val) => format!("Bal-{val}"),
+            CwMetrics::LatestBlock(chain_id) => format!("{chain_id}-{LATEST_BLOCK}"),
+            CwMetrics::TargetBlockDelta(chain_id) => format!("{chain_id}-{TARGET_BLOCK_DELTA}"),
+            CwMetrics::RevertCode(chain_id, code) => {
+                format!("{chain_id}-{REVERT_CODE_METRIC}-{code}")
+            }
         }
     }
 }
 
-pub const ARTEMIS_NAMESPACE: &str = "Artemis";
+pub const PAWSWAP_NAMESPACE: &str = "PawSwapX";
 
 pub struct MetricBuilder {
     metric_name: String,
@@ -145,7 +147,7 @@ impl MetricBuilder {
     pub fn new(metric: CwMetrics) -> Self {
         match metric {
             CwMetrics::Balance(val) => Self {
-                metric_name: format!("Bal-{}", val),
+                metric_name: format!("Bal-{val}"),
                 dimensions: Vec::new(),
                 value: 0.0,
             },
@@ -188,6 +190,7 @@ pub fn revert_code_to_metric(chain_id: u64, revert_code: String) -> CwMetrics {
     CwMetrics::RevertCode(chain_id, revert_code)
 }
 
+#[allow(clippy::type_complexity)]
 pub fn build_metric_future(
     cloudwatch_client: Option<Arc<CloudWatchClient>>,
     dimension_value: DimensionValue,
@@ -210,7 +213,7 @@ pub fn build_metric_future(
         Box::pin(async move {
             client
                 .put_metric_data()
-                .namespace(ARTEMIS_NAMESPACE)
+                .namespace(PAWSWAP_NAMESPACE)
                 .metric_data(
                     MetricBuilder::new(metric)
                         .add_dimension(DimensionName::Service.as_ref(), dimension_value.as_ref())

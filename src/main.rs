@@ -3,20 +3,21 @@ use anyhow::Result;
 use backoff::ExponentialBackoff;
 use clap::{ArgGroup, Parser};
 
-use artemis_core::engine::Engine;
-use artemis_core::types::{CollectorMap, ExecutorMap};
-use collectors::uniswapx_order_collector::OrderType;
-use collectors::{
-    block_collector::BlockCollector, uniswapx_order_collector::UniswapXOrderCollector,
-    uniswapx_route_collector::UniswapXRouteCollector,
-};
 use alloy::{
     hex,
     network::AnyNetwork,
+    primitives::Address,
     providers::{DynProvider, ProviderBuilder, WsConnect},
     pubsub::{ConnectionHandle, PubSubConnect},
     signers::local::PrivateKeySigner,
     transports::{impl_future, TransportResult},
+};
+use artemis_light::engine::Engine;
+use artemis_light::types::{CollectorMap, ExecutorMap};
+use collectors::uniswapx_order_collector::OrderType;
+use collectors::{
+    block_collector::BlockCollector, uniswapx_order_collector::UniswapXOrderCollector,
+    uniswapx_route_collector::UniswapXRouteCollector,
 };
 use executors::dutch_executor::DutchExecutor;
 use executors::queued_executor::QueuedExecutor;
@@ -30,7 +31,7 @@ use strategies::{
     uniswapx_strategy::UniswapXUniswapFill,
 };
 use tokio::sync::mpsc::channel;
-use tracing::{error, info, warn, Level};
+use tracing::{error, info, warn, debug};
 use tracing_subscriber::{filter, prelude::*};
 
 pub mod aws_utils;
@@ -74,7 +75,7 @@ pub struct Args {
 
     /// Percentage of profit to pay in gas.
     #[arg(long, required = false)]
-    pub bid_percentage: Option<u128>,
+    pub bid_percentage: Option<u64>,
 
     /// Determines how aggressive to scale the fallback bids
     /// 100 (default) = 1% of the profit
@@ -106,6 +107,18 @@ pub struct Args {
     /// Optional UniswapX API Key
     #[arg(long)]
     pub uniswapx_api_key: Option<String>,
+
+    /// Optional UniswapX API URL
+    #[arg(long)]
+    pub uniswapx_api: String,
+
+    /// Optional Routing API URL
+    #[arg(long)]
+    pub routing_api: String,
+
+    /// Optional Reactor Address
+    #[arg(long)]
+    pub reactor_address: String,
 }
 
 /// Retrying websocket connection using exponential backoff
@@ -134,31 +147,28 @@ impl PubSubConnect for RetryWsConnect {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    println!("FOOO");
     // Set up tracing and parse args.
-    let filter = filter::Targets::new()
-        .with_target("artemis_core", Level::INFO)
-        .with_target("uniswapx_artemis", Level::INFO);
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
 
     tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::fmt::layer()
-                // this needs to be set to false, otherwise ANSI color codes will
-                // show up in a confusing manner in CloudWatch logs.
-                .with_ansi(false)
-                // remove the name of the function from every log entry
-                .with_target(false),
-        )
-        .with(filter)
+        .with(tracing_subscriber::fmt::layer().with_target(false))
+        .with(filter::EnvFilter::from_default_env())
         .init();
 
     let args = Args::parse();
+
+    debug!("Starting up");
 
     // Set up ethers provider.
     let chain_id = args.chain_id;
     let mut client = None;
     let mut sender_client = None;
-    
+
     if let Some(wss) = args.wss {
+        debug!("Starting up 2");
         let ws = WsConnect::new(wss.as_str());
         let retry_ws = RetryWsConnect(ws);
         let wss_client = ClientBuilder::default().pubsub(retry_ws).await?;
@@ -166,7 +176,7 @@ async fn main() -> Result<()> {
         let wss_provider = Arc::new(DynProvider::<AnyNetwork>::new(
             ProviderBuilder::new()
                 .network::<AnyNetwork>()
-                .on_client(wss_client)
+                .connect_client(wss_client),
         ));
         client = Some(wss_provider.clone());
         sender_client = Some(wss_provider.clone());
@@ -180,16 +190,16 @@ async fn main() -> Result<()> {
         let http_provider = Arc::new(DynProvider::<AnyNetwork>::new(
             ProviderBuilder::new()
                 .network::<AnyNetwork>()
-                .on_client(http_client)
+                .connect_client(http_client),
         ));
         // prefer http provider for sending txs
         sender_client = Some(http_provider.clone());
         // prefer wss provider for fetching blocks
-        if !client.is_some() {
+        if client.is_none() {
             client = Some(http_provider.clone());
         }
     }
-    if !client.is_some() {
+    if client.is_none() {
         panic!("No provider found. Please provide either a WSS endpoint (--wss) or an HTTP endpoint (--http).");
     }
 
@@ -246,6 +256,7 @@ async fn main() -> Result<()> {
         args.order_type.clone(),
         args.executor_address.clone(),
         args.uniswapx_api_key,
+        args.uniswapx_api,
     ));
     let uniswapx_order_collector = CollectorMap::new(uniswapx_order_collector, |e| {
         Event::UniswapXOrder(Box::new(e))
@@ -265,6 +276,7 @@ async fn main() -> Result<()> {
         route_sender,
         args.executor_address.clone(),
         cloudwatch_client.clone(),
+        args.routing_api,
     ));
     let uniswapx_route_collector = CollectorMap::new(uniswapx_route_collector, |e| {
         Event::UniswapXRoute(Box::new(e))
@@ -277,6 +289,8 @@ async fn main() -> Result<()> {
         min_block_percentage_buffer: args.min_block_percentage_buffer,
         executor_address: args.executor_address,
     };
+
+    let reactor_address = args.reactor_address.parse::<Address>().unwrap();
 
     match &args.order_type {
         OrderType::DutchV2 => {
@@ -299,6 +313,7 @@ async fn main() -> Result<()> {
                 route_receiver,
                 key_store.get_address().unwrap(),
                 chain_id,
+                reactor_address,
             );
             engine.add_strategy(Box::new(uniswapx_strategy));
         }
@@ -324,7 +339,7 @@ async fn main() -> Result<()> {
     ));
 
     let queued_executor = ExecutorMap::new(queued_executor, |action| match action {
-        Action::SubmitPublicTx(tx) => Some(tx),
+        Action::SubmitPublicTx(tx) => Some(*tx),
         _ => None,
     });
 
@@ -336,11 +351,10 @@ async fn main() -> Result<()> {
     ));
 
     let protect_executor = ExecutorMap::new(protect_executor, |action| match action {
-        Action::SubmitTx(tx) => Some(tx),
+        Action::SubmitTx(tx) => Some(*tx),
         // No op for public transactions
         _ => None,
     });
-
 
     engine.add_executor(Box::new(queued_executor));
     engine.add_executor(Box::new(protect_executor));
