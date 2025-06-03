@@ -1,0 +1,68 @@
+name: Workflow | Deploy backend
+
+on:
+  workflow_call:
+    inputs:
+      account:
+        required: true
+        type: string
+      region:
+        required: true
+        type: string
+    secrets:
+      GITHUB_TOKEN_ORG:
+        required: true
+
+jobs:
+  cluster:
+    name: cluster
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN_ORG }}
+
+      - name: Configure Git Access
+        run: |
+          git config --global url."https://${{ secrets.GITHUB_TOKEN_ORG }}@github.com/".insteadOf "https://github.com/"
+
+      - uses: ./.github/actions/deploy-cdk-stack
+        with:
+          account: ${{ inputs.account }}
+          region: ${{ inputs.region }}
+          stacks: imported-pawswapx-cluster
+
+  filler-backend:
+    needs:
+      - cluster
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN_ORG }}
+
+      - name: Configure Git Access
+        run: |
+          git config --global url."https://${{ secrets.GITHUB_TOKEN_ORG }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Build UniswapX Contracts
+        run: |
+            forge install
+            forge bind --root lib/UniswapX  --overwrite \ 
+            --bindings-path crates/bindings-pawswapx --alloy-version 1.0 \
+            --crate-name bindings-pawswapx
+
+      - uses: ./.github/actions/deploy-cdk-stack
+        with:
+          account: ${{ inputs.account }}
+          region: ${{ inputs.region }}
+          stacks: hypurr-pawswapx-filler
